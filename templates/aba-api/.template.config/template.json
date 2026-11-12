@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/template",
+  "author": "ABA Framework",
+  "classifications": ["Web", "WebAPI", "DDD", "ABA", "Modular Monolith"],
+  "identity": "ABA.Framework.GenericApi.CSharp",
+  "name": "ABA Generic API Starter",
+  "description": "Domain-neutral .NET 10 API with security, OpenAPI, Scalar UI, tests and AI governance instructions.",
+  "shortName": "aba-api",
+  "sourceName": "Aba.Starter",
+  "preferNameDirectory": true,
+  "tags": { "language": "C#", "type": "solution" },
+  "primaryOutputs": [{ "path": "Aba.Starter.slnx" }]
+}

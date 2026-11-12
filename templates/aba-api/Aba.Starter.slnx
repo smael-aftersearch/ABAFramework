@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/Aba.Starter.Api/Aba.Starter.Api.csproj" />
+  <Project Path="tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj" />
+</Solution>

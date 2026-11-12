@@ -1,0 +1,13 @@
+{
+  "profiles": {
+    "Local HTTP": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "scalar",
+      "applicationUrl": "http://127.0.0.1:5174",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

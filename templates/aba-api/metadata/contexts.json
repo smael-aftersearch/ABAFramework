@@ -1,0 +1,5 @@
+{
+  "contexts": [],
+  "contractCatalog": [],
+  "note": "No business contexts are invented. Declare one owner per rule/data/contract when the first real bounded context is added."
+}
