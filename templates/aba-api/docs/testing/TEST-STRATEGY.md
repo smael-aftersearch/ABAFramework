@@ -18,6 +18,15 @@ dotnet test Aba.Starter.slnx -c Release --no-build
 
 A separate **integration test project outside the default solution** lives in `tests/Aba.Starter.Platform.IntegrationTests`. It contains actual PostgreSQL, SQL Server, Redis and Wolverine tests. Running ordinary `dotnet test Aba.Starter.slnx` stays fast and needs no external services; running the dedicated integration test project **requires all external connections** and fails closed if any are absent, rather than falsely recording a PASS. Set `ABA_TEST_POSTGRESQL`, `ABA_TEST_SQLSERVER` and `ABA_TEST_REDIS`, then execute `dotnet test tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj`. Repo-level `scripts/verify-platform-services.sh` builds and tests this isolated suite on a fresh generated API and CI provisions actual containers.
 
+## Transactional Outbox acceptance gate
+
+The real-service integration suite invokes `AbaTransactionalOutboxProbe` against **both** database engines and checks:
+- success: one EF row and one downstream handler receipt;
+- injected fault after publishing, before commit: neither row nor downstream receipt exists;
+- default domain-neutral quick start remains external-service-free.
+
+This is stronger than a connectivity test, but it is still not a crash/restart or broker outage test.
+
 ## New changes
 
 Each feature needs relevant success, negative and invariant tests, and updated API/contract docs. For a new context, implement unit and integration tests before adding broader end-to-end tests. Add real PostgreSQL, Redis, Wolverine, tenant isolation and provider failure tests only when their adapters exist; never claim they already run.

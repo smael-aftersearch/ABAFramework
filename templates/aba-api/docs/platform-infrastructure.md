@@ -43,7 +43,7 @@ Wolverine envelope tables are separately managed from EF Core domain migrations.
 
 Wolverine 6 requires the explicit `WolverineFx.RuntimeCompilation` package for dynamic handler code generation, and the template now includes it. For **isolated Development integration tests only**, set `Platform__Messaging__AutoProvisionInDevelopment=true` to allow Wolverine's native `AutoBuildMessageStorageOnStartup` policy to create required envelope tables. Production startup explicitly keeps `AutoCreate.None` and requires reviewed provisioning before deployment. A technical probe handler is included to verify durable local message processing against each real SQL engine.
 
-No RabbitMQ/Kafka or business handler is silently installed. CI exercises a real durability probe handler against both supported SQL engines, but **crash/restart, outbox atomicity under injected failures, replay/dead-letter and business consumer coverage are still incomplete**. Do not equate the probe with complete production message reliability.
+No RabbitMQ/Kafka or business handler is silently installed. CI now also exercises a **technical EF + Wolverine transactional outbox probe** on both SQL engines: a successful handler writes state and dispatches a message together; an injected pre-commit exception after `PublishAsync` must leave neither the state row nor the downstream receipt. This tests rollback at a real transactional boundary. **Process crashes/restarts, dead-letter replay and real business consumer coverage are still incomplete.** Do not equate the probe with complete production message reliability.
 
 ## Local development integration services
 

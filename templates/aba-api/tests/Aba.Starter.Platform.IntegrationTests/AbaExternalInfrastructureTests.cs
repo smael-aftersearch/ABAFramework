@@ -140,6 +140,109 @@ public sealed class AbaExternalInfrastructureTests
         }
     }
 
+    [Theory]
+    [InlineData("PostgreSql", "ABA_TEST_POSTGRESQL")]
+    [InlineData("SqlServer", "ABA_TEST_SQLSERVER")]
+    public async Task EfStateAndWolverineOutboxCommitOrRollbackTogether(
+        string provider, string variable)
+    {
+        var connection = Environment.GetEnvironmentVariable(variable);
+        Assert.False(string.IsNullOrWhiteSpace(connection),
+            $"Missing required integration connection: {variable}");
+
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+        {
+            EnvironmentName = "Development"
+        });
+        builder.WebHost.UseUrls("http://127.0.0.1:0");
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Platform:Database:Provider"] = provider,
+            ["ConnectionStrings:AbaDatabase"] = connection,
+            ["Platform:Cache:Provider"] = "Memory",
+            ["Platform:Messaging:Enabled"] = "true",
+            ["Platform:Messaging:AutoProvisionInDevelopment"] = "true"
+        });
+        builder.Services.AddHealthChecks();
+        builder.AddAbaPlatform();
+        await using var app = builder.Build();
+
+        await using (var setupScope = app.Services.CreateAsyncScope())
+        {
+            var db = setupScope.ServiceProvider.GetRequiredService<AbaPlatformDbContext>();
+            // Needed for SQL Server: create application DB before Wolverine opens it.
+            for (var attempt = 0; ; attempt++)
+            {
+                try
+                {
+                    await db.Database.MigrateAsync();
+                    break;
+                }
+                catch (Exception ex) when (attempt < 29 &&
+                    (ex is System.Data.Common.DbException || ex is TimeoutException))
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(2));
+                }
+            }
+        }
+
+        await app.StartAsync();
+        try
+        {
+            var committedId = Guid.NewGuid();
+            await using (var sendScope = app.Services.CreateAsyncScope())
+            {
+                var bus = sendScope.ServiceProvider.GetRequiredService<Wolverine.IMessageBus>();
+                await bus.InvokeAsync(new Aba.Starter.Platform.Messaging.AbaTransactionalOutboxProbe(
+                    committedId, FailAfterPublish: false));
+            }
+
+            var bothCommitted = false;
+            for (var attempt = 0; attempt < 60; attempt++)
+            {
+                await using var readScope = app.Services.CreateAsyncScope();
+                var db = readScope.ServiceProvider.GetRequiredService<AbaPlatformDbContext>();
+                var key = committedId.ToString("N");
+                var commandCount = await db.IdempotencyReceipts.CountAsync(x =>
+                    x.Scope == "aba-outbox-transaction" && x.Key == key);
+                var eventCount = await db.IdempotencyReceipts.CountAsync(x =>
+                    x.Scope == "aba-durability-probe" && x.Key == key);
+                if (commandCount == 1 && eventCount == 1)
+                {
+                    bothCommitted = true;
+                    break;
+                }
+                await Task.Delay(TimeSpan.FromMilliseconds(250));
+            }
+            Assert.True(bothCommitted,
+                $"{provider}: committed EF state and Wolverine outbox event did not both appear.");
+
+            var rejectedId = Guid.NewGuid();
+            await using (var sendScope = app.Services.CreateAsyncScope())
+            {
+                var bus = sendScope.ServiceProvider.GetRequiredService<Wolverine.IMessageBus>();
+                await Assert.ThrowsAnyAsync<Exception>(() =>
+                    bus.InvokeAsync(new Aba.Starter.Platform.Messaging.AbaTransactionalOutboxProbe(
+                        rejectedId, FailAfterPublish: true)));
+            }
+
+            // A faulty outbox must never dispatch the event while rolling back
+            // the EF record. This checks both independently.
+            await Task.Delay(TimeSpan.FromMilliseconds(750));
+            await using var finalScope = app.Services.CreateAsyncScope();
+            var finalDb = finalScope.ServiceProvider.GetRequiredService<AbaPlatformDbContext>();
+            var badKey = rejectedId.ToString("N");
+            Assert.False(await finalDb.IdempotencyReceipts.AsNoTracking().AnyAsync(x =>
+                x.Scope == "aba-outbox-transaction" && x.Key == badKey));
+            Assert.False(await finalDb.IdempotencyReceipts.AsNoTracking().AnyAsync(x =>
+                x.Scope == "aba-durability-probe" && x.Key == badKey));
+        }
+        finally
+        {
+            await app.StopAsync();
+        }
+    }
+
     [Fact]
     public async Task RealRedisProvidesScopedRoundTripAndInvalidation()
     {
