@@ -6,6 +6,8 @@ using Wolverine.EntityFrameworkCore;
 using Wolverine.Postgresql;
 using Wolverine.SqlServer;
 using JasperFx;
+using Microsoft.Extensions.Hosting;
+using Oakton.Resources;
 
 namespace Aba.Starter.Platform.Messaging;
 
@@ -42,6 +44,6 @@ public static class AbaWolverineServices
         // Production schema/resource updates belong in a reviewed deployment step.
         if (builder.Environment.IsDevelopment()
             && builder.Configuration.GetValue<bool>("Platform:Messaging:AutoProvisionInDevelopment"))
-            builder.Host.UseResourceSetupOnStartup();
+            builder.Services.AddResourceSetupOnStartup();
     }
 }
