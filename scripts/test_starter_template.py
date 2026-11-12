@@ -170,6 +170,24 @@ class GenericTemplateTests(unittest.TestCase):
             self.assertIn('integration-audit.json', workflow)
             self.assertIn('integration.spdx.json', workflow)
 
+    def test_native_recovery_drills_are_opt_in_ci_only(self):
+        path = TEMPLATE / 'tests/Aba.Starter.Platform.IntegrationTests/BackupRestoreDrillTests.cs'
+        self.assertTrue(path.is_file())
+        source = path.read_text()
+        for evidence in ('pg_dump', 'pg_restore', 'BACKUP DATABASE', 'RESTORE DATABASE',
+                         'RequireDisposableFixture', 'Category", "RecoveryDrill',
+                         'ABA_ENABLE_DESTRUCTIVE_CI_DRILLS'):
+            self.assertIn(evidence, source)
+        external = (ROOT / 'scripts/verify-platform-services.sh').read_text()
+        task = (TEMPLATE / 'tools/aba_task.py').read_text()
+        ci = (ROOT / '.github/workflows/verify.yml').read_text()
+        generated_ci = (TEMPLATE / '.github/workflows/integration.yml').read_text()
+        self.assertIn("Category!=RecoveryDrill", external)
+        self.assertIn("Category!=RecoveryDrill", task)
+        for workflow in (ci, generated_ci):
+            self.assertIn("postgresql-client", workflow)
+            self.assertIn("ABA_ENABLE_DESTRUCTIVE_CI_DRILLS", workflow)
+
     def test_xunit_and_companion_script_exist(self):
         proj = (TEMPLATE / 'tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj').read_text()
         self.assertIn('PackageReference Include="xunit"', proj)

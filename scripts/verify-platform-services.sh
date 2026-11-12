@@ -27,5 +27,11 @@ dotnet restore "$PROJECT"
 dotnet build "$PROJECT" -c Release --no-restore
 dotnet restore "$INTEGRATION"
 dotnet build "$INTEGRATION" -c Release --no-restore
-dotnet test "$INTEGRATION" -c Release --no-build --logger 'console;verbosity=normal'
+dotnet test "$INTEGRATION" -c Release --no-build --filter 'Category!=RecoveryDrill' --logger 'console;verbosity=normal'
+if [[ "${ABA_ENABLE_DESTRUCTIVE_CI_DRILLS:-}" == "yes" ]]; then
+  # Both providers receive disposable, uniquely named databases. Never run
+  # against production targets; the C# fixture independently enforces CI-only
+  # localhost/database safety.
+  dotnet test "$INTEGRATION" -c Release --no-build --filter 'Category=RecoveryDrill' --logger 'console;verbosity=normal'
+fi
 echo "PASS: PostgreSQL, SQL Server, Redis and Wolverine message probes on generated project"

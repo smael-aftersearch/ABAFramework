@@ -62,6 +62,10 @@ class TaskPlannerTests(unittest.TestCase):
             else:
                 os.environ["ABA_TEST_POSTGRESQL"] = previous
 
+    def test_recovery_drills_are_excluded_from_implicit_full_verification(self):
+        source = (TOOLS / "aba_task.py").read_text()
+        self.assertIn("Category!=RecoveryDrill", source)
+
     def test_static_verification_runs_real_governance(self):
         outcome = module.verify("static")
         self.assertEqual("PASS", outcome["status"])

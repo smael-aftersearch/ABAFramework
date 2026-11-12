@@ -71,11 +71,16 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+      - name: Install native PostgreSQL backup/restore clients
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client
       - name: Verify real PostgreSQL, SQL Server and Redis with generated project
         env:
           ABA_TEST_POSTGRESQL: "Host=localhost;Port=5432;Database=aba_ci;Username=aba_ci;Password=aba-ci-local-only"
           ABA_TEST_SQLSERVER: "Server=localhost,1433;Database=aba_ci;User Id=sa;Password=Aba_CiOnly_2026!;TrustServerCertificate=True"
           ABA_TEST_REDIS: "localhost:6379,abortConnect=false"
+          ABA_ENABLE_DESTRUCTIVE_CI_DRILLS: "yes"
         run: |
           bash scripts/verify-platform-services.sh
 
