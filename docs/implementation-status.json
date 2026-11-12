@@ -357,14 +357,21 @@
       "id": "db-backup-restore",
       "area": "Persistence",
       "feature": "Backup, recovery, rollback and restore drill",
-      "status": "not_started",
+      "status": "partial",
       "owner": "Operations / DBA",
       "priority": "P0",
-      "delivered": "Not implemented",
-      "remaining": "Build reversible migration and recoverable backup/restore runbooks",
+      "delivered": "Disposable CI-only PostgreSQL pg_dump/pg_restore and SQL Server BACKUP/RESTORE VERIFYONLY drills with negative safety guards; production operations remain incomplete",
+      "remaining": "Prove business-schema and point-in-time recovery, migration rollback, offsite encrypted backups, RTO/RPO and operator restore rehearsal",
       "acceptance": "Recover both SQL engines and confirm data integrity after test failure",
-      "evidence": [],
-      "tests": []
+      "evidence": [
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/BackupRestoreDrillTests.cs",
+        "scripts/verify-platform-services.sh",
+        "templates/aba-api/.github/workflows/integration.yml"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/BackupRestoreDrillTests.cs",
+        "scripts/test_starter_template.py"
+      ]
     },
     {
       "id": "idem-atomic",
@@ -789,8 +796,8 @@
       "status": "partial",
       "owner": "Release engineering",
       "priority": "P0",
-      "delivered": "CI-verified fail-closed NuGet direct/transitive advisory gate and SPDX 2.3 resolved-package inventory; 13 negative/positive tests and 161 packages in baseline",
-      "remaining": "Scan the separate integration-test project's NuGet graph; pin and scan OCI image digests; sign/verify release artifacts and publish attestations",
+      "delivered": "NuGet direct/transitive fail-closed scan and SPDX inventory for default solution AND isolated integration-test project, in framework and generated-project CI",
+      "remaining": "Pin and scan OCI image digests; sign/verify release artifacts, attest provenance and approve publication controls",
       "acceptance": "Release pipeline rejects vulnerable/untrusted dependencies and verifies provenance",
       "evidence": [
         "templates/aba-api/tools/supply_chain.py",

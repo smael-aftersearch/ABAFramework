@@ -14,10 +14,10 @@ its **production release gates remain open**. Evidence refers to the last review
 [CI run 43311281662](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43311281662)
 (commit `73423678333d`). New commits must pass their own CI before being treated as verified.
 
-**Tracked: 54** · Implemented: 31 · Partial: 3 · Not implemented: 20.
+**Tracked: 54** · Implemented: 31 · Partial: 4 · Not implemented: 19.
 
 | Area | Parameter / feature | Status | Delivered scope | Remaining task | Priority |
-| --- | --- | --- | --- | --- | --- |
+| --- | --- | --- | --- | --- | --- | --- |
 | API | Domain-neutral .NET 10 HTTP API | **Implemented** | Versioned Minimal API with composition root | No generic framework work outstanding | P0 |
 | API | OpenAPI plus interactive Scalar | **Implemented** | Generated OpenAPI and Development-only Scalar UI | Production API docs need a reviewed access policy | P1 |
 | API | Problem Details and HTTP errors | **Implemented** | RFC 7807 HTTP 500 with nonsecret Production response, validated header/body correlation ID and focused HTTP failure tests | Review validation/client errors, proxy traces and application logging policy per deployment | P1 |
@@ -39,7 +39,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | Persistence | Optional per-context EF Core scaffold | **Implemented** | --with-db creates empty context-owned DbContext for both SQL engines | No business entities, actual migrations or policies are invented | P1 |
 | Persistence | Business context schema and migrations | **Not implemented** | Not implemented | Implement real owner-specific models and migrations after requirements | P0 |
 | Persistence | Business optimistic concurrency handling | **Not implemented** | Not implemented | Implement rowversion/concurrency tokens and conflict semantics per context | P1 |
-| Persistence | Backup, recovery, rollback and restore drill | **Not implemented** | Not implemented | Build reversible migration and recoverable backup/restore runbooks | P0 |
+| Persistence | Backup, recovery, rollback and restore drill | **Partial** | Disposable CI-only PostgreSQL pg_dump/pg_restore and SQL Server BACKUP/RESTORE VERIFYONLY drills with negative safety guards; production operations remain incomplete | Prove business-schema and point-in-time recovery, migration rollback, offsite encrypted backups, RTO/RPO and operator restore rehearsal | P0 |
 | Reliability | Transactional idempotency receipt and work | **Implemented** | Same-DbContext work and receipt commit/rollback together | External provider side effects still require dedicated idempotency | P0 |
 | Reliability | Concurrent duplicate request suppression | **Implemented** | Four concurrent callers; only one same-key transaction commits | Cross-service external payment retries need real owning context | P0 |
 | Messaging | Wolverine 6 durable local queues | **Implemented** | Durable relational messaging with either SQL engine | External broker delivery not yet wired | P0 |
@@ -66,7 +66,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | Testing | Real PostgreSQL/SQL Server/Redis/Wolverine CI | **Implemented** | 16 executable real-service tests across both SQL engines | Crash, high-load and external broker remain release gates | P0 |
 | Testing | CI bundled into each generated API | **Implemented** | Push/PR build gate and manually triggered real-service workflow | Generated-project pipelines need repository policy/hardening to be adopted | P1 |
 | Deployment | Non-root OCI image and local Compose | **Implemented** | Multi-stage .NET 10 Dockerfile, localhost-only Development Compose | Production image signing, secrets/TLS/hosting still open | P1 |
-| Deployment | SBOM, vulnerability scans and signed releases | **Partial** | CI-verified fail-closed NuGet direct/transitive advisory gate and SPDX 2.3 resolved-package inventory; 13 negative/positive tests and 161 packages in baseline | Scan the separate integration-test project's NuGet graph; pin and scan OCI image digests; sign/verify release artifacts and publish attestations | P0 |
+| Deployment | SBOM, vulnerability scans and signed releases | **Partial** | NuGet direct/transitive fail-closed scan and SPDX inventory for default solution AND isolated integration-test project, in framework and generated-project CI | Pin and scan OCI image digests; sign/verify release artifacts, attest provenance and approve publication controls | P0 |
 | Deployment | Production deployment with TLS, identity and rollback | **Not implemented** | Not implemented | Choose target hosting, configure DNS/TLS/secrets and deployment rollback | P0 |
 | Operations | Latency/throughput/load and failover baseline | **Not implemented** | Not implemented | Set SLO and run load/chaos tests across two provider deployments | P1 |
 | Business | Owner-defined versioned cross-context contracts | **Partial** | Context generator creates Contracts project; no real product Contracts | Specify real public V1 schemas, consumers and compatibility evolution | P0 |
@@ -81,13 +81,13 @@ its **production release gates remain open**. Evidence refers to the last review
 | `auth-sql-rls` | Plan and verify provider-specific RLS for both databases — Direct SQL and EF ExecuteUpdate cannot modify foreign tenant records | Not implemented |
 | `auth-raw-sql` | Add trusted tenant-bound access policies beyond EF tracking — Cross-tenant raw SQL and bulk mutation are denied | Not implemented |
 | `db-business-migrations` | Implement real owner-specific models and migrations after requirements — Both SQL engines perform context migration without shared business tables | Not implemented |
-| `db-backup-restore` | Build reversible migration and recoverable backup/restore runbooks — Recover both SQL engines and confirm data integrity after test failure | Not implemented |
+| `db-backup-restore` | Prove business-schema and point-in-time recovery, migration rollback, offsite encrypted backups, RTO/RPO and operator restore rehearsal — Recover both SQL engines and confirm data integrity after test failure | Partial |
 | `msg-poison-replay` | Add reviewed dead-letter administration/replay without bypassing authorization — Poison message is quarantined, inspected and safely replayed exactly as intended | Not implemented |
 | `msg-crash-window` | Test kill at commit/publish/ack boundary and recovery on both SQL engines — No message loss across abrupt process death and controlled duplicate deliveries | Not implemented |
 | `msg-domain-consumers` | Implement owner-approved domain contracts, Inbox and cross-context handlers — Consumer cannot mutate another context's tables; duplicate events are safe | Not implemented |
 | `ops-audit` | Define context-owned auditable actions with safe retention/PII policy — Audit cannot be silently rewritten and records actor, action, tenant, outcome | Not implemented |
 | `ops-prod-secrets` | Add approved secret store, rotation and least-privilege deployment setup — No plaintext production secret in repo/container/CI logs | Not implemented |
-| `dev-release-sbom` | Scan the separate integration-test project's NuGet graph; pin and scan OCI image digests; sign/verify release artifacts and publish attestations — Release pipeline rejects vulnerable/untrusted dependencies and verifies provenance | Partial |
+| `dev-release-sbom` | Pin and scan OCI image digests; sign/verify release artifacts, attest provenance and approve publication controls — Release pipeline rejects vulnerable/untrusted dependencies and verifies provenance | Partial |
 | `dev-prod-deploy` | Choose target hosting, configure DNS/TLS/secrets and deployment rollback — Production smoke, zero-downtime deploy and rollback drill pass | Not implemented |
 | `biz-contracts` | Specify real public V1 schemas, consumers and compatibility evolution — V1 consumers stay compatible; private implementation edges rejected | Partial |
 | `biz-contract-tests` | Introduce consumer-driven tests for real event/HTTP contracts — A breaking V1 change fails CI and requires an explicit V2 | Not implemented |
@@ -106,7 +106,7 @@ Run `python3 scripts/status_matrix.py --check` to fail CI on mismatched tables.
 | `auth-sql-rls` | Owning business context / DBA | P0 | Not implemented | Direct SQL and EF ExecuteUpdate cannot modify foreign tenant records |
 | `auth-raw-sql` | Owning business context / Security | P0 | Not implemented | Cross-tenant raw SQL and bulk mutation are denied |
 | `db-business-migrations` | Actual context owner (TBD) | P0 | Not implemented | Both SQL engines perform context migration without shared business tables |
-| `db-backup-restore` | Operations / DBA | P0 | Not implemented | Recover both SQL engines and confirm data integrity after test failure |
+| `db-backup-restore` | Operations / DBA | P0 | Partial | Recover both SQL engines and confirm data integrity after test failure |
 | `msg-poison-replay` | Platform / Operations | P0 | Not implemented | Poison message is quarantined, inspected and safely replayed exactly as intended |
 | `msg-crash-window` | Platform / Operations | P0 | Not implemented | No message loss across abrupt process death and controlled duplicate deliveries |
 | `msg-domain-consumers` | Business owners (TBD) | P0 | Not implemented | Consumer cannot mutate another context's tables; duplicate events are safe |
@@ -145,6 +145,7 @@ Run `python3 scripts/status_matrix.py --check` to fail CI on mismatched tables.
 | `db-sqlserver` | `templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaPersistenceServices.cs` | `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs` |
 | `db-technical-migrations` | `templates/aba-api/src/Aba.Starter.Platform/Persistence/Migrations/202611120001_InitialTechnicalStore.cs` | `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs` |
 | `db-context-scaffold` | `templates/aba-api/tools/new_context.py` | `scripts/verify-starter.sh` |
+| `db-backup-restore` | `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/BackupRestoreDrillTests.cs`, `scripts/verify-platform-services.sh`, `templates/aba-api/.github/workflows/integration.yml` | `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/BackupRestoreDrillTests.cs`, `scripts/test_starter_template.py` |
 | `idem-atomic` | `templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaPersistenceServices.cs` | `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs` |
 | `idem-concurrent` | `templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaPersistenceServices.cs` | `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs` |
 | `msg-wolverine` | `templates/aba-api/src/Aba.Starter.Platform/Messaging/AbaWolverineServices.cs` | `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs` |

@@ -17,3 +17,14 @@ project/restore evidence must fail. The optional external integration
 test project, OCI image digest pinning, container scanning, release
 signature/provenance verification and public deployment are **not**
 covered by this new gate. These remain independent P0 release tasks.
+
+## Safe recovery-drill execution
+
+Database-native recovery tests perform create/drop/restore operations and must
+never be used against a customer or production database. They refuse execution
+without `CI=true`, `ABA_ENABLE_DESTRUCTIVE_CI_DRILLS=yes` and a loopback
+`aba_ci` fixture, then create uniquely named throwaway databases only.
+The generated project's normal tests exclude the `RecoveryDrill` category.
+Production backup/restore requires its own approved runbook, least-privilege
+credentials, encrypted isolated staging and human change control. See
+[generated-project recovery guide](../templates/aba-api/docs/disaster-recovery.md).

@@ -31,3 +31,16 @@ actual direct/transitive NuGet advisories against the restored default
 solution. The SPDX 2.3 inventory and advisory report are retained as
 artifacts. A missing/failed advisory check must never silently pass.
 The optional real-service integration project is a separate release gate.
+
+## CI-only database-native recovery and expanded NuGet scan
+
+`BackupRestoreDrillTests.cs` lives in the generated external integration test
+project, outside the fast Solution. Its `RecoveryDrill` cases require
+`CI=true`, a separate opt-in and exact loopback `aba_ci` fixtures.
+They verify PostgreSQL `pg_dump/pg_restore` and SQL Server
+`BACKUP/VERIFYONLY/RESTORE` after a deliberate data mutation, plus negative
+tests refusing untrusted targets. Ordinary API and external infrastructure
+tests exclude this category; CI invokes it separately when the disposable
+containers are provisioned. See `templates/aba-api/docs/disaster-recovery.md`.
+NuGet CI now audits both the normal Solution and the separate integration
+project, with independent SPDX package inventories.

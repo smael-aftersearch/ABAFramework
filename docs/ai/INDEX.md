@@ -29,6 +29,15 @@ This is the **navigation map** for humans and coding agents. **For any new custo
 
 The book's example domains are illustrations, not mandatory universal contexts. In this sample, Identity, Enrollment, Payments, Accounting, and Reporting are actual owners. Framework libraries are technical capabilities, never business owners.
 
+## Operational recovery and supply-chain guides
+
+For infrastructure recovery changes read
+[`templates/aba-api/docs/disaster-recovery.md`](../../templates/aba-api/docs/disaster-recovery.md)
+and the maintained P0 backlog before authoring destructive tests. The CI-only
+backup/restore tests are not production runbooks. For NuGet source verification
+read `templates/aba-api/tools/supply_chain.py` and both workflow audit jobs;
+there are separate default-Solution and external-integration SBOMs.
+
 ## Quick start for an agent
 
 ```bash

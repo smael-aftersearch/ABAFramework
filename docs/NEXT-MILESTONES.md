@@ -19,6 +19,17 @@ The authoritative, maintained **54-feature status table** and prioritized open-t
 
 [Source-grounded full framework CI evidence](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43298754432) | `docs/verification/2026-11-12-platform-providers.md`.
 
+## Recent P0 infrastructure work — gated by live CI evidence
+
+- **Recovery:** added provider-native backup/restore tests on uniquely named
+  disposable PostgreSQL and SQL Server CI databases. They require an explicit
+  CI-only opt-in and prove data recovery after an injected mutation. Production
+  restore/rollback rehearsal, business tables, backups and RTO/RPO are still open.
+- **Dependency security:** framework and generated-project CI now scan both the
+  three-project default solution and the independent real-service integration
+  project, with a separate SPDX inventory for each. OCI scanning, digest
+  pinning and artifact attestations remain open.
+
 ## Still incomplete (release blockers, not yet delivered)
 
 1. **Wolverine release reliability:** technical outbox atomicity, injected pre-commit rollback and clean restart recovery are VERIFIED on both providers; still needed: actual context-owned domain handlers, ungraceful process-kill crash windows, poison/dead-letter/replay tooling, duplicate/concurrent consumers and optional broker transports.
@@ -34,8 +45,8 @@ The authoritative, maintained **54-feature status table** and prioritized open-t
   resolved-package inventory for the default generic API solution in both
   repository and generated-project CI; [run 43311281662](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43311281662)
   passed 13 negative/positive tests and produced a 161-package NuGet inventory.
-- Mandatory next gates: audit the isolated integration-test project,
-  scan and pin container image digests,
+- The isolated integration-test project is now scanned separately by CI.
+  Mandatory next gates: scan and pin container image digests,
   and implement verifiable release signing/attestations and publication policy.
 
 ## Release gates

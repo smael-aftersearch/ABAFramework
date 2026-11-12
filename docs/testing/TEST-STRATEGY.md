@@ -126,3 +126,15 @@ Known unverified areas, blockers and risks:
 ```
 
 Architecture and test coverage are related but not interchangeable: an ABA dependency checker cannot prove correct financial calculations, and an E2E test cannot prove that a hidden cross-context dependency is absent.
+
+## Generic API — isolated native provider recovery tests (2026-11-13)
+
+`templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/BackupRestoreDrillTests.cs`
+uses real PostgreSQL and SQL Server in CI. Positive acceptance: create only a
+disposable database, backup a marker, mutate it, restore with each provider's
+native tool, and assert the old marker returns. Negative acceptance: reject
+remote/unrecognized database connections and missing CI opt-in. The default
+integration suite excludes `Category=RecoveryDrill`; root CI explicitly opts in
+with disposable service containers. Real production recovery is **not** tested.
+The NuGet supply-chain gate separately audits the external test project's
+dependency graph and retains its own advisory/SBOM evidence.

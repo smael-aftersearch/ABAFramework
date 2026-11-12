@@ -109,3 +109,20 @@ output after restore/build and uploads audit JSON plus SPDX inventory.
 The optional external integration test project is outside the
 default solution and requires separate scanning; release signing,
 image verification and attestations remain undone.
+
+## Provider-native disaster recovery on isolated CI databases
+
+The real-service suite includes `BackupRestoreDrillTests.cs`, tagged
+`Category=RecoveryDrill`. Negative cases forbid running without both
+`CI=true` and `ABA_ENABLE_DESTRUCTIVE_CI_DRILLS=yes`, remote hosts, or
+a non-`aba_ci` target. Positive PostgreSQL and SQL Server cases each create
+a unique disposable database, backup a marker, mutate it, restore, and check
+that the original data is recovered. The PostgreSQL tools are sourced from
+the same `postgres:16-alpine` major as the disposable database service.
+
+The fast `Aba.Starter.slnx` test command and the normal external suite
+**exclude** recovery drills. Repository CI and the generated integration
+workflow run them with explicit disposable infrastructure and opt-in.
+Passing this suite does **not** imply PITR, actual business data restore,
+migration rollback, secure backup retention or RTO/RPO compliance.
+Read `docs/disaster-recovery.md` before any operational use.

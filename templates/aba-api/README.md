@@ -48,14 +48,30 @@ dotnet package list --project Aba.Starter.slnx --vulnerable --include-transitive
 python3 tools/supply_chain.py --root . --solution Aba.Starter.slnx --audit-json artifacts/supply-chain/audit.json --output artifacts/supply-chain/sbom.spdx.json
 ```
 
-The optional real-service integration test project is deliberately excluded
-from the default solution and therefore is not scanned by this specific job.
+The optional real-service integration test project is outside the
+default solution but is now **restored and audited separately in the same CI**,
+with its own advisory JSON and SPDX 2.3 package inventory.
 This does **not** scan container images, pin image digests, sign packages,
 verify provenance or authorize deployment.
 
 ## Installable NuGet template package
 
 Repository CI packs this template as `ABAFramework.GenericApi.Template.0.3.0-preview.2.nupkg` and verifies installation by generating a new project. Download the package artifact from the successful GitHub Actions run and install it with `dotnet new install ./ABAFramework.GenericApi.Template.0.3.0-preview.2.nupkg`. This does not require Academy or any business sample. The package is not yet published to NuGet.org.
+
+## Real PostgreSQL / SQL Server recovery drills
+
+The repository CI and the generated project's manually triggered integration
+workflow exercise **native database backups and restores** against fresh
+disposable test databases. PostgreSQL uses `pg_dump` and `pg_restore` from a
+matching `postgres:16-alpine` Docker image, and SQL Server uses
+`BACKUP DATABASE`, `RESTORE VERIFYONLY` and `RESTORE DATABASE`. The test
+checks that a backup recovers the original value after an intentional mutation.
+
+These operations are excluded from regular xUnit runs and require
+`CI=true` plus `ABA_ENABLE_DESTRUCTIVE_CI_DRILLS=yes` and exact local
+`aba_ci` test fixtures. Do not enable these flags on a production host.
+See [the disaster-recovery runbook](docs/disaster-recovery.md) for limitations,
+run commands and the independent production operations checklist.
 
 ## Security
 

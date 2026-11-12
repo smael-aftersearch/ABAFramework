@@ -108,3 +108,15 @@ Concurrent idempotency is exercised by four overlapping `ExecuteOnceInTransactio
 The external CI suite also tests the **actual Redis client** against a deliberately unreachable loopback TCP port: opted-in read-through queries return fresh authoritative values on connection failure while the default strict policy fails. This complements the deterministic fake-cache unit tests; reconnect/backpressure under a real cluster restart remains future hardening.
 
 For end-to-end assurance, the Docker smoke suite starts the **real Production binary** with trusted-looking OIDC authority parameters and a deliberately insecure PostgreSQL or SQL Server connection string. The process must terminate with the provider-specific TLS validation error before opening an HTTP port; a unit-only configuration test is insufficient for this claim. Actual external database CA and key-rotation operations are still a deployment acceptance gate.
+
+## Verified native disaster-recovery drill boundary (CI-only)
+
+The isolated `BackupRestoreDrillTests` class uses provider-native tooling,
+not EF `EnsureCreated`, to restore a disposable marker after mutation. The
+PostgreSQL backup tooling runs from `postgres:16-alpine` in Docker to match the
+server major exactly; the SQL Server drill uses `BACKUP DATABASE ... CHECKSUM`,
+`RESTORE VERIFYONLY` and `RESTORE DATABASE` against a new disposable DB.
+Only tests explicitly marked `Category=RecoveryDrill` perform these actions
+and require a strict CI-only opt-in. Ordinary tests never drop databases.
+Read `docs/disaster-recovery.md` for acceptance cases, protected execution,
+retention limits and a **separate** production operational checklist.

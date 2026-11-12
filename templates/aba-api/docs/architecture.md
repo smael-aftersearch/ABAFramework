@@ -64,3 +64,13 @@ from the restored default solution. Offline negative test fixtures reject
 missing/invalid audits, vulnerabilities and missing package resolution. The
 integration-only project, OCI image digests, signed releases, provenance
 verification and production deployment remain out of scope.
+
+## Recovery and release governance
+
+The Platform owns only generic technical persistence; it does not own an
+organization's recovery policy or business schema. CI exercises native
+PostgreSQL/SQL Server backup and restore against disposable fixtures with a
+negative safety guard, but does not replace owner-specific production DB
+restore tests or an approved DBA runbook. The NuGet supply-chain gate also
+separately audits the optional real-infrastructure test project's packages;
+signed release provenance and OCI image scans remain open.

@@ -43,3 +43,21 @@ The default solution gate passed 13 Python regressions and produced a 161-packag
 The external integration-only test project is not in that solution;
 pinning/scanning OCI digests and signing/verifying release attestations
 have not been completed. Existing Production gates still apply.
+
+## 2026-11-13 — CI recovery and expanded software supply-chain scope
+
+Isolated native PostgreSQL and SQL Server backup/restore drills are now authored
+and wired to live disposable infrastructure in CI. Running them **never
+means production backups are configured**: real per-context business schema
+restores, point-in-time recovery, encrypted offsite retention, migrations
+rollback, failover and RTO/RPO drills still need an owner-approved environment.
+The fixtures explicitly reject non-loopback/foreign databases and require
+both CI and a deliberate opt-in flag. A PostgreSQL restore-client version mismatch
+was discovered during the first trial; the drill now uses matching PostgreSQL
+16 tools in Docker.
+
+The separate integration-test project's restored NuGet graph now receives
+its own vulnerability audit and SPDX artifact, alongside the default solution.
+Container scanning/digest pinning and signing of release artifacts remain open.
+Inspect the newest run for executable evidence; no generic technical probe
+certifies a production release.
