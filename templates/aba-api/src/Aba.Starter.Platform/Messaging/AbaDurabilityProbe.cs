@@ -1,4 +1,5 @@
 using Aba.Starter.Platform.Persistence;
+using Microsoft.Extensions.DependencyInjection;
 using Wolverine;
 
 namespace Aba.Starter.Platform.Messaging;
@@ -76,5 +77,46 @@ public static class AbaPoisonProbeHandler
             Key = key,
             CreatedUtc = DateTimeOffset.UtcNow
         });
+    }
+}
+
+
+/// <summary>
+/// Technical, CI-only ACK-loss probe. A receipt commits independently of the
+/// Wolverine handler ACK. After killing the worker before it returns, the
+/// durable queue must redeliver the message without duplicating the effect.
+/// Not a business event or permission to crash a production handler.
+/// </summary>
+public sealed record AbaCrashAckProbe(Guid Id);
+
+public static class AbaCrashAckProbeHandler
+{
+    public static async Task Handle(
+        AbaCrashAckProbe message, IServiceScopeFactory scopeFactory,
+        CancellationToken ct)
+    {
+        var key = message.Id.ToString("N");
+        await using var separate = scopeFactory.CreateAsyncScope();
+        var receipts = separate.ServiceProvider.GetRequiredService<EfIdempotencyStore>();
+        // Every handler execution writes a new attempt receipt; the independent
+        // idempotent effect receipt has exactly one winner across re-deliveries.
+        await receipts.TryClaimAsync("aba-crash-attempt-" + key,
+            Guid.NewGuid().ToString("N"), ct);
+        var first = await receipts.TryClaimAsync("aba-crash-effect", key, ct);
+
+        var marker = Environment.GetEnvironmentVariable("ABA_CI_CRASH_ACK_MARKER");
+        if (string.IsNullOrWhiteSpace(marker))
+            return;
+        if (Environment.GetEnvironmentVariable("CI") != "true" ||
+            Environment.GetEnvironmentVariable("ABA_ENABLE_DESTRUCTIVE_CI_DRILLS") != "yes" ||
+            !Path.GetFullPath(marker).StartsWith(Path.GetFullPath(Path.GetTempPath()),
+                StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "ACK fault injection is forbidden outside an explicit disposable CI drill.");
+        // The receipt is committed, but Wolverine has not acknowledged the
+        // envelope: this handler has not yet returned to the runtime.
+        File.WriteAllText(marker, first
+            ? "effect-committed-before-ack" : "duplicate-committed-before-ack");
+        await Task.Delay(Timeout.InfiniteTimeSpan, ct);
     }
 }
