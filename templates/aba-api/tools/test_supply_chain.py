@@ -63,9 +63,14 @@ class SupplyChainTests(unittest.TestCase):
         self.check()
         self.assertTrue(self.output.exists())
 
-    def test_missing_framework_list_fails_closed(self):
+    def test_no_findings_may_omit_frameworks_in_dotnet_json(self):
         self.payload["projects"][0].pop("frameworks")
-        with self.assertRaisesRegex(SupplyChainError, "audited framework"):
+        self.check()
+        self.assertTrue(self.output.exists())
+
+    def test_invalid_framework_type_fails_closed(self):
+        self.payload["projects"][0]["frameworks"] = "bad"
+        with self.assertRaisesRegex(SupplyChainError, "Invalid audited framework"):
             self.check()
 
     def test_missing_advisory_sources_is_rejected(self):
