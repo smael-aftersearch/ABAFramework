@@ -50,9 +50,9 @@ public sealed class ReadThroughQueryCache(
 
         try
         {
-            var cached = await cache.GetAsync<T>(scope, key, ct);
-            if (cached is not null)
-                return cached;
+            var cached = await cache.TryGetAsync<T>(scope, key, ct);
+            if (cached.Found)
+                return cached.Value!;
         }
         catch (Exception ex) when (CanBypass(ex, outagePolicy, ct))
         {

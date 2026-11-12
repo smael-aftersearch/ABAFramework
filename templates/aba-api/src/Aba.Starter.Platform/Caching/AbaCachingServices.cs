@@ -60,10 +60,21 @@ public sealed class ScopedJsonCache(IDistributedCache cache)
             new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = ttl }, ct);
     }
 
+    /// <summary>
+    /// Distinguishes a cache MISS from a legitimate default(T) or JSON null.
+    /// Authentication and ownership decisions must never depend on this cache.
+    /// </summary>
+    public async Task<(bool Found, T? Value)> TryGetAsync<T>(
+        string scope, string key, CancellationToken ct = default)
+    {
+        var bytes = await cache.GetAsync(KeyFor(scope, key), ct);
+        return bytes is null ? (false, default) : (true, JsonSerializer.Deserialize<T>(bytes));
+    }
+
     public async Task<T?> GetAsync<T>(string scope, string key, CancellationToken ct = default)
     {
-        var value = await cache.GetAsync(KeyFor(scope, key), ct);
-        return value is null ? default : JsonSerializer.Deserialize<T>(value);
+        var result = await TryGetAsync<T>(scope, key, ct);
+        return result.Value;
     }
 
     public Task RemoveAsync(string scope, string key, CancellationToken ct = default)
