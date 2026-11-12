@@ -88,3 +88,11 @@ The generator supports `--with-db` to add an empty owner-specific Infrastructure
 ## Real Production-startup TLS fail-closed check
 
 `SecurityGuardTests.ProductionSecurityPreflightRejectsUnverifiedDatabaseTls` validates both provider-specific security decisions directly. `scripts/verify-container-starter.sh` then launches the **actual generated non-root API image** in Production, with a syntactically valid HTTPS OIDC Authority/Audience and intentionally insecure PostgreSQL/SQL Server strings. Each process must exit nonzero promptly and report the **correct** TLS verification guard before listening. This avoids a false-positive WebApplicationFactory override of early Minimal API startup configuration.
+
+## Safe RFC 7807 HTTP failure and correlation checks
+
+`ErrorHandlingTests.cs` creates a self-contained Production `TestServer` using the **same** `AddAbaErrorHandling` / `UseAbaErrorHandling` extensions as the generated host. A route that throws an exception is registered **only within this test host**. Positive/negative cases assert HTTP 500, `application/problem+json`, a 500 status property, matching body/header correlation IDs, rejected unsafe caller IDs, and no leakage of an exception's private message or class name. The real generated API has no exception-triggering test route.
+
+## Tagged readiness failure without liveness failure
+
+`ReadinessTests.cs` injects a failed `ready`-tagged dependency into the real WebApplicationFactory host and verifies `/health/ready` returns HTTP 503 while `/health/live` remains HTTP 200. This is deterministic in-memory failure injection, **not** a claim of a live PostgreSQL or Redis outage/recovery test. Provider disconnect and load behavior remain a release gate.

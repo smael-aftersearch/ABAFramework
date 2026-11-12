@@ -39,6 +39,10 @@ Repository CI packs this template as `ABAFramework.GenericApi.Template.0.3.0-pre
 
 All endpoints are authenticated by default (fallback authorization policy). `/health/live` and Development-only documentation are anonymous; the system status endpoint is also anonymous **only in Development**. In other environments, the host **refuses to start without a trusted HTTPS OIDC Authority and Audience**. It has no bundled signing key. Never treat Development mode as public-hosting configuration.
 
+## HTTP failure handling and health probes
+
+Unexpected server-side failures return RFC 7807 `application/problem+json` without exposing exception messages in Production. The validated `X-Correlation-ID` response header is also included as `correlationId` in the error body. `/health/live` remains independent from tagged dependencies, while `/health/ready` reports a failing configured database/Redis dependency as unavailable (503). The included tests exercise a synthetic 500 and readiness failure; they do not certify production dependency recovery or a deployed monitoring setup.
+
 ## Add your actual business context (no sample domain)
 
 When the real owner is known, run `python3 tools/new_context.py create --name Inventory` from the **generated project root**. This creates Domain, Application, Infrastructure, Contracts, metadata, xUnit tests, and API composition wiring. Verify with `python3 tools/new_context.py check`, `dotnet build`, `dotnet test`. Python is only needed for the generator, not for running the compiled API. Read `docs/context-generator.md`.

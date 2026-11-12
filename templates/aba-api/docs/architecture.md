@@ -6,7 +6,7 @@ This is a **starter** for a new API product, not a sample academy/enrollment dom
 
 - .NET 10 minimal API
 - generated OpenAPI and Development-only interactive Scalar API reference
-- liveness health check, correlation ID response header, Problem Details exception handling
+- separate liveness/readiness checks (tagged dependencies), validated correlation ID and safe RFC 7807 Problem Details for unhandled errors
 - configurable fixed-window API rate limiting per verified JWT subject/tenant (anonymous peer IP only), with Health bypass; a gateway is required for shared multi-replica limits
 - fail-closed non-Development OIDC/JWT configuration and authorization fallback policy
 - xUnit integration and security-configuration tests, plus opt-in real PostgreSQL/SQL Server/Redis tests
@@ -49,3 +49,9 @@ The default xUnit suite injects a disposable test-only key into the actual ASP.N
 ## Per-identity API rate limiting
 
 `AbaRateLimitOptions` validates runtime limit configuration. Authentication middleware runs **before** the rate limiter so JWT partition keys derive from a validated subject, optionally combined with a verified tenant claim; unknown/anonymous callers are partitioned by peer IP. `/health/live` and `/health/ready` use a no-limiter partition. Headers forwarded by unknown clients are not trusted. This fixed-window limiter is per ASP.NET process; a multi-node deployment must use a shared gateway/limit store, trusted proxy settings and rate/abuse budgets.
+
+## HTTP errors and dependency health
+
+The Host registers `AddAbaErrorHandling` and `UseAbaErrorHandling` so unexpected exceptions become RFC 7807 `application/problem+json` (HTTP 500), with a validated `X-Correlation-ID` response header and matching `correlationId` property. Test fixtures assert that Production responses omit the exception's private message. No diagnostics/fault endpoint is exposed in generated APIs. The correlation ID helps troubleshoot failures but is not authorization evidence.
+
+`/health/live` excludes dependency checks while `/health/ready` includes checks tagged `ready`; opted-in EF database and Redis adapters register such checks. An injected failing readiness check is covered by a deterministic HTTP test. Actual service outages, degraded networks and load still need independent deployment testing.
