@@ -16,6 +16,7 @@ The ABA book's Chapter 19 (Executable Governance), Chapter 20 (Architecture Test
 | `scripts/governance.py` | Python architecture validator | Dependency edges, context ownership, contracts and API document structure | Executed, passed |
 | `scripts/test_governance.py` | Python negative governance tests | Forbidden cross-context reference, missing ownership metadata, unversioned contract | Executed, passed |
 | `scripts/ai_check.py` and `scripts/test_ai_check.py` | AI-documentation validator and tests | Valid skill/knowledge map/metadata; deliberately broken files rejected | Executed, passed |
+| `scripts/task_protocol.py` and `scripts/test_task_protocol.py` | Python test-impact planner, fixed-command QA runner and negative regression tests | Candidate owner/test recommendations and real execution evidence | Implemented in this update; Python tests executed |
 | `scripts/static_review.py` | Basic structural scan | C# brace/solution shape and metadata (not compilation) | Executed, passed |
 | `.github/workflows/verify.yml` | CI definition | Governance + source build + console smoke | CI run not verified here |
 | `scripts/verify-all.sh` | Local verification entrypoint | Above checks + `dotnet restore`, `dotnet build`, `dotnet run` smoke | Full execution blocked without .NET 10 SDK |
@@ -83,13 +84,14 @@ From the repository root:
 ```bash
 python3 scripts/ai_check.py check
 python3 scripts/test_ai_check.py
-python3 scripts/governance.py
-python3 scripts/test_governance.py
-python3 scripts/static_review.py
+python3 scripts/test_task_protocol.py
+python3 scripts/task_protocol.py plan --task "add refund event"
+python3 scripts/task_protocol.py verify --profile static --output artifacts/verification/static.json
+python3 scripts/task_protocol.py verify --profile all --output artifacts/verification/full.json
 bash scripts/verify-all.sh
 ```
 
-With .NET 10 SDK, `verify-all.sh` also runs:
+With .NET 10 SDK, `verify-all.sh` delegates to the QA evidence runner; with .NET 10, it also runs:
 
 ```bash
 dotnet restore ABA.Net10.Phase1.slnx
