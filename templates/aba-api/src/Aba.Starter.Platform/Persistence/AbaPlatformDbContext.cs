@@ -6,9 +6,24 @@ namespace Aba.Starter.Platform.Persistence;
 public sealed class AbaPlatformDbContext(DbContextOptions<AbaPlatformDbContext> options) : DbContext(options)
 {
     public DbSet<IdempotencyReceipt> IdempotencyReceipts => Set<IdempotencyReceipt>();
+    public DbSet<AbaAuditRecord> AuditRecords => Set<AbaAuditRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<AbaAuditRecord>(entity =>
+        {
+            entity.ToTable("aba_audit_records");
+            entity.HasKey(x => new { x.TenantId, x.Sequence });
+            entity.Property(x => x.TenantId).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.ActorId).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.Action).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.Outcome).HasMaxLength(16).IsRequired();
+            entity.Property(x => x.CorrelationId).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.KeyId).HasMaxLength(48).IsRequired();
+            entity.Property(x => x.PreviousDigest).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.Digest).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.OccurredUtc).IsRequired();
+        });
         modelBuilder.Entity<IdempotencyReceipt>(entity =>
         {
             entity.ToTable("aba_idempotency_receipts");

@@ -15,6 +15,7 @@ public static class AbaPlatformSetup
         var database = AbaDatabaseOptions.FromConfiguration(builder.Configuration);
         database.ValidateTransportSecurity(builder.Environment.IsDevelopment());
         builder.Services.AddAbaPersistence(database);
+        builder.Services.AddAbaAudit(builder.Configuration, database.Enabled);
         builder.Services.AddAbaCaching(builder.Configuration);
         builder.AddAbaWolverine(database);
         builder.AddAbaObservability();
