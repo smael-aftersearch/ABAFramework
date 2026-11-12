@@ -124,8 +124,13 @@ public static class AbaCrashAckProbeHandler
             return;
         // The receipt is committed, but Wolverine has not acknowledged the
         // envelope: this handler has not yet returned to the runtime.
-        File.WriteAllText(marker, first
+        // Publish a complete marker atomically: the parent must never
+        // observe an empty file and SIGKILL before the commit evidence is
+        // fully written to its synthetic control channel.
+        var stagedMarker = marker + ".staged";
+        File.WriteAllText(stagedMarker, first
             ? "effect-committed-before-ack" : "duplicate-committed-before-ack");
+        File.Move(stagedMarker, marker, overwrite: true);
         await Task.Delay(Timeout.InfiniteTimeSpan, ct);
     }
 }
