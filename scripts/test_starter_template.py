@@ -108,6 +108,19 @@ class GenericTemplateTests(unittest.TestCase):
         self.assertEqual(json.loads((TEMPLATE / 'metadata/contexts.json').read_text())['contexts'], [])
         self.assertTrue((TEMPLATE / 'docs/context-generator.md').is_file())
 
+    def test_portable_agent_task_protocol_is_bundled_and_negative_tested(self):
+        planner = TEMPLATE / 'tools/aba_task.py'
+        tests = TEMPLATE / 'tools/test_aba_task.py'
+        docs = TEMPLATE / 'docs/ai/TASK-PROTOCOL.md'
+        self.assertTrue(planner.is_file())
+        self.assertTrue(tests.is_file())
+        self.assertTrue(docs.is_file())
+        self.assertIn('def verify(level:', planner.read_text())
+        self.assertIn('NEEDS_OWNER', planner.read_text())
+        verify_script = (ROOT / 'scripts/verify-starter.sh').read_text()
+        self.assertIn('tools/test_aba_task.py', verify_script)
+        self.assertIn('tools/aba_task.py" verify --level static', verify_script)
+
     def test_xunit_and_companion_script_exist(self):
         proj = (TEMPLATE / 'tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj').read_text()
         self.assertIn('PackageReference Include="xunit"', proj)

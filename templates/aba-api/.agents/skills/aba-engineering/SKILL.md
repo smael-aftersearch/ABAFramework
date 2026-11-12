@@ -10,6 +10,10 @@ description: >
 
 # ABA engineering workflow for this generated repository
 
+## Machine-readable task planning and verification
+
+For material changes use `python3 tools/aba_task.py plan --task "<request>" --file <changed/path>` and read its sources before editing. After modifying code, run `python3 tools/aba_task.py verify --level static` and `--level build` (and `--level full` for live PostgreSQL/SQL Server/Redis/Wolverine). The command returns nonzero and reports FAIL/NOT_RUN truthfully; never assume an agent magically read every document. See `docs/ai/TASK-PROTOCOL.md`.
+
 ## Source-of-truth discovery
 
 1. Read `AGENTS.md`, `docs/ai/INDEX.md`, `docs/architecture.md` and `docs/testing/TEST-STRATEGY.md`.

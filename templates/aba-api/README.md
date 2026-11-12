@@ -68,3 +68,7 @@ For non-authoritative, already-authorized queries you may use `ReadThroughQueryC
 ## Request rate limits
 
 `Platform:RateLimit:PermitLimit` (default 120) and `Platform:RateLimit:WindowSeconds` (default 60) configure per-instance fixed-window limits. Authenticated requests partition on verified JWT subject plus tenant claim; anonymous traffic is grouped by the actual TCP peer IP, never by untrusted `X-Forwarded-For` or `X-Tenant-ID`. The health endpoints are exempt from request throttling so load cannot make readiness/liveness accidentally fail. This is **per-process**, not a distributed quota across replicas; production needs an API gateway/shared limiter. Test in `RateLimitTests` covers 429, anonymous and JWT partition keys, and health bypass.
+
+## Built-in coding-agent workflow
+
+`tools/aba_task.py` gives a deterministic architecture-aware document reading plan and fixed-command verification with JSON evidence; start with `docs/ai/TASK-PROTOCOL.md`. The `plan` command **never invents business ownership**, and `verify` reports PASS/FAIL/NOT_RUN rather than pretending unavailable database tests were executed. Python 3.10+ is needed for these developer tools only, not for the running API.

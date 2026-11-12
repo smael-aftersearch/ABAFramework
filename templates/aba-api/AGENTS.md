@@ -1,5 +1,7 @@
 # ABA API Starter — coding-agent rules
 
+Run `python3 tools/aba_task.py plan --task "<the request>" --file <affected/path>` before coding, then `python3 tools/aba_task.py verify --level static` and `--level build` after changes. For infrastructure changes run `--level full` against real services; never report missing services as PASS. Read `docs/ai/TASK-PROTOCOL.md`.
+
 Read `docs/ai/INDEX.md`, `docs/architecture.md`, `docs/testing/TEST-STRATEGY.md`, and `.agents/skills/aba-engineering/SKILL.md` before changing behavior. The local Skill describes the execution loop; `AGENTS.md` remains the always-on guardrail.
 
 - This repository is a **generic foundation**. Do not invent Enrollment, Academy, Payments, or any business domain.

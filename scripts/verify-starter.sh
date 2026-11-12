@@ -54,6 +54,17 @@ if python3 "$OUTPUT/tools/new_context.py" check; then
 fi
 cp "$TEMP/domain-backup.cs" "$DOMAIN"
 python3 "$OUTPUT/tools/new_context.py" check
+# AI task planning/QA must also work inside a fresh generated repository.
+python3 "$OUTPUT/tools/test_aba_task.py"
+python3 "$OUTPUT/tools/aba_task.py" plan \
+  --task "Update the registered module" \
+  --file src/Modules/BoundaryProbe/Application/AssemblyMarker.cs > "$TEMP/aba-plan.json"
+python3 "$OUTPUT/tools/aba_task.py" verify --level static > "$TEMP/aba-static.json"
+if python3 "$OUTPUT/tools/aba_task.py" plan \
+  --task "Unowned change" \
+  --file src/Modules/Unknown/Domain/Entity.cs > "$TEMP/aba-unowned.json"; then
+  echo "FAIL: ABA task protocol invented an owner" >&2; exit 1
+fi
 if python3 "$OUTPUT/tools/new_context.py" create --name BoundaryProbe; then
   echo "FAIL: context generator accepted a duplicate" >&2; exit 1
 fi
