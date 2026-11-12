@@ -98,6 +98,15 @@ class GenericTemplateTests(unittest.TestCase):
         self.assertIn('dotnet pack', script)
         self.assertIn('dotnet new install "$PACKAGE"', script)
 
+    def test_new_context_generator_present_and_no_fictional_default_contexts(self):
+        generator = (TEMPLATE / 'tools/new_context.py').read_text()
+        self.assertIn('def create(name):', generator)
+        self.assertIn('def check():', generator)
+        self.assertIn('Domain', generator)
+        self.assertIn('forbidden', generator)
+        self.assertEqual(json.loads((TEMPLATE / 'metadata/contexts.json').read_text())['contexts'], [])
+        self.assertTrue((TEMPLATE / 'docs/context-generator.md').is_file())
+
     def test_xunit_and_companion_script_exist(self):
         proj = (TEMPLATE / 'tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj').read_text()
         self.assertIn('PackageReference Include="xunit"', proj)

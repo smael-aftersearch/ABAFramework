@@ -5,5 +5,6 @@
 3. Check `metadata/contexts.json` before changing a business capability or publishing a contract.
 4. Read `docs/testing/TEST-STRATEGY.md` and update tests with every material behavior change.
 5. For persistence, Redis or messaging tasks, read `docs/platform-infrastructure.md` and the DB provider ADR. Never mix SQL Server and PostgreSQL settings or invent a fake transaction.\n6. Locate code and tests in `src/` and `tests/`; don't assume an example application is a context in this repository.
-6. When adding a context, create its Domain, Application, Infrastructure and Contracts projects and their ownership/context-map metadata. Keep business policies out of the API host.
+6. When adding a context, prefer `python3 tools/new_context.py create --name ActualContext` and then run `python3 tools/new_context.py check`.
+7. When adding a context, create its Domain, Application, Infrastructure and Contracts projects and their ownership/context-map metadata. Keep business policies out of the API host.
 7. Include an Architecture impact and Test evidence section in completion reports.

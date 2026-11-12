@@ -39,6 +39,10 @@ Repository CI packs this template as `ABAFramework.GenericApi.Template.0.2.0-pre
 
 All endpoints are authenticated by default (fallback authorization policy). `/health/live` and Development-only documentation are anonymous; the system status endpoint is also anonymous **only in Development**. In other environments, the host **refuses to start without a trusted HTTPS OIDC Authority and Audience**. It has no bundled signing key. Never treat Development mode as public-hosting configuration.
 
+## Add your actual business context (no sample domain)
+
+When the real owner is known, run `python3 tools/new_context.py create --name Inventory` from the **generated project root**. This creates Domain, Application, Infrastructure, Contracts, metadata, xUnit tests, and API composition wiring. Verify with `python3 tools/new_context.py check`, `dotnet build`, `dotnet test`. Python is only needed for the generator, not for running the compiled API. Read `docs/context-generator.md`.
+
 ## Architecture
 
 Start with `AGENTS.md`, `docs/ai/INDEX.md` and the included `.agents/skills/aba-engineering/SKILL.md`. Add bounded contexts **only for your actual business domains** and record ownership in `metadata/contexts.json`. Avoid premature shared Domain models. EF Core 10 provider selection (PostgreSQL and SQL Server), optional Redis, and Wolverine relational durability are now implemented as technical adapters in the generated Platform project. They are disabled by default to preserve the zero-dependency first run; read `docs/platform-infrastructure.md` before enabling them. Domain migrations, production runbooks and real fault-injection/outbox integration tests remain future work.

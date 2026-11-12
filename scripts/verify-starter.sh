@@ -32,6 +32,18 @@ if grep -R -E "namespace Academy|Academy\\." "$OUTPUT/src" "$OUTPUT/tests" --inc
   echo "FAIL: sample business type leaked into generated starter" >&2
   exit 1
 fi
+# Exercise the new bounded-context generator only inside this ephemeral CI fixture.
+python3 "$OUTPUT/tools/new_context.py" check
+python3 "$OUTPUT/tools/new_context.py" create --name BoundaryProbe
+python3 "$OUTPUT/tools/new_context.py" check
+if python3 "$OUTPUT/tools/new_context.py" create --name BoundaryProbe; then
+  echo "FAIL: context generator accepted a duplicate" >&2; exit 1
+fi
+if python3 "$OUTPUT/tools/new_context.py" create --name '../Escape'; then
+  echo "FAIL: context generator accepted a path-escape name" >&2; exit 1
+fi
+test -f "$OUTPUT/src/Modules/BoundaryProbe/_Docs/ownership.yaml"
+test -f "$OUTPUT/tests/Pilot.QuickStart.BoundaryProbe.Tests/Pilot.QuickStart.BoundaryProbe.Tests.csproj"
 dotnet restore "$SOLUTION"
 dotnet build "$SOLUTION" -c Release --no-restore
 dotnet test "$SOLUTION" -c Release --no-build
