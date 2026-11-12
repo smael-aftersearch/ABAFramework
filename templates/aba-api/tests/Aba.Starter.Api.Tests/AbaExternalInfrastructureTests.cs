@@ -31,7 +31,26 @@ public sealed class AbaExternalInfrastructureTests
         await using var sp = services.BuildServiceProvider();
         await using var scope = sp.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AbaPlatformDbContext>();
-        await db.Database.MigrateAsync();
+        // SQL Server containers need time to accept logins after the TCP port opens.
+        // Retrying a real EF migration does not mark a failing migration successful.
+        Exception? lastError = null;
+        var migrated = false;
+        for (var attempt = 0; attempt < 30; attempt++)
+        {
+            try
+            {
+                await db.Database.MigrateAsync();
+                migrated = true;
+                break;
+            }
+            catch (Exception ex) when (attempt < 29 &&
+                (ex is System.Data.Common.DbException || ex is TimeoutException))
+            {
+                lastError = ex;
+                await Task.Delay(TimeSpan.FromSeconds(2));
+            }
+        }
+        Assert.True(migrated, lastError?.ToString());
         Assert.True(await db.Database.CanConnectAsync());
         var store = scope.ServiceProvider.GetRequiredService<EfIdempotencyStore>();
         var id = Guid.NewGuid().ToString("N");

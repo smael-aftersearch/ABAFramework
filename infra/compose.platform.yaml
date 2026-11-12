@@ -1,0 +1,32 @@
+# Local-only integration dependencies. Never expose these demo credentials publicly.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: aba_platform
+      POSTGRES_USER: aba_dev
+      POSTGRES_PASSWORD: aba_dev_local_only
+    ports:
+      - "127.0.0.1:54329:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aba_dev -d aba_platform"]
+      interval: 3s
+      retries: 30
+    volumes:
+      - aba-postgres:/var/lib/postgresql/data
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Aba_CiOnly_2026!"
+    ports:
+      - "127.0.0.1:14339:1433"
+    volumes:
+      - aba-sqlserver:/var/opt/mssql
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "127.0.0.1:6389:6379"
+volumes:
+  aba-postgres:
+  aba-sqlserver:

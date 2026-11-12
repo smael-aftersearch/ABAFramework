@@ -33,3 +33,44 @@ jobs:
           name: aba-verification-evidence
           path: artifacts/verification/
           if-no-files-found: warn
+
+  integration-relational-and-redis:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: aba_ci
+          POSTGRES_USER: aba_ci
+          POSTGRES_PASSWORD: aba-ci-local-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U aba_ci -d aba_ci"
+          --health-interval 3s --health-timeout 3s --health-retries 30
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: "Aba_CiOnly_2026!"
+        ports:
+          - 1433:1433
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 3s
+          --health-timeout 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Verify real PostgreSQL, SQL Server and Redis with generated project
+        env:
+          ABA_TEST_POSTGRESQL: "Host=localhost;Port=5432;Database=aba_ci;Username=aba_ci;Password=aba-ci-local-only"
+          ABA_TEST_SQLSERVER: "Server=localhost,1433;Database=aba_ci;User Id=sa;Password=Aba_CiOnly_2026!;TrustServerCertificate=True"
+          ABA_TEST_REDIS: "localhost:6379,abortConnect=false"
+        run: |
+          bash scripts/verify-platform-services.sh

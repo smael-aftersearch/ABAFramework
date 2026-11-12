@@ -10,5 +10,5 @@ Read `docs/ai/INDEX.md`, `docs/architecture.md`, `docs/testing/TEST-STRATEGY.md`
 - HTTP endpoints require authentication by default. Explicitly justify every `AllowAnonymous` endpoint. No secrets or unsigned JWT shortcuts.
 - Keep OpenAPI generated from the actual endpoints. Documentation UI is Development only.
 - Every material change requires a positive case, a negative case and invariant checks, plus updates to relevant tests and documentation.
-- Execute `dotnet test` and `dotnet build` after modifications; report PASS/FAIL/NOT_RUN truthfully.
+- For Platform/DB changes, test against **both** PostgreSQL and SQL Server plus Redis with `bash scripts/verify-platform-services.sh`. Do not confuse an offline provider-name test with an actual database transaction. Execute `dotnet test` and `dotnet build` after modifications; report PASS/FAIL/NOT_RUN truthfully.
 - Never claim production ready without integration, security, migration, load and recovery tests.

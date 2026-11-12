@@ -9,7 +9,7 @@ This is a **starter** for a new API product, not a sample academy/enrollment dom
 - liveness health check, correlation ID response header, Problem Details exception handling
 - built-in fixed-window global request rate limiting (per process and remote IP; gateway controls are still needed at scale)
 - fail-closed non-Development OIDC/JWT configuration and authorization fallback policy
-- xUnit integration and security-configuration tests
+- xUnit integration and security-configuration tests, plus opt-in real PostgreSQL/SQL Server/Redis tests
 - AI agent and test documentation
 
 ## Adding your first real context
@@ -18,7 +18,7 @@ Name the context using actual business language. Record its owning data, rules, 
 
 ## Not delivered by this starter yet
 
-No PostgreSQL/EF Core migrations, Wolverine Outbox/Inbox, Redis distributed caching, tenant isolation, durable jobs, provider integration, deployment pipeline or production hardening. These remain separate platform milestones and must not be asserted as installed.
+PostgreSQL/EF Core 10, SQL Server/EF Core 10, Wolverine relational persistence wiring and Redis distributed caching are now implemented as **optional** technical modules. A checked-in technical idempotency migration is present. End-to-end transactional business messaging, tenant isolation, load testing, automatic deployment and production hardening remain unimplemented. These remain separate platform milestones and must not be asserted as installed.
 
 ## Security
 
