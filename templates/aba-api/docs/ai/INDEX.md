@@ -20,3 +20,9 @@ For RLS/raw-SQL or release-related work also read
 `docs/platform-infrastructure.md`, plus the actual generated
 `.github/workflows/ci.yml` image vulnerability job. The upstream
 template artifact attestation does not automatically sign new products.
+
+For sensitive audit, signing keys or failed durable messages, read
+docs/decisions/ADR-006-audit-ledger.md,
+docs/decisions/ADR-007-wolverine-deadletter-operator.md and
+docs/operations/audit-deadletters.md, then relevant tests. Do not
+invent auditable business decisions or grant wildcard message replay.

@@ -82,3 +82,23 @@ pinning, production secrets and TLS, or policy approval for unpatched/
 HIGH vulnerabilities. Always inspect the exact CI run.
 
 **Verified technical RLS and release-gate evidence:** [CI 43317295032](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43317295032) passed 8/8 jobs, including real database row-filter and EF bulk denial tests, a runtime container vulnerability scan, and signed Sigstore/SLSA provenance for the template package with a corrupted-artifact negative case. Unrestricted SQL capable of changing tenant session context, privileged database roles, actual tenant memberships, published OCI image provenance and base digest pinning remain unresolved.
+
+## Opt-in audit integrity and Wolverine dead-letter operations
+
+The generic API includes an opt-in HMAC-SHA256 audit ledger for PostgreSQL
+and SQL Server (serializable transactional append, opaque actor/action IDs,
+per-tenant sequence and chained digests, key rotation and verification).
+Real-provider CI verifies chain integrity, tamper rejection and concurrent
+appends. Customer business event selection, IdP membership, immutable
+external digest checkpoints, HMAC key custody, PII retention policy,
+least-privileged DB roles and deployment are **not** implemented.
+
+The generic Wolverine operator is opt-in and **service-only**: it requires
+durable messaging, the signed audit ledger, an authenticated operator
+with a precise permission claim and a change ticket. Only one previously
+inspected envelope with matching message/exception types can be marked
+for replay; the message body stays private. Tenant mode is disabled
+pending tenant-specific store authorization. Replay does not guarantee
+a business outcome or prevent duplicate external side effects.
+The synthetic poison-message SQL integration test is being verified
+in GitHub Actions. See the template runbook and ADRs 006/007.

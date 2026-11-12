@@ -117,3 +117,23 @@ The original requirement is in `docs/reference/TARGET-SPECIFICATION.md`. The pha
 The first document-driven ABA Skill has been added and verified with Python tests. Further useful work is to (1) compare changed contracts against a baseline and detect breaking API/event changes, (2) validate source-to-document references and freshness on PR diffs, (3) test the actual skill against multiple real coding tasks and score false negatives, and (4) optionally surface documentation/ownership health in a dashboard. These are **not yet implemented**. Avoid pretending a static document map can prove semantic correctness.
 
 **Latest security evidence:** [all eight CI jobs passed](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43317295032) with 81 default API xUnit cases, 18 real-service SQL/Redis/Wolverine tests (including PostgreSQL/SQL Server RLS negative cases), 7 native recovery cases, runtime Trivy scan and signed template attestation with tamper rejection. Business membership and released-image signature controls remain unapproved.
+
+## Opt-in audit integrity and Wolverine dead-letter operations
+
+The generic API includes an opt-in HMAC-SHA256 audit ledger for PostgreSQL
+and SQL Server (serializable transactional append, opaque actor/action IDs,
+per-tenant sequence and chained digests, key rotation and verification).
+Real-provider CI verifies chain integrity, tamper rejection and concurrent
+appends. Customer business event selection, IdP membership, immutable
+external digest checkpoints, HMAC key custody, PII retention policy,
+least-privileged DB roles and deployment are **not** implemented.
+
+The generic Wolverine operator is opt-in and **service-only**: it requires
+durable messaging, the signed audit ledger, an authenticated operator
+with a precise permission claim and a change ticket. Only one previously
+inspected envelope with matching message/exception types can be marked
+for replay; the message body stays private. Tenant mode is disabled
+pending tenant-specific store authorization. Replay does not guarantee
+a business outcome or prevent duplicate external side effects.
+The synthetic poison-message SQL integration test is being verified
+in GitHub Actions. See the template runbook and ADRs 006/007.

@@ -31,3 +31,14 @@ For each material request, run `python3 scripts/task_protocol.py plan --task "<r
 Run `python3 scripts/test_task_protocol.py`, `python3 scripts/task_protocol.py verify --profile static` and relevant happy-path/negative tests. The verifier executes AI readiness, architecture governance, their negative tests and the C# structural scan; use `--profile all` for .NET restore/build/smoke. Use `bash scripts/verify-all.sh` for the complete stack when .NET 10 is available. For HTTP/API/host changes, build Release and run `bash scripts/verify-http.sh` to prove the loopback server starts and the API demo completes; never treat that local test as approval for public deployment. Report command results precisely; missing SDK means .NET build/runtime remains unverified.
 
 Finish with an **Architecture impact + Test evidence** report: owner, contracts, dependencies, updated docs, acceptance cases, test paths, exact commands with PASS/FAIL/NOT RUN, and remaining risks. Use `.github/pull_request_template.md`.
+
+## Opt-in technical audit and dead-letter boundary
+
+The Platform supplies an HMAC-chain audit ledger and a gated service-only
+Wolverine dead-letter inspector/replay API. Business contexts must
+approve audit actions, trusted actor/tenant membership, external
+checkpoints, key retention and idempotent consumer compensation. Never
+expose Wolverine's native dead-letter HTTP endpoints or auto-grant
+operator claims. Read template ADR-006/ADR-007 and operations runbook
+before changes; verify each provider with real SQL and a synthetic
+poison envelope before claiming recovery coverage.

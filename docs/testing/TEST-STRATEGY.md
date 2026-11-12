@@ -155,3 +155,18 @@ reject fixable CRITICAL findings. The NuGet template SLSA provenance
 job, gated on upstream success, must validate a signed artifact and
 reject a modified same-name artifact. Only passing CI jobs count as
 executed evidence; these do not approve a production release.
+
+## Audit and poison-envelope integration coverage
+
+New default xUnit cases prove disabled defaults, HMAC key length/format
+rejection, input validation, key rotation and no phantom operator
+permissions. Real PostgreSQL/SQL Server cases exercise a serializable
+audit HMAC chain, compromised record detection, retained historic
+keys, off-DB digest verification and simultaneous monotonic appends.
+
+A separate Wolverine test on each SQL provider injects a synthetic
+poison probe, waits for durable dead-letter quarantine, checks
+anonymous and type-mismatched operator denial, repairs a technical
+dependency, requests exactly one audited replay and verifies the
+eventual receipt plus HMAC chain. It never calls real business handlers.
+CI must complete before any such test is claimed successful.

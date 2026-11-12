@@ -67,3 +67,10 @@ The **optional Academy Phase-1 sample** has local file messaging and memory cach
 `PaymentCapturedV1` is evidence published by Payments. Enrollment decides whether to activate, Accounting decides how to post a journal, and Reporting updates its read-side projection. Payments must not write their tables or call their domain implementations.
 
 **Recovery and full supply-chain evidence:** [CI run 43313417455](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43313417455), with 7 native recovery cases and separate external-project NuGet audit; retain operator approval for production restore and signed release policy.
+
+For tamper-evident audit or failed Wolverine messages, inspect the
+generic template's docs/decisions/ADR-006-audit-ledger.md and
+ADR-007-wolverine-deadletter-operator.md, and its
+docs/operations/audit-deadletters.md. These technical capabilities
+do not own application business actions, operator identity or
+Production audit key material.

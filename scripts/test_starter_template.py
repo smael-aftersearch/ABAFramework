@@ -218,6 +218,24 @@ class GenericTemplateTests(unittest.TestCase):
         self.assertIn('PostgresRequiresForcedRls', tests)
         self.assertIn('non-superuser', adr)
 
+    def test_opt_in_audit_and_audited_deadletter_replay_are_bundled(self):
+        ledger = (TEMPLATE / 'src/Aba.Starter.Platform/Persistence/AbaAuditLedger.cs').read_text()
+        operator = (TEMPLATE / 'src/Aba.Starter.Platform/Messaging/AbaDeadLetterAdministration.cs').read_text()
+        migration = (TEMPLATE / 'src/Aba.Starter.Platform/Persistence/Migrations/202611130001_AuditLedger.cs').read_text()
+        for expected in ('HMACSHA256', 'IsolationLevel.Serializable',
+                         'MicrosecondUtcNow', 'VerifyAsync', 'AppendAsync'):
+            self.assertIn(expected, ledger)
+        for expected in ('deadletters:inspect', 'deadletters:replay',
+                         'DeadLetterEnvelopeQuery', 'ReplayAsync',
+                         'AbaAuditLedger', 'PermissionClaim'):
+            self.assertIn(expected, operator)
+        self.assertIn('aba_audit_records', migration)
+        self.assertNotIn('MapGet(', operator)
+        for path in ('docs/decisions/ADR-006-audit-ledger.md',
+                     'docs/decisions/ADR-007-wolverine-deadletter-operator.md',
+                     'docs/operations/audit-deadletters.md'):
+            self.assertTrue((TEMPLATE / path).is_file())
+
     def test_xunit_and_companion_script_exist(self):
         proj = (TEMPLATE / 'tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj').read_text()
         self.assertIn('PackageReference Include="xunit"', proj)

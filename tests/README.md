@@ -57,3 +57,14 @@ policies, not EF filters. CI also scans a built runtime image via
 Trivy and verifies SLSA provenance for the tested upstream template
 package. The generated product inherits its own OCI scan, **not**
 the upstream signer.
+
+## Audit ledger and operator-only Wolverine DLQ tests
+
+Template unit tests in AuditLedgerConfigTests.cs cover HMAC configuration,
+key rotation and safe opaque fields. DeadLetterOperatorGuardTests.cs
+tests that optional operator mode refuses missing durability, audit
+or real multi-tenancy. The external SQL integration suite includes
+AuditLedgerIntegrationTests.cs and DeadLetterOperatorIntegrationTests.cs
+on PostgreSQL and SQL Server, with real durable poison quarantine,
+authorized single-envelope recovery and tamper-evident audit checks.
+No public DLQ endpoint or customer message transport is created.
