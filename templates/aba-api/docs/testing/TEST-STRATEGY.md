@@ -64,3 +64,7 @@ Fast tests require HTTPS discovery by default even in Development, allow an expl
 ## Optional per-context database scaffolding
 
 The generator supports `--with-db` to add an empty owner-specific Infrastructure DbContext and dual-provider selector. CI generates a second context in this mode and proves an xUnit test can resolve both EF Core providers without a database; provider integration and business migrations must be tested independently when actual persistence is added.
+
+## Read-through cache outage behavior
+
+`ReadThroughCacheTests` checks default fail-closed on cache outage, explicit fresh authoritative-source fallback on read/write Redis timeouts, never swallowing loader exceptions, rejecting unsafe cache scopes before loading, honoring cancellation and avoiding source reads on cache hits. These deterministic fault-injection tests run with the default generated API solution; a separate live Redis shutdown/reconnect test remains a release gate.

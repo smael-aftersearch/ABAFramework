@@ -31,6 +31,7 @@ public static class AbaCachingServices
             throw new InvalidOperationException("Platform:Cache:Provider must be Memory or Redis.");
 
         services.AddScoped<ScopedJsonCache>();
+        services.AddScoped<ReadThroughQueryCache>();
         return services;
     }
 }

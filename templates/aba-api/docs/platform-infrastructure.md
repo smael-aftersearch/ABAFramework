@@ -87,3 +87,18 @@ The CI suite now also verifies `AbaTenantDbContext` using **both real relational
 ## Real OIDC/JWKS integration boundary
 
 The default starter requires HTTPS identity-provider discovery. For a **local test-only** identity provider on loopback HTTP, explicitly set `Authentication__AllowHttpMetadataInDevelopment=true` while `ASPNETCORE_ENVIRONMENT=Development`; the default is `false`, the flag is ignored for HTTP authorities outside the loopback interface, and it cannot disable HTTPS metadata in Production. The separate `scripts/verify-keycloak-oidc.sh` CI harness uses a disposable Keycloak realm and exercises discovery/JWKS, signed access tokens, audience and Tenant authorization. It does NOT implement the login UI or issue tokens itself. For real users, choose standards-compliant authorization-code/PKCE or backend client-credentials flows, enable TLS and configure issuer/audience, memberships, roles, key rotation and expiry policies at your identity provider.
+
+## Cache-outage resilience for non-authoritative query data
+
+`ReadThroughQueryCache.GetOrLoadAsync` is now available as a scoped technical service. **Default is `CacheOutagePolicy.FailClosed`**: a Redis timeout/connection error propagates; the source loader is not executed. Explicit `CacheOutagePolicy.UseAuthoritativeSource` permits a carefully scoped *read-through query* to load fresh data from its authoritative source when Redis is unavailable, or to return the freshly loaded value when writing the cache fails. This does **not** provide cached fallback authentication or stale results. Connection/timeouts are caught narrowly; loader, authorization, data-deserialization, invalid scope and cancellation errors are never hidden. The caller must authorize tenant access **before** looking up a cache hit; the cache key namespace alone is not permission. Never use this bypass for security decisions, idempotency, payments or other source-of-truth invariants.
+
+Example inside an already authorized application query:
+
+```csharp
+var result = await readThroughCache.GetOrLoadAsync(
+    authorizedTenantScope, "product-list-v1", TimeSpan.FromSeconds(30),
+    ct => queryRepository.ReadProductsAsync(ct),
+    CacheOutagePolicy.UseAuthoritativeSource, cancellationToken);
+```
+
+This resilience behavior has positive/negative unit tests with an injected connection-timeout cache. It is **not** a substitute for a real Redis kill/recovery, distributed stampede or load test.

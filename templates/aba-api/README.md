@@ -60,3 +60,7 @@ Read [docs/platform-infrastructure.md](docs/platform-infrastructure.md) for conf
 `Authentication__AllowHttpMetadataInDevelopment=true` permits a loopback HTTP identity provider **only in Development**, for the separate real Keycloak/JWKS integration test. Production HTTPS discovery remains mandatory; never use this flag to bypass TLS outside isolated local tests.
 
 **If your actual context needs its own EF Core persistence**, use `python3 tools/new_context.py create --name Inventory --with-db` instead. It registers a context-owned empty DbContext for either PostgreSQL or SQL Server, plus provider-selection tests. No database tables or migrations are fabricated.
+
+## Cache outage handling
+
+For non-authoritative, already-authorized queries you may use `ReadThroughQueryCache` with `CacheOutagePolicy.UseAuthoritativeSource` to fetch fresh source data when Redis connectivity fails; default remains strict `FailClosed`. Never use this for authentication, tenant authorization, accounting, financial idempotency or other business invariants. See `docs/platform-infrastructure.md`.
