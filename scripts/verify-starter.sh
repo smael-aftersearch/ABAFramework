@@ -54,7 +54,7 @@ if (( ready == 0 )); then
   exit 1
 fi
 curl -fsS "$URL/openapi/v1.json" > "$TEMP/openapi.json"
-curl -fsS "$URL/scalar" > "$TEMP/scalar.html"
+curl -fsSL "$URL/scalar" > "$TEMP/scalar.html"
 python3 - "$TEMP/health.json" "$TEMP/openapi.json" "$TEMP/scalar.html" <<'PY'
 import json, sys
 from pathlib import Path

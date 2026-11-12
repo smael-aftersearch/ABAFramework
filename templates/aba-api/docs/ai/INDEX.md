@@ -1,6 +1,6 @@
 # AI knowledge index
 
-1. Read `AGENTS.md` first; it is the repository-wide agent contract.
+1. Read `AGENTS.md` first; it is the repository-wide agent contract. For implementation tasks load `.agents/skills/aba-engineering/SKILL.md`.
 2. Read `docs/architecture.md` for why the starter is domain neutral and how ownership evolves.
 3. Check `metadata/contexts.json` before changing a business capability or publishing a contract.
 4. Read `docs/testing/TEST-STRATEGY.md` and update tests with every material behavior change.

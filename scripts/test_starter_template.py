@@ -26,10 +26,19 @@ class GenericTemplateTests(unittest.TestCase):
 
     def test_documented_ai_and_test_policy(self):
         for path in ('AGENTS.md', 'docs/ai/INDEX.md', 'docs/testing/TEST-STRATEGY.md',
-                     'metadata/contexts.json', 'README.md', 'global.json'):
+                     'metadata/contexts.json', 'README.md', 'global.json',
+                     '.agents/skills/aba-engineering/SKILL.md',
+                     '.agents/skills/aba-engineering/agents/openai.yaml'):
             with self.subTest(path=path):
                 self.assertTrue((TEMPLATE / path).is_file())
         self.assertEqual(json.loads((TEMPLATE / 'metadata/contexts.json').read_text())['contexts'], [])
+
+    def test_ai_skill_has_trigger_metadata(self):
+        skill = (TEMPLATE / '.agents/skills/aba-engineering/SKILL.md').read_text()
+        self.assertTrue(skill.startswith('---\\n') or skill.startswith('---\n'))
+        self.assertIn('name: aba-engineering', skill)
+        self.assertIn('description:', skill)
+        self.assertIn('dotnet test', skill)
 
     def test_no_sample_business_code_is_implicitly_copied(self):
         code = '\n'.join(p.read_text() for p in TEMPLATE.rglob('*.cs'))

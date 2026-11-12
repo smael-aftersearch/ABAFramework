@@ -1,0 +1,4 @@
+interface:
+  display_name: "ABA Engineering"
+  short_description: "DDD and testing guardrails for generated .NET 10 APIs"
+  default_prompt: "Follow the generated repository's AGENTS.md and ABA Engineering Skill: identify owner, plan tests, implement, update docs and report exact verification evidence."

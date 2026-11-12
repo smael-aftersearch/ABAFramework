@@ -1,6 +1,6 @@
 # ABA API Starter — coding-agent rules
 
-Read `docs/ai/INDEX.md`, `docs/architecture.md` and `docs/testing/TEST-STRATEGY.md` before changing behavior.
+Read `docs/ai/INDEX.md`, `docs/architecture.md`, `docs/testing/TEST-STRATEGY.md`, and `.agents/skills/aba-engineering/SKILL.md` before changing behavior. The local Skill describes the execution loop; `AGENTS.md` remains the always-on guardrail.
 
 - This repository is a **generic foundation**. Do not invent Enrollment, Academy, Payments, or any business domain.
 - Identify the real owning bounded context before adding a business rule, data model, table or public contract. Record it in `metadata/contexts.json`.

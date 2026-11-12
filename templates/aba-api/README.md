@@ -31,4 +31,4 @@ All endpoints are authenticated by default (fallback authorization policy). `/he
 
 ## Architecture
 
-Start with `AGENTS.md` and `docs/ai/INDEX.md`. Add bounded contexts **only for your actual business domains** and record ownership in `metadata/contexts.json`. Avoid premature shared Domain models. Implementations and integrations (EF Core, Redis, Wolverine) are deliberate follow-up milestones, not present in the generated project.
+Start with `AGENTS.md`, `docs/ai/INDEX.md` and the included `.agents/skills/aba-engineering/SKILL.md`. Add bounded contexts **only for your actual business domains** and record ownership in `metadata/contexts.json`. Avoid premature shared Domain models. Implementations and integrations (EF Core, Redis, Wolverine) are deliberate follow-up milestones, not present in the generated project.
