@@ -31,3 +31,7 @@ The generated API includes a deliberately protected `GET /api/v1/system/authoriz
 ## Optional tenancy-awareness (not tenant data isolation)
 
 Set `Platform:Tenancy:Enabled=true` to require a trusted tenant claim on every authenticated API endpoint, via both the default and fallback JWT authorization policies. `Platform:Tenancy:ClaimType` defaults to `tenant_id`. `IRequestTenant` reads only the principal populated by authentication middleware; a caller's `X-Tenant-ID` header is never accepted as proof of membership. The option is **disabled** for the clean Single-Tenant quickstart. Actual tenant authorization, record filtering, migrations, per-tenant storage, cross-tenant negative database tests, and account membership belong to the real owning business contexts/provider; **do not advertise production tenant isolation** yet.
+
+## Signed JWT validation tests
+
+The default xUnit suite injects a disposable test-only key into the actual ASP.NET Core bearer middleware and exercises signature, issuer, audience and lifetime checks. These tests do **not** connect to a real Keycloak/Entra/Okta OIDC provider or certify token key rotation, per-tenant membership or permission claims. Read `docs/decisions/ADR-002-verified-token-test-boundary.md`.

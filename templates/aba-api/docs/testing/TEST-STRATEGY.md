@@ -4,6 +4,7 @@
 
 - `tests/Aba.Starter.Api.Tests/ApiSmokeTests.cs`: generated OpenAPI, Scalar documentation route, health and correlation header using WebApplicationFactory.
 - `tests/Aba.Starter.Api.Tests/SecurityGuardTests.cs`: required OIDC config for non-development runtime, explicit local exception.
+- `tests/Aba.Starter.Api.Tests/SignedJwtAuthenticationTests.cs`: uses real ASP.NET JWT bearer validation for a signed valid token, invalid signature, incorrect issuer/audience, expired and malformed tokens. Uses a disposable test key; no false claims of a real IdP.
 
 ## Commands
 
