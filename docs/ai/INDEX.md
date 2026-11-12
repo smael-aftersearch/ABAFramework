@@ -90,3 +90,5 @@ read the template ADR-011-oci-base-and-archive-attestation.md,
 oci-base-lock.json and docs/release-integrity.md.
 Production multi-node cache coordination, actual OCI registry
 signing and automatic release approval remain unsupported.
+
+**Provenance gate:** The scanned Docker image archive is exported by `container-security` but is signed only by final `template-provenance` after all eight independently verified jobs succeed. Check the exact CI run; a successful scan alone is not a signed release.

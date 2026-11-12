@@ -284,11 +284,21 @@ class GenericTemplateTests(unittest.TestCase):
         for phrase in ('docker save aba-ci-security:local',
                        'docker load -i aba-runtime-image.tar.gz',
                        "test \"$original\" = \"$restored\"",
-                       'subject-path: artifacts/container/aba-runtime-image.tar.gz',
+                       'subject-path: artifacts/oci-provenance/aba-runtime-image.tar.gz',
                        'gh attestation verify "$image"',
                        'altered-after-scan',
                        "PASS: exact OCI image archive signed and modified archive rejected"):
             self.assertIn(phrase, workflow)
+        scan_job = workflow.split('  container-security:', 1)[1].split('  template-provenance:', 1)[0]
+        final_job = workflow.split('  template-provenance:', 1)[1]
+        self.assertNotIn('actions/attest@', scan_job)
+        self.assertIn('needs:', final_job)
+        for upstream in ('governance-and-runtime', 'integration-relational-and-redis',
+                         'redis-restart', 'container-startup', 'package-template',
+                         'keycloak-oidc', 'supply-chain', 'container-security'):
+            self.assertIn('      - ' + upstream, final_job)
+        self.assertIn('name: aba-runtime-image-security', final_job)
+        self.assertIn('sha256sum --check image-archive-sha256.txt', final_job)
 
     def test_immutable_mcr_base_manifest_lock_is_enforced_everywhere(self):
         docker = (TEMPLATE / 'Dockerfile').read_text()

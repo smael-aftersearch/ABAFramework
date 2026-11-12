@@ -32,8 +32,11 @@ runtime scan succeeds, CI exports the **exact scanned local Docker
 image** via docker save and gzip. It records archive SHA256,
 removes the tagged local image, loads the archive and checks the
 restored Docker image ID equals the pre-export scanned image ID.
-GitHub Actions signs a SLSA Build Provenance attestation of that
-byte-for-byte docker-save archive using its OIDC identity.
+The scan job **does not sign** this archive: a failed database, Redis
+restart or Keycloak test must not yield signed release-candidate
+provenance. The final job depends on eight successful upstream jobs,
+downloads the already-scanned archive, rechecks its SHA256 and image ID,
+then signs SLSA Build Provenance of those exact bytes via OIDC.
 gh attestation verify requires the repository, main source ref
 and current Git commit. A same-name mutated archive MUST fail
 verification. The archive, SHA256 and verification results are

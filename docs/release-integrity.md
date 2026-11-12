@@ -52,10 +52,14 @@ a Security-approved policy and exception process are missing.
 After a successful **runtime image scan**, root CI on `main` exports
 that exact tagged image with `docker save | gzip`, hashes the bytes,
 removes the local tag, loads the archive and requires that the restored
-Docker image ID equal the previously scanned ID. It then issues
-keyless SLSA provenance through `actions/attest` for this
-**Docker-save archive**, verifying repository, `refs/heads/main`,
-source commit and archive digest. A modified same-name archive
+Docker image ID equal the previously scanned ID. The archive is kept
+as a CI artifact but is **not yet signed**. Only when **all eight**
+independent governance, real-service, Redis restart, Keycloak, image,
+packaging, vulnerability and container jobs have passed does the final
+`template-provenance` job download that exact artifact, check its
+SHA256 and Docker image ID again, and issue keyless SLSA provenance
+through `actions/attest` for the **Docker-save archive**, verifying
+repository, `refs/heads/main`, source commit and archive digest. A modified same-name archive
 MUST fail verification. The artifact, hash, attestation JSON and Trivy
 report are retained. This is stronger than signing a textual Dockerfile,
 but it does **not** sign a published OCI registry manifest digest.

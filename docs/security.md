@@ -94,3 +94,5 @@ OCI registry signature or Production approval, and does not replace
 fresh vulnerability scans as the pinned base ages. Generated products
 must individually sign their actual published digest. See
 docs/release-integrity.md and the template's ADR-011.
+
+**Signed artifact gate:** signing the scanned Docker-save image archive is now deferred to the final provenance job. All eight upstream CI jobs (including the isolated actual Redis restart and full SQL/Wolverine tests) must pass before that artifact receives SLSA provenance. A partial/passing image-scan job alone cannot issue a signed archive. This still is not a published registry OCI signature.
