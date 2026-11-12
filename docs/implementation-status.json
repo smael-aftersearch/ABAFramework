@@ -586,14 +586,23 @@
       "id": "cache-stampede",
       "area": "Caching",
       "feature": "Cache stampede and Redis restart resilience",
-      "status": "not_started",
+      "status": "partial",
       "owner": "Platform / Operations",
       "priority": "P1",
-      "delivered": "Not implemented",
-      "remaining": "Test reconnect after real Redis restart, TTL races and concurrent miss budget",
+      "delivered": "Host-wide per-tenant/key single-flight read-through with 24-concurrent-call and real 12-caller Redis tests, TTL/cancellation/miss-value fixes; actual CI Redis stop/restart with strict/explicit fallback and reconnect (isolated 2-case drill)",
+      "remaining": "Add distributed multi-replica miss budget/locking, authorize query scopes, bound source load during full Redis outage and verify production Redis topology/TTL race policies",
       "acceptance": "No excessive authoritative DB load during simultaneous cache misses",
-      "evidence": [],
-      "tests": []
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Platform/Caching/AbaCacheLoadGate.cs",
+        "templates/aba-api/src/Aba.Starter.Platform/Caching/ReadThroughQueryCache.cs",
+        "templates/aba-api/src/Aba.Starter.Platform/Caching/AbaCachingServices.cs",
+        "templates/aba-api/docs/decisions/ADR-010-cache-singleflight-redis-restart.md"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/CacheSingleFlightTests.cs",
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/RedisRestartDrillTests.cs",
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs"
+      ]
     },
     {
       "id": "otel-instrument",
@@ -831,18 +840,23 @@
       "status": "partial",
       "owner": "Release engineering",
       "priority": "P0",
-      "delivered": "CI-verified NuGet direct/transitive audits plus SPDX graphs, fixable-CRITICAL runtime Trivy scan and keyless signed/verified SLSA provenance for tested .nupkg with tamper rejection",
-      "remaining": "Pin OCI base image digests, approve HIGH/unfixed severity policies, sign actual published OCI/NuGet releases and institute production release/change-control",
+      "delivered": "NuGet direct/transitive advisory scans + SPDX; reviewed immutable .NET 10 multiarch SDK/runtime base digests with fail-closed policy/negative tests; Trivy-scanned runtime Docker-save archive keyless SLSA attested, Docker reload ID/tamper rejection; signed tested NuGet template provenance",
+      "remaining": "Approve HIGH/unfixed image severity policy, sign and verify the actual published OCI registry digest and published NuGet package, protected tag promotion and production deployment/change-control",
       "acceptance": "Release pipeline rejects vulnerable/untrusted dependencies and verifies provenance",
       "evidence": [
         "templates/aba-api/tools/supply_chain.py",
         ".github/workflows/verify.yml",
         "templates/aba-api/.github/workflows/ci.yml",
-        "docs/release-integrity.md"
+        "docs/release-integrity.md",
+        "templates/aba-api/Dockerfile",
+        "templates/aba-api/oci-base-lock.json",
+        "templates/aba-api/tools/oci_base_lock.py",
+        "templates/aba-api/docs/decisions/ADR-011-oci-base-and-archive-attestation.md"
       ],
       "tests": [
         "templates/aba-api/tools/test_supply_chain.py",
-        "scripts/test_starter_template.py"
+        "scripts/test_starter_template.py",
+        "templates/aba-api/tools/test_oci_base_lock.py"
       ]
     },
     {

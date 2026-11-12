@@ -171,3 +171,20 @@ validation against the owning business domain's external effects,
 publisher Outbox and broker transports.
 
 **Full fault-injection evidence:** [run 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289) passed 8/8 jobs, with 99 default API xUnit tests, 26 live SQL/Redis/Wolverine integration tests, 7 recovery drills and 8 actual process-kill cases. Real business Outbox publication, externally compensated consumers and immutable checkpoint custody remain unfinished.
+
+## New cache/OCI technical hardening (P1/P0)
+
+- Redis: host-wide scope/key coalescing, correct value-type/null miss
+  differentiation, cancellation/fault lease cleanup and a separate
+  actual redis:7-alpine stop/start CI drill are implemented. Multi-node
+  miss prevention, distributed invalidations and strict source-load
+  budgets while Redis is down remain open.
+- OCI: reviewed .NET 10 Noble SDK/runtime manifest digest pins,
+  standalone fail-closed Dockerfile/lock validation and negative
+  tests, and upstream signed archive of the scanned Docker image
+  are implemented. The signature binds a Docker-save artifact,
+  **not a deployed OCI registry digest**. HIGH/unfixed advisories,
+  protected production publishing and release approvals remain P0.
+- Follow current CI status in docs/implementation-status.json and the
+  latest root Actions run. Do not infer all new jobs passed from an
+  earlier partial pipeline.

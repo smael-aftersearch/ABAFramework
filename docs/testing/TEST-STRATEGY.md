@@ -208,3 +208,29 @@ ACK boundary under real process death. The generated Product
 still needs proof for its own handler and external side effects.
 
 **Execution update:** [all eight CI jobs passed](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289), with 99 default API xUnit cases, 26 live-service cases, 7 native recovery cases and 8 SIGKILL CrashDrill cases. The three crash boundaries are pre-COMMIT rollback, post-scheduled-durable persistence and post-technical-effect/pre-ACK redelivery. A later two-test negative startup safety addition must pass its own CI; this run is not Proof of Production business side effects.
+
+## Real Redis outage/reconnect and single-flight miss budget
+
+The generated fast xUnit CacheSingleFlightTests starts 24 concurrent
+request scopes and demands exactly one loader for one scoped key,
+no cross-tenant/key contention, cancelled waiter removal and
+fault/TTL recovery. The separate live Redis provider test starts
+12 concurrent independent scopes and requires one backend loader.
+A dedicated RedisRestartDrill CI job actually stops and restarts
+the *job-owned* redis:7-alpine container: strict mode must fail
+without invoking a loader, explicit authorized fallback must
+return source data, and the same Redis client must reconnect and
+pass readiness plus tenant-isolated cache hits. Untrusted
+container IDs, remote hosts or missing CI opt-in fail closed.
+Standard external tests exclude RedisRestartDrill.
+
+## Reviewed pinned OCI bases and attestations
+
+Root and generated CI must validate oci-base-lock.json and both
+Dockerfile FROM digests, run negative Python policy regressions
+and scan the final image with Trivy. Upstream CI additionally
+exports and reloads the scanned Docker image, compares image
+IDs, signs the exact Docker-save artifact with SLSA provenance
+and requires a mutated same-name archive to fail. Test evidence
+must distinguish this archive provenance from signing a
+registry-published digest.

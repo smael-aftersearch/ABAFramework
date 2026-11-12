@@ -14,7 +14,7 @@ its **production release gates remain open**. Evidence refers to the last review
 [CI run 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289)
 (commit `dd77a1c1b0f2`). New commits must pass their own CI before being treated as verified.
 
-**Tracked: 54** · Implemented: 31 · Partial: 9 · Not implemented: 14.
+**Tracked: 54** · Implemented: 31 · Partial: 10 · Not implemented: 13.
 
 | Area | Parameter / feature | Status | Delivered scope | Remaining task | Priority |
 | --- | --- | --- | --- | --- | --- |
@@ -52,7 +52,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | Caching | Redis distributed cache with TTL and scopes | **Implemented** | StackExchangeRedis adapter with scoped JSON TTL/invalidation | Distributed invalidation and PII audit remain open | P1 |
 | Caching | Read-through fallback when Redis unavailable | **Implemented** | Default fail-closed; explicit fresh authoritative query fallback | Cluster reconnect, authorized workloads and load behavior unverified | P1 |
 | Caching | Cross-instance invalidation and tenant permissions | **Not implemented** | Not implemented | Add versioned invalidation events with authorized namespace boundaries | P1 |
-| Caching | Cache stampede and Redis restart resilience | **Not implemented** | Not implemented | Test reconnect after real Redis restart, TTL races and concurrent miss budget | P1 |
+| Caching | Cache stampede and Redis restart resilience | **Partial** | Host-wide per-tenant/key single-flight read-through with 24-concurrent-call and real 12-caller Redis tests, TTL/cancellation/miss-value fixes; actual CI Redis stop/restart with strict/explicit fallback and reconnect (isolated 2-case drill) | Add distributed multi-replica miss budget/locking, authorize query scopes, bound source load during full Redis outage and verify production Redis topology/TTL race policies | P1 |
 | Observability | OpenTelemetry ASP.NET/HTTP traces and metrics | **Partial** | Optional tracing/metrics instrumentation and OTLP exporter wiring | Prove export to a real collector and enforce PII/sampling policy | P1 |
 | Observability | Collector pipeline and export integration test | **Not implemented** | Not implemented | Add isolated OTLP receiver/collector to CI and verify trace/metric export | P1 |
 | Observability | Tamper-evident audit trail | **Partial** | CI-verified HMAC-SHA256 per-tenant ledger, serializable dual SQL append, tamper/rotation tests plus separately signed offline checkpoint codec and historical-prefix verification on both SQL engines | Deploy independently immutable off-DB checkpoint archive, real signing key custody/rotation and context-owned actor/event/retention rules; audit appender role restrictions and legal policies | P0 |
@@ -66,7 +66,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | Testing | Real PostgreSQL/SQL Server/Redis/Wolverine CI | **Implemented** | 16 executable real-service tests across both SQL engines | Crash, high-load and external broker remain release gates | P0 |
 | Testing | CI bundled into each generated API | **Implemented** | Push/PR build gate and manually triggered real-service workflow | Generated-project pipelines need repository policy/hardening to be adopted | P1 |
 | Deployment | Non-root OCI image and local Compose | **Implemented** | Multi-stage .NET 10 Dockerfile, localhost-only Development Compose | Production image signing, secrets/TLS/hosting still open | P1 |
-| Deployment | SBOM, vulnerability scans and signed releases | **Partial** | CI-verified NuGet direct/transitive audits plus SPDX graphs, fixable-CRITICAL runtime Trivy scan and keyless signed/verified SLSA provenance for tested .nupkg with tamper rejection | Pin OCI base image digests, approve HIGH/unfixed severity policies, sign actual published OCI/NuGet releases and institute production release/change-control | P0 |
+| Deployment | SBOM, vulnerability scans and signed releases | **Partial** | NuGet direct/transitive advisory scans + SPDX; reviewed immutable .NET 10 multiarch SDK/runtime base digests with fail-closed policy/negative tests; Trivy-scanned runtime Docker-save archive keyless SLSA attested, Docker reload ID/tamper rejection; signed tested NuGet template provenance | Approve HIGH/unfixed image severity policy, sign and verify the actual published OCI registry digest and published NuGet package, protected tag promotion and production deployment/change-control | P0 |
 | Deployment | Production deployment with TLS, identity and rollback | **Not implemented** | Not implemented | Choose target hosting, configure DNS/TLS/secrets and deployment rollback | P0 |
 | Operations | Latency/throughput/load and failover baseline | **Not implemented** | Not implemented | Set SLO and run load/chaos tests across two provider deployments | P1 |
 | Business | Owner-defined versioned cross-context contracts | **Partial** | Context generator creates Contracts project; no real product Contracts | Specify real public V1 schemas, consumers and compatibility evolution | P0 |
@@ -87,7 +87,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | `msg-domain-consumers` | Implement owner-approved domain contracts, Inbox and cross-context handlers — Consumer cannot mutate another context's tables; duplicate events are safe | Not implemented |
 | `ops-audit` | Deploy independently immutable off-DB checkpoint archive, real signing key custody/rotation and context-owned actor/event/retention rules; audit appender role restrictions and legal policies — Audit cannot be silently rewritten and records actor, action, tenant, outcome | Partial |
 | `ops-prod-secrets` | Add approved secret store, rotation and least-privilege deployment setup — No plaintext production secret in repo/container/CI logs | Not implemented |
-| `dev-release-sbom` | Pin OCI base image digests, approve HIGH/unfixed severity policies, sign actual published OCI/NuGet releases and institute production release/change-control — Release pipeline rejects vulnerable/untrusted dependencies and verifies provenance | Partial |
+| `dev-release-sbom` | Approve HIGH/unfixed image severity policy, sign and verify the actual published OCI registry digest and published NuGet package, protected tag promotion and production deployment/change-control — Release pipeline rejects vulnerable/untrusted dependencies and verifies provenance | Partial |
 | `dev-prod-deploy` | Choose target hosting, configure DNS/TLS/secrets and deployment rollback — Production smoke, zero-downtime deploy and rollback drill pass | Not implemented |
 | `biz-contracts` | Specify real public V1 schemas, consumers and compatibility evolution — V1 consumers stay compatible; private implementation edges rejected | Partial |
 | `biz-contract-tests` | Introduce consumer-driven tests for real event/HTTP contracts — A breaking V1 change fails CI and requires an explicit V2 | Not implemented |
@@ -121,7 +121,7 @@ Run `python3 scripts/status_matrix.py --check` to fail CI on mismatched tables.
 | `db-concurrency` | Actual context owner (TBD) | P1 | Not implemented | Two updates cannot silently overwrite the same business aggregate |
 | `msg-broker` | Platform | P1 | Not implemented | Broker outage, retry and duplicate-delivery integration scenarios pass |
 | `cache-multinode` | Platform + business owners | P1 | Not implemented | Two API replicas observe invalidations without cross-tenant leakage |
-| `cache-stampede` | Platform / Operations | P1 | Not implemented | No excessive authoritative DB load during simultaneous cache misses |
+| `cache-stampede` | Platform / Operations | P1 | Partial | No excessive authoritative DB load during simultaneous cache misses |
 | `otel-instrument` | Platform | P1 | Partial | Collector receives correlated spans/metrics without secrets |
 | `otel-collector` | Platform / Operations | P1 | Not implemented | Collector observes test request traces and identifies service correctly |
 | `ops-load` | Operations / Performance | P1 | Not implemented | SLO and recovery objectives measurable under load |
@@ -157,6 +157,7 @@ Run `python3 scripts/status_matrix.py --check` to fail CI on mismatched tables.
 | `msg-crash-window` | `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbruptCrashWindowTests.cs`, `scripts/verify-platform-services.sh`, `templates/aba-api/docs/decisions/ADR-008-kill-window-recovery.md` | `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbruptCrashWindowTests.cs`, `scripts/test_starter_template.py` |
 | `cache-redis` | `templates/aba-api/src/Aba.Starter.Platform/Caching/AbaCachingServices.cs` | `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs` |
 | `cache-outage` | `templates/aba-api/src/Aba.Starter.Platform/Caching/ReadThroughQueryCache.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/ReadThroughCacheTests.cs`, `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs` |
+| `cache-stampede` | `templates/aba-api/src/Aba.Starter.Platform/Caching/AbaCacheLoadGate.cs`, `templates/aba-api/src/Aba.Starter.Platform/Caching/ReadThroughQueryCache.cs`, `templates/aba-api/src/Aba.Starter.Platform/Caching/AbaCachingServices.cs`, `templates/aba-api/docs/decisions/ADR-010-cache-singleflight-redis-restart.md` | `templates/aba-api/tests/Aba.Starter.Api.Tests/CacheSingleFlightTests.cs`, `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/RedisRestartDrillTests.cs`, `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs` |
 | `otel-instrument` | `templates/aba-api/src/Aba.Starter.Platform/Observability/AbaObservabilityServices.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/AbaPlatformTests.cs` |
 | `ops-audit` | `templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaAuditLedger.cs`, `templates/aba-api/src/Aba.Starter.Platform/Persistence/Migrations/202611130001_AuditLedger.cs`, `templates/aba-api/docs/decisions/ADR-006-audit-ledger.md`, `templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaAuditCheckpoint.cs`, `templates/aba-api/docs/decisions/ADR-009-offline-audit-checkpoints.md` | `templates/aba-api/tests/Aba.Starter.Api.Tests/AuditLedgerConfigTests.cs`, `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AuditLedgerIntegrationTests.cs`, `templates/aba-api/tests/Aba.Starter.Api.Tests/AuditCheckpointTests.cs`, `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AuditAnchoredCheckpointIntegrationTests.cs` |
 | `dev-dotnetnew` | `packaging/ABAFramework.GenericApi.Template.csproj` | `scripts/pack-template.sh` |
@@ -168,7 +169,7 @@ Run `python3 scripts/status_matrix.py --check` to fail CI on mismatched tables.
 | `dev-services-ci` | `scripts/verify-platform-services.sh` | `scripts/verify-platform-services.sh` |
 | `dev-generated-ci` | `templates/aba-api/.github/workflows/ci.yml`, `templates/aba-api/.github/workflows/integration.yml` | `scripts/test_starter_template.py`, `scripts/pack-template.sh` |
 | `dev-container` | `templates/aba-api/Dockerfile`, `templates/aba-api/compose.yaml` | `scripts/verify-container-starter.sh` |
-| `dev-release-sbom` | `templates/aba-api/tools/supply_chain.py`, `.github/workflows/verify.yml`, `templates/aba-api/.github/workflows/ci.yml`, `docs/release-integrity.md` | `templates/aba-api/tools/test_supply_chain.py`, `scripts/test_starter_template.py` |
+| `dev-release-sbom` | `templates/aba-api/tools/supply_chain.py`, `.github/workflows/verify.yml`, `templates/aba-api/.github/workflows/ci.yml`, `docs/release-integrity.md`, `templates/aba-api/Dockerfile`, `templates/aba-api/oci-base-lock.json`, `templates/aba-api/tools/oci_base_lock.py`, `templates/aba-api/docs/decisions/ADR-011-oci-base-and-archive-attestation.md` | `templates/aba-api/tools/test_supply_chain.py`, `scripts/test_starter_template.py`, `templates/aba-api/tools/test_oci_base_lock.py` |
 | `biz-contracts` | `templates/aba-api/tools/new_context.py` | `scripts/verify-starter.sh` |
 
 ## How to record progress without exaggeration

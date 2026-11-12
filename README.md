@@ -112,6 +112,26 @@ offsite checkpoint store or Production key manager. See
 [checkpoint ADR](templates/aba-api/docs/decisions/ADR-009-offline-audit-checkpoints.md)
 and [safe crash runbook](templates/aba-api/docs/operations/crash-drills.md).
 
+## Host-wide cache-miss coordination and reviewed OCI supply chain
+
+The generic API Platform now coalesces concurrent authorized
+read-through misses for the SAME scoped key within one process;
+different tenants/keys do not block one another. Default(T) and JSON
+null cache hits are distinguished from misses. A separately provisioned
+Redis CI job actually stops/restarts its disposable Redis service and
+proves strict failure, explicit fresh-source fallback and reconnect.
+These are NOT multi-replica distributed locks or authorization controls.
+
+Generated containers now pin reviewed .NET 10 SDK and ASP.NET Core base
+**manifest digests** via `oci-base-lock.json`; upstream and generated
+CI reject floating/unapproved bases. The root main-branch build also
+signs the **actual scanned Docker-save image archive** after verifying
+its loaded image ID and rejecting a tampered archive. This is not
+a registry-signed production OCI digest. Read
+[cache ADR](templates/aba-api/docs/decisions/ADR-010-cache-singleflight-redis-restart.md),
+[release ADR](templates/aba-api/docs/decisions/ADR-011-oci-base-and-archive-attestation.md)
+and [release integrity policy](docs/release-integrity.md).
+
 ## Installable template package
 
 CI also builds and tests a versioned `ABAFramework.GenericApi.Template.*.nupkg` NuGet template artifact. After downloading it from the successful [GitHub Actions](https://github.com/smael-aftersearch/ABAFramework/actions) run, install with `dotnet new install ./ABAFramework.GenericApi.Template.0.3.0-preview.2.nupkg`, then `dotnet new aba-api -n YourCompany.Api`. This is an artifact attached to CI, **not yet a NuGet.org publication**. Pack locally with `bash scripts/pack-template.sh`.
@@ -136,7 +156,7 @@ its **production release gates remain open**. Evidence refers to the last review
 [CI run 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289)
 (commit `dd77a1c1b0f2`). New commits must pass their own CI before being treated as verified.
 
-**Tracked: 54** · Implemented: 31 · Partial: 9 · Not implemented: 14.
+**Tracked: 54** · Implemented: 31 · Partial: 10 · Not implemented: 13.
 
 | Area | Parameter / feature | Status | Delivered scope | Remaining task | Priority |
 | --- | --- | --- | --- | --- | --- |
@@ -174,7 +194,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | Caching | Redis distributed cache with TTL and scopes | **Implemented** | StackExchangeRedis adapter with scoped JSON TTL/invalidation | Distributed invalidation and PII audit remain open | P1 |
 | Caching | Read-through fallback when Redis unavailable | **Implemented** | Default fail-closed; explicit fresh authoritative query fallback | Cluster reconnect, authorized workloads and load behavior unverified | P1 |
 | Caching | Cross-instance invalidation and tenant permissions | **Not implemented** | Not implemented | Add versioned invalidation events with authorized namespace boundaries | P1 |
-| Caching | Cache stampede and Redis restart resilience | **Not implemented** | Not implemented | Test reconnect after real Redis restart, TTL races and concurrent miss budget | P1 |
+| Caching | Cache stampede and Redis restart resilience | **Partial** | Host-wide per-tenant/key single-flight read-through with 24-concurrent-call and real 12-caller Redis tests, TTL/cancellation/miss-value fixes; actual CI Redis stop/restart with strict/explicit fallback and reconnect (isolated 2-case drill) | Add distributed multi-replica miss budget/locking, authorize query scopes, bound source load during full Redis outage and verify production Redis topology/TTL race policies | P1 |
 | Observability | OpenTelemetry ASP.NET/HTTP traces and metrics | **Partial** | Optional tracing/metrics instrumentation and OTLP exporter wiring | Prove export to a real collector and enforce PII/sampling policy | P1 |
 | Observability | Collector pipeline and export integration test | **Not implemented** | Not implemented | Add isolated OTLP receiver/collector to CI and verify trace/metric export | P1 |
 | Observability | Tamper-evident audit trail | **Partial** | CI-verified HMAC-SHA256 per-tenant ledger, serializable dual SQL append, tamper/rotation tests plus separately signed offline checkpoint codec and historical-prefix verification on both SQL engines | Deploy independently immutable off-DB checkpoint archive, real signing key custody/rotation and context-owned actor/event/retention rules; audit appender role restrictions and legal policies | P0 |
@@ -188,7 +208,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | Testing | Real PostgreSQL/SQL Server/Redis/Wolverine CI | **Implemented** | 16 executable real-service tests across both SQL engines | Crash, high-load and external broker remain release gates | P0 |
 | Testing | CI bundled into each generated API | **Implemented** | Push/PR build gate and manually triggered real-service workflow | Generated-project pipelines need repository policy/hardening to be adopted | P1 |
 | Deployment | Non-root OCI image and local Compose | **Implemented** | Multi-stage .NET 10 Dockerfile, localhost-only Development Compose | Production image signing, secrets/TLS/hosting still open | P1 |
-| Deployment | SBOM, vulnerability scans and signed releases | **Partial** | CI-verified NuGet direct/transitive audits plus SPDX graphs, fixable-CRITICAL runtime Trivy scan and keyless signed/verified SLSA provenance for tested .nupkg with tamper rejection | Pin OCI base image digests, approve HIGH/unfixed severity policies, sign actual published OCI/NuGet releases and institute production release/change-control | P0 |
+| Deployment | SBOM, vulnerability scans and signed releases | **Partial** | NuGet direct/transitive advisory scans + SPDX; reviewed immutable .NET 10 multiarch SDK/runtime base digests with fail-closed policy/negative tests; Trivy-scanned runtime Docker-save archive keyless SLSA attested, Docker reload ID/tamper rejection; signed tested NuGet template provenance | Approve HIGH/unfixed image severity policy, sign and verify the actual published OCI registry digest and published NuGet package, protected tag promotion and production deployment/change-control | P0 |
 | Deployment | Production deployment with TLS, identity and rollback | **Not implemented** | Not implemented | Choose target hosting, configure DNS/TLS/secrets and deployment rollback | P0 |
 | Operations | Latency/throughput/load and failover baseline | **Not implemented** | Not implemented | Set SLO and run load/chaos tests across two provider deployments | P1 |
 | Business | Owner-defined versioned cross-context contracts | **Partial** | Context generator creates Contracts project; no real product Contracts | Specify real public V1 schemas, consumers and compatibility evolution | P0 |
@@ -209,7 +229,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | `msg-domain-consumers` | Implement owner-approved domain contracts, Inbox and cross-context handlers — Consumer cannot mutate another context's tables; duplicate events are safe | Not implemented |
 | `ops-audit` | Deploy independently immutable off-DB checkpoint archive, real signing key custody/rotation and context-owned actor/event/retention rules; audit appender role restrictions and legal policies — Audit cannot be silently rewritten and records actor, action, tenant, outcome | Partial |
 | `ops-prod-secrets` | Add approved secret store, rotation and least-privilege deployment setup — No plaintext production secret in repo/container/CI logs | Not implemented |
-| `dev-release-sbom` | Pin OCI base image digests, approve HIGH/unfixed severity policies, sign actual published OCI/NuGet releases and institute production release/change-control — Release pipeline rejects vulnerable/untrusted dependencies and verifies provenance | Partial |
+| `dev-release-sbom` | Approve HIGH/unfixed image severity policy, sign and verify the actual published OCI registry digest and published NuGet package, protected tag promotion and production deployment/change-control — Release pipeline rejects vulnerable/untrusted dependencies and verifies provenance | Partial |
 | `dev-prod-deploy` | Choose target hosting, configure DNS/TLS/secrets and deployment rollback — Production smoke, zero-downtime deploy and rollback drill pass | Not implemented |
 | `biz-contracts` | Specify real public V1 schemas, consumers and compatibility evolution — V1 consumers stay compatible; private implementation edges rejected | Partial |
 | `biz-contract-tests` | Introduce consumer-driven tests for real event/HTTP contracts — A breaking V1 change fails CI and requires an explicit V2 | Not implemented |

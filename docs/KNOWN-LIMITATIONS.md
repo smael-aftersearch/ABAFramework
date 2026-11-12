@@ -130,3 +130,21 @@ actual offline signing infrastructure or protection if both
 the ledger and checkpoint signing keys are compromised.
 
 **Verified CI-only crash scope:** [run 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289) passed 8/8 SIGKILL cases, including both providers' pre-commit rollback, persisted schedule recovery, and lost ACK redelivery without duplicating a technical effect. This is **not** a claim of real business Outbox/ACK, broker network partitions, full inter-context idempotency or Production supervision.
+
+## Cache coordination and OCI signature limits
+
+AbaCacheLoadGate reduces concurrent authoritative reads only inside
+one process when cache storage is available. A Redis outage with
+explicit fallback may still fan out loads across requests and
+replicas. This is not a distributed lock, cache-based authority
+or a guarantee of bounded source load during total outage. The
+isolated real Redis restart test affects only a disposable GitHub
+CI service; Production reconnect and topology failover still
+need owner-approved rehearsal.
+
+Docker SDK/runtime refs are now fixed by reviewed multiarch
+manifest digests. The root GitHub pipeline signs the exact
+tested Docker-save archive after Trivy and a load identity
+check; it does NOT sign any published OCI registry digest.
+Downstream products must build and sign their own releases.
+Digest pins need scheduled CVE review and upgrades.

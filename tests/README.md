@@ -93,3 +93,21 @@ allowing later legitimate audit writes. Real offsite immutable
 storage remains an operational responsibility.
 
 **Executed source CI:** [43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289) passed 8/8 CrashDrill cases (2 SQL engines x 3 crash windows plus negative/sentinel cases), 26/26 real-service tests, 7/7 backup/safety cases, and 99 generated API xUnit cases. Newer revisions must still pass their own run before being called verified.
+
+## Caching and OCI supply-chain regression cases
+
+The generic starter now contains CacheSingleFlightTests (same-key
+concurrent request dedup, tenant/key isolation, TTL expiry and
+cancellation/fault cleanup). The external SQL/Redis test suite
+adds LiveRedisCollapsesConcurrentMissesAcrossRequestScopes with
+12 real Redis callers; RedisRestartDrillTests runs in an isolated
+job that stops and restarts only its own disposable Docker
+Redis 7 container, with negative CI/loopback/container-ID gates.
+No ordinary unit or SQL test is permitted to stop Redis.
+
+tools/test_oci_base_lock.py deliberately changes source registry,
+digest, tag, stages, runtime UID and missing lock and requires
+rejection before Docker build. Root CI signs the scanned Docker
+image archive only on pushes to main and rejects modified bytes;
+generated products inherit only their own lock verification
+and scanner, not upstream signatures.
