@@ -31,7 +31,7 @@ If ownership or requirements remain ambiguous, investigate code, metadata, ADRs,
 - Generate using `dotnet new install ./templates/aba-api` and `dotnet new aba-api -n <Actual.Product.Name> -o <target-folder>`; do not invent sample business domains.
 - A template change must update generated-project docs and relevant xUnit tests. Verify with `python3 scripts/test_starter_template.py` and `bash scripts/verify-starter.sh` in an SDK-capable environment. The latter must generate, build, test and launch a fresh project.
 - Academy-specific metadata checks remain relevant only when changing `samples/Academy`.
-- Do not mark OpenAPI/Scalar/JWT as complete before successful generated-project CI, and do not claim PostgreSQL/Redis/Wolverine adapters are present.
+- Confirm generated-project CI before claiming capabilities. EF Core 10 dual-provider, Redis and Wolverine adapters now exist and have real service baseline tests; do NOT promote those probes to claims of crash-safe business transactions, complete tenant isolation or production readiness.
 
 ## 2. Read only relevant documents
 
@@ -55,7 +55,7 @@ For the decision logic behind these requirements, read [ABA authority rules](ref
 - Do not share business entities or implement cross-context data writes as a shortcut.
 - Keep accounting posted journals immutable; use compensating records for corrections.
 - Keep payment callbacks and message redelivery idempotent; use transactional Outbox/Inbox for real durable distributed implementations.
-- Do not claim PostgreSQL, Redis, Wolverine, OAuth/OIDC, or production readiness unless the repo implements and verifies them. The starter currently has local substitutes.
+- Distinguish the **Academy legacy sample** (local substitutes) from the **generic template** (real, opt-in PostgreSQL/SQL Server, Redis, Wolverine, OpenTelemetry and JWT tenant-claim components). Report exact CI evidence and remaining production gaps; do not invent complete OIDC/tenant isolation or end-to-end outbox reliability.
 - Reject secret leakage, unsafe auth bypasses, real payment execution without approval, and unverifiable security claims.
 
 ## 4. Implement code, tests, and docs in the same change
@@ -76,7 +76,7 @@ python3 scripts/task_protocol.py verify --profile static --output artifacts/veri
 python3 scripts/task_protocol.py verify --profile all --output artifacts/verification/full.json --markdown artifacts/verification/full.md
 ```
 
-`static` executes AI checks, negative governance, tool regression tests and a structural scan. `all` additionally requires a working .NET 10 SDK and executes restore/build/console smoke. If a gate cannot run, record **NOT_RUN**, not PASS. Nonzero verifier exit codes mean a failed or incomplete profile. Use `bash scripts/verify-all.sh` for the same full CI-oriented gate. The generated evidence does **not** certify unimplemented xUnit, database, Redis, Wolverine or authorization tests. Never invent coverage or claim production readiness.
+`static` executes AI checks, negative governance, tool regression tests and a structural scan. `all` additionally requires a working .NET 10 SDK and executes restore/build/console smoke. If a gate cannot run, record **NOT_RUN**, not PASS. Nonzero verifier exit codes mean a failed or incomplete profile. Use `bash scripts/verify-all.sh` for the same full CI-oriented gate. The original Academy evidence runner only checks its own Phase-1 scope. The separate generic-template CI now tests xUnit, real database providers, Redis and a Wolverine technical message; it does **not** certify multi-tenant data isolation, external IdP validation or failure-injection reliability. Never invent coverage or claim production readiness.
 
 Complete every material task using this compact report; see [evidence and drift protocol](references/evidence-and-drift.md):
 

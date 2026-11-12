@@ -27,4 +27,4 @@ dotnet build "$PROJECT" -c Release --no-restore
 dotnet test "$PROJECT" -c Release --no-build \
   --filter 'FullyQualifiedName~AbaExternalInfrastructureTests' \
   --logger 'console;verbosity=normal'
-echo "PASS: PostgreSQL, SQL Server and Redis integration suite on generated project"
+echo "PASS: PostgreSQL, SQL Server, Redis and Wolverine message probes on generated project"

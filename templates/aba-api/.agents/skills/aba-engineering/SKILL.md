@@ -25,7 +25,7 @@ description: >
 - Do not silently modify public V1 contracts. Introduce V2 and compatibility tests when needed.
 - For tenant-aware code, require a validated JWT tenant claim and context-owned tenant/row isolation; never use a raw tenant header as an authority. Optional claim-aware middleware is not sufficient to claim full tenant isolation.
 - HTTP routes remain authenticated by default; only narrowly justified endpoints can be anonymous.
-- No production secrets, fake payment side effects, or claims of unimplemented PostgreSQL, Redis, Wolverine or tenant isolation.
+- No production secrets or fake payment side effects. PostgreSQL **and** SQL Server/EF Core, Redis and Wolverine are opt-in technical adapters verified in baseline real-container tests; do not claim tenant row isolation, business outbox fault tolerance or production readiness. Read `docs/platform-infrastructure.md` for provider configuration.
 
 ## Deliver the task
 

@@ -1,3 +1,11 @@
+## قابلیت‌های جدید فریم‌ورک عمومی
+
+در قالب `aba-api`، انتخاب دیتابیس با `Platform__Database__Provider` بین `PostgreSql` و `SqlServer` انجام می‌شود. رشته اتصال از `ConnectionStrings__AbaDatabase` گرفته می‌شود. Redis با `Platform__Cache__Provider=Redis` و `ConnectionStrings__AbaRedis` فعال می‌شود؛ Wolverine نیز با `Platform__Messaging__Enabled=true` از همان دیتابیس انتخاب‌شده برای پیام‌های پایدار استفاده می‌کند. OpenTelemetry و کنترل Claim مربوط به Tenant به‌صورت اختیاری موجودند. این بخش‌ها در پروژه جدید بدون مثال Academy ایجاد می‌شوند.
+
+[تست موفق PostgreSQL، SQL Server، Redis و Wolverine](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43290885904). تکمیل امنیت Tenant در سطح داده، احراز هویت واقعی IdP و تست خرابی/بازیابی Outbox هنوز انجام نشده است.
+
+---
+
 # شروع سریع پروژه عمومی API
 
 برای ساخت یک پروژه جدید **بدون مثال Academy و بدون هیچ دامنه تجاری فرضی**، از ریشه مخزن اجرا کنید:

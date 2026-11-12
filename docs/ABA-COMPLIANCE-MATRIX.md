@@ -1,3 +1,5 @@
+> **Generic starter CI status (2026-11-12):** [real two-SQL-provider + Redis + Wolverine CI](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43290885904) verified concrete technical adapters and message-processing probes. The ABA matrix below is mainly the **optional Academy reference** and its historical pre-.NET CI evidence; do not interpret its unfinished Redis/Wolverine statements as the state of the generic `dotnet new aba-api` template.
+
 > **Current CI evidence (2026-11-12):** [Generic API starter run](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43286946630) confirms real .NET 10 generated-solution compilation, 10 xUnit tests, health, generated OpenAPI and Scalar HTTP. The original matrix below was written before CI execution and covers the *Academy sample*, not the new default domain-neutral starter. Architecture ownership rules remain enforced by Python governance. New bounded contexts must declare their own owners.
 
 # ABA compliance matrix: Phase 1 evidence

@@ -2,18 +2,28 @@
 
 ## Main product is the generic API starter
 
-- **Now implemented / pending CI verification:** `dotnet new aba-api` template; generated OpenAPI, Scalar interactive API UI in Development, standard errors, correlation IDs, rate limits, OIDC/JWT fail-closed configuration, xUnit/WebApplicationFactory API tests, generic project instructions and AI docs.
+- **Now implemented and GitHub CI verified:** `dotnet new aba-api` template; generated OpenAPI, Scalar interactive API UI in Development, standard errors, correlation IDs, rate limits, OIDC/JWT fail-closed configuration, xUnit/WebApplicationFactory API tests, generic project instructions and AI docs.
 - **Do not add Academy example business contexts** to new generated projects. The existing Academy Phase 1 sample remains optional and separate.
 
-## Remaining platform implementation priorities
+## Currently implemented and verified in the domain-neutral template
 
-1. Provide reusable EF Core 10 + PostgreSQL storage adapters with real migrations, transaction consistency, concurrency controls, health checks and Testcontainers integration tests.
-2. Provide Wolverine messaging with *real transactional* Outbox/Inbox, replay/dead letters, idempotency and failure-injection tests.
-3. Provide Redis distributed caching with key isolation, TTL/invalidation, outage fallback and isolation tests.
-4. Add OIDC/JWT integration tests with representative signed tokens, per-tenant isolation policy and negative 401/403 security cases. The starter currently validates OIDC configuration and uses JWT bearer middleware; no identity provider is bundled.
-5. Add OpenTelemetry traces/metrics/logs, deployment manifests, workload performance baselines and documented threat modeling.
-6. Add a CLI/generator for new real bounded contexts with ownership.yaml, context-map.yaml, ai-rules.yaml and public versioned contract metadata.
-7. Publish versioned framework NuGet packages and signed .NET template packages only after repeatable compatibility and CI coverage.
+- **EF Core 10 both PostgreSQL and Microsoft SQL Server:** runtime provider selection; technical idempotency model with provider-neutral migration; real integration tests against both engines.
+- **Redis:** optional distributed caching, scoped JSON keys, explicit TTL and removal, and actual Redis test.
+- **Wolverine 6:** optional relational message persistence on either engine, durable local message processing, EF Core transactional middleware and real message handler probe in CI. This demonstrates baseline delivery only; full outbox/failure correctness requires more tests.
+- **OIDC/JWT:** production startup refuses missing HTTPS authority/audience, route authorization defaults to required, 401 negative test. Optional `tenant_id` claim gate is newly implemented, **not** a substitute for complete tenant authorization/storage isolation.
+- **OpenTelemetry:** optional ASP.NET+HttpClient tracing/metrics, validated OTLP endpoint, no collector auto-installed.
+- **Quality and AI:** xUnit/WebApplicationFactory, real service CI, ABA governance, generic Skills/AGENTS metadata and .NET template instantiation.
+
+[Source-grounded infrastructure CI evidence](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43290885904) | `docs/verification/2026-11-12-platform-providers.md`.
+
+## Still incomplete (release blockers, not yet delivered)
+
+1. **Wolverine reliability:** DB transaction + outbound message in the same committed unit of work across real bounded-context handlers, injected crashes/restarts, idempotency on duplicate callbacks, dead-letter/replay tooling, poison messages and broker-backed delivery when needed.
+2. **End-to-end security:** Keycloak/IdP with valid and invalid signed tokens, audience/issuer/key rotation, 401/403, per-tenant ownership and EF Core **row isolation** tests. Optional claim checking is only a baseline.
+3. **EF Core production operations:** per-business-context models/migrations, concurrency/race and forward/rollback tests, encrypted SQL Server TLS configuration, PostgreSQL operational backups, migration orchestration and safe rollback.
+4. **Redis resilience:** outage fallback, distributed invalidation, cross-service tenancy checks, key rotation, race/cache stampede behavior and load tests.
+5. **OpenTelemetry and operations:** real collector/export verification, logs correlation, sampling/PII policy, health dependency readiness, performance baselines, load/failover tests, audit events and dashboards.
+6. **Distribution/deployment:** reusable versioned NuGet packages, published template packages, real container deployment and release pipeline after threat modeling, supply-chain and vulnerability checks.
 
 ## Release gates
 

@@ -3,3 +3,7 @@
 **Never treat this preview as an authenticated API.** OAuth 2.0, OpenID Connect, access-token validation, tenant-aware policies, distributed secrets, webhook signature validation and audit/security telemetry are not implemented. The Host explicitly throws when `ASPNETCORE_ENVIRONMENT` is not `Development`. Bind HTTP to `127.0.0.1` and use only synthetic demo users and fake payments.
 
 Before any production deployment, require standards-based OIDC/JWT validation, granular authorization, tenant identity/isolation, CSRF and CORS decisions, request limits and rate limits, secure secret loading, migrations, backup/recovery, threat modeling, monitoring, vulnerability checks, real provider idempotency and webhook signature verification, and a deployment security review. Follow the next milestone acceptance gates.
+
+## Security of the new generic API template (not Academy)
+
+The generated API implements ASP.NET JWT bearer middleware, fails closed outside Development without an HTTPS Authority/Audience, requires authentication by default, and includes an explicit protected route with a negative `401` test. Optional `Platform:Tenancy:Enabled` checks a JWT `tenant_id` claim in the default/fallback authorization policies; it never accepts a raw tenant header as authority. These checks are **not full Keycloak/OIDC interoperability, identity provider key rotation, signed-token abuse tests or tenant row isolation**. Do not deploy multi-tenant data without the owning business context implementing and testing tenant membership and row-level access.

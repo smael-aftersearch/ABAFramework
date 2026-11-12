@@ -19,7 +19,11 @@ The generated project has no Academy or business examples. It includes a version
 
 ## Roadmap and scope
 
-A generated starter is not a finished production platform. PostgreSQL/EF Core persistence, Redis distributed caching, Wolverine transactional Outbox/Inbox, tenant isolation and advanced deployment/observability are tracked separately in `docs/NEXT-MILESTONES.md`. Do not claim them implemented until the corresponding adapters and integration tests are passing.
+**Implemented technical integrations (opt-in):** EF Core 10 for **both PostgreSQL and Microsoft SQL Server**, provider-neutral migrations, relational idempotency receipts, Redis distributed cache with TTL and scope isolation, Wolverine 6 durable local messaging with EF transactional middleware for either SQL engine, and OpenTelemetry traces/metrics with optional OTLP export. Optional authenticated JWT tenant-claim enforcement is configured separately; real tenant **row isolation is not implemented**. All dependencies default to off so the blank API starts immediately.
+
+**Evidence:** [real PostgreSQL + SQL Server + Redis + Wolverine integration CI](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43290885904). This run passed five integration scenarios, including actual message delivery via each SQL engine. Wolverine crash/restart, replay/dead letters, full business outbox atomicity, Keycloak/OIDC end-to-end tokens, per-tenant database isolation and production deployment are **not yet certified**.
+
+Setup and connection settings: [generic platform infrastructure guide](templates/aba-api/docs/platform-infrastructure.md). Local optional services: `docker compose -f infra/compose.platform.yaml up -d`. Remaining quality gates: `docs/NEXT-MILESTONES.md`.
 
 ---
 
