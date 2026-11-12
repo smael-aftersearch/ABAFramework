@@ -62,7 +62,8 @@ Repository CI packs this template as `ABAFramework.GenericApi.Template.0.3.0-pre
 
 The repository CI and the generated project's manually triggered integration
 workflow exercise **native database backups and restores** against fresh
-disposable test databases. PostgreSQL uses `pg_dump` and `pg_restore` from a
+disposable test databases. Framework source [CI 43313417455](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43313417455)
+passed 7/7 recovery-and-safety cases; new products must verify their own runs. PostgreSQL uses `pg_dump` and `pg_restore` from a
 matching `postgres:16-alpine` Docker image, and SQL Server uses
 `BACKUP DATABASE`, `RESTORE VERIFYONLY` and `RESTORE DATABASE`. The test
 checks that a backup recovers the original value after an intentional mutation.

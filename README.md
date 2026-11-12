@@ -1,6 +1,6 @@
 # ABA Framework — .NET 10 generic API quick start
 
-**Verified technical baseline (2026-11-13):** [six passing GitHub Actions jobs](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43311281662) compiled a fresh .NET 10 domain-neutral API, passed **73 xUnit API tests** plus generated-context registration checks and **16 real-service integration tests** (PostgreSQL, SQL Server, Redis and Wolverine). CI also verified actual Keycloak OIDC/JWKS 204/401/403, non-root Docker, installable NuGet package and ABA governance. Improvements in the new template include optional per-context `--with-db` scaffolding, transactional/concurrent idempotency, an explicit source-backed Redis outage path, JWT-partitioned rate limiting and an agent task/evidence runner. This successful baseline includes a fail-closed NuGet dependency audit and SPDX 2.3 inventory, AI status-matrix checks, Production SQL TLS guards and startup negative tests, Keycloak, and CI workflows inside generated projects. v0.3.0-preview.2 package installation and generated-project tests have now passed their own CI. Academy remains an **optional example**, not the base framework. **Production release is still gated.**
+**Verified technical baseline (2026-11-13):** [six passing GitHub Actions jobs](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43313417455) compiled a fresh .NET 10 domain-neutral API, passed **73 xUnit API tests** plus generated-context registration checks, **16 standard real-service integration tests** and **7 isolated native backup/restore and safety tests** (PostgreSQL, SQL Server, Redis and Wolverine). CI also verified actual Keycloak OIDC/JWKS 204/401/403, non-root Docker, installable NuGet package and ABA governance. Improvements in the new template include optional per-context `--with-db` scaffolding, transactional/concurrent idempotency, an explicit source-backed Redis outage path, JWT-partitioned rate limiting and an agent task/evidence runner. This successful baseline includes a fail-closed NuGet dependency audit and SPDX 2.3 inventory, AI status-matrix checks, Production SQL TLS guards and startup negative tests, Keycloak, and CI workflows inside generated projects. v0.3.0-preview.2 package installation and generated-project tests have now passed their own CI. Academy remains an **optional example**, not the base framework. **Production release is still gated.**
 
 
 **Start here if you want a new, ordinary API.** The domain-neutral `aba-api` template is the primary deliverable. You do **not** need the Academy enrollment/payment example to create your product.
@@ -22,18 +22,20 @@ The generated project has no Academy or business examples. It includes a version
 
 ## Supply-chain audit and SBOM
 
-The latest six-job GitHub CI successfully verifies the NuGet direct/transitive
-advisory gate with **13 positive/negative tests**. Its SPDX 2.3 inventory
-contains **161 resolved NuGet packages across the three default API projects**;
-the audit reported no known advisories in that run. This does not scan the
-separate integration-test project or OCI images, pin image digests, sign
-release artifacts, or verify publication attestations. See
+The latest six-job GitHub CI verifies the fail-closed NuGet direct/transitive
+advisory gate with **16 positive/negative tests**. Two separate SPDX 2.3
+inventories cover **161 resolved packages in the default API solution** and
+**104 packages in the external integration-test project**. Neither scan
+reported a known advisory in that run. OCI image scanning/digest pinning,
+signed artifacts and publication provenance remain unverified. See
 [template instructions](templates/aba-api/README.md).
 
 ## CI-backed database recovery and complete NuGet coverage
 
 The generic starter now includes opt-in, **CI-only native backup/restore drills**
-for disposable PostgreSQL and SQL Server databases. The drills backup a marker,
+for disposable PostgreSQL and SQL Server databases. The drills passed in
+[CI run 43313417455](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43313417455).
+They backup a marker,
 mutate the source, restore, and require the original marker to return. The test
 code rejects external databases or missing CI opt-in, and ordinary developer
 test runs exclude destructive cases. See
@@ -55,7 +57,7 @@ CI also builds and tests a versioned `ABAFramework.GenericApi.Template.*.nupkg` 
 
 **Implemented technical integrations (opt-in):** EF Core 10 for **both PostgreSQL and Microsoft SQL Server**, provider-neutral migrations, relational idempotency receipts, Redis distributed cache with TTL and scope isolation, Wolverine 6 durable local messaging with EF transactional middleware for either SQL engine, and OpenTelemetry traces/metrics with optional OTLP export. Optional authenticated JWT tenant-claim enforcement and context-owned EF Core query/write guards are implemented; real tests on **both** database engines verify denial of cross-tenant EF reads and writes. This does **not** provide SQL-level RLS, trusted tenant membership or protection against raw SQL/bulk operations. All dependencies default to off so the blank API starts immediately.
 
-**Current evidence:** [full generic-framework run](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43311281662) verifies 16 real-service scenarios (Wolverine transactional outbox and clean restart on both engines, transactional idempotency, EF tenant protection on both SQL engines, Redis), plus actual Keycloak/OIDC tests, Docker startup, xUnit and template packaging. The module generator creates Domain/Application/Infrastructure/Contracts, owner metadata and tests; `--with-db` adds an optional context-owned EF shell for either SQL engine. **Not certified:** ungraceful process-kill recovery, poison/dead-letter replay, live tenant membership and DB RLS, external broker, migration rollback/backup plans, load/security audit or production deployment.
+**Current evidence:** [full generic-framework run](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43313417455) verifies 16 real-service scenarios (Wolverine transactional outbox and clean restart on both engines, transactional idempotency, EF tenant protection on both SQL engines, Redis), plus actual Keycloak/OIDC tests, Docker startup, xUnit and template packaging. The module generator creates Domain/Application/Infrastructure/Contracts, owner metadata and tests; `--with-db` adds an optional context-owned EF shell for either SQL engine. **Not certified:** ungraceful process-kill recovery, poison/dead-letter replay, live tenant membership and DB RLS, external broker, migration rollback/backup plans, load/security audit or production deployment.
 
 Setup and connection settings: [generic platform infrastructure guide](templates/aba-api/docs/platform-infrastructure.md). Local optional services: `docker compose -f infra/compose.platform.yaml up -d`. Remaining quality gates: `docs/NEXT-MILESTONES.md`.
 
@@ -68,8 +70,8 @@ Setup and connection settings: [generic platform infrastructure guide](templates
 The **generic .NET 10 API template** is the primary product. This matrix is separate from the
 historical Academy Phase 1 demo below. A feature can be implemented technically while
 its **production release gates remain open**. Evidence refers to the last reviewed baseline:
-[CI run 43311281662](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43311281662)
-(commit `73423678333d`). New commits must pass their own CI before being treated as verified.
+[CI run 43313417455](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43313417455)
+(commit `3e8f18552d9b`). New commits must pass their own CI before being treated as verified.
 
 **Tracked: 54** · Implemented: 31 · Partial: 4 · Not implemented: 19.
 
@@ -96,7 +98,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | Persistence | Optional per-context EF Core scaffold | **Implemented** | --with-db creates empty context-owned DbContext for both SQL engines | No business entities, actual migrations or policies are invented | P1 |
 | Persistence | Business context schema and migrations | **Not implemented** | Not implemented | Implement real owner-specific models and migrations after requirements | P0 |
 | Persistence | Business optimistic concurrency handling | **Not implemented** | Not implemented | Implement rowversion/concurrency tokens and conflict semantics per context | P1 |
-| Persistence | Backup, recovery, rollback and restore drill | **Partial** | Disposable CI-only PostgreSQL pg_dump/pg_restore and SQL Server BACKUP/RESTORE VERIFYONLY drills with negative safety guards; production operations remain incomplete | Prove business-schema and point-in-time recovery, migration rollback, offsite encrypted backups, RTO/RPO and operator restore rehearsal | P0 |
+| Persistence | Backup, recovery, rollback and restore drill | **Partial** | CI-verified disposable PostgreSQL 16 native dump/restore and SQL Server native checksum BACKUP/RESTORE: 7 safety/recovery tests; production backup/rollback not delivered | Prove business-schema and point-in-time recovery, migration rollback, offsite encrypted backups, RTO/RPO and operator restore rehearsal | P0 |
 | Reliability | Transactional idempotency receipt and work | **Implemented** | Same-DbContext work and receipt commit/rollback together | External provider side effects still require dedicated idempotency | P0 |
 | Reliability | Concurrent duplicate request suppression | **Implemented** | Four concurrent callers; only one same-key transaction commits | Cross-service external payment retries need real owning context | P0 |
 | Messaging | Wolverine 6 durable local queues | **Implemented** | Durable relational messaging with either SQL engine | External broker delivery not yet wired | P0 |
@@ -123,7 +125,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | Testing | Real PostgreSQL/SQL Server/Redis/Wolverine CI | **Implemented** | 16 executable real-service tests across both SQL engines | Crash, high-load and external broker remain release gates | P0 |
 | Testing | CI bundled into each generated API | **Implemented** | Push/PR build gate and manually triggered real-service workflow | Generated-project pipelines need repository policy/hardening to be adopted | P1 |
 | Deployment | Non-root OCI image and local Compose | **Implemented** | Multi-stage .NET 10 Dockerfile, localhost-only Development Compose | Production image signing, secrets/TLS/hosting still open | P1 |
-| Deployment | SBOM, vulnerability scans and signed releases | **Partial** | NuGet direct/transitive fail-closed scan and SPDX inventory for default solution AND isolated integration-test project, in framework and generated-project CI | Pin and scan OCI image digests; sign/verify release artifacts, attest provenance and approve publication controls | P0 |
+| Deployment | SBOM, vulnerability scans and signed releases | **Partial** | CI-verified fail-closed NuGet advisory and SPDX 2.3 scans for default (161 packages) and external integration project (104 packages), with 16 negative/positive tests | Pin and scan OCI image digests; sign/verify release artifacts, attest provenance and approve publication controls | P0 |
 | Deployment | Production deployment with TLS, identity and rollback | **Not implemented** | Not implemented | Choose target hosting, configure DNS/TLS/secrets and deployment rollback | P0 |
 | Operations | Latency/throughput/load and failover baseline | **Not implemented** | Not implemented | Set SLO and run load/chaos tests across two provider deployments | P1 |
 | Business | Owner-defined versioned cross-context contracts | **Partial** | Context generator creates Contracts project; no real product Contracts | Specify real public V1 schemas, consumers and compatibility evolution | P0 |

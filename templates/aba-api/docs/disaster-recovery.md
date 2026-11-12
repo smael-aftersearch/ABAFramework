@@ -5,6 +5,11 @@ replay or restore production/customer data. The generic API template owns only
 technical infrastructure. Business data, migration plans and Recovery Point /
 Recovery Time Objectives (RPO/RTO) must be approved by the owning context and DBA.
 
+**Framework CI verification:** [run 43313417455](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43313417455)
+passed all 7 native recovery/safety tests and 16 normal real-service tests.
+A new generated product must still run its own infrastructure and recovery
+workflows before claiming equivalent evidence.
+
 ## What the automated drill proves
 
 The external real-service xUnit suite contains

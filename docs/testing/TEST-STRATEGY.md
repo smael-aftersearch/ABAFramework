@@ -138,3 +138,5 @@ integration suite excludes `Category=RecoveryDrill`; root CI explicitly opts in
 with disposable service containers. Real production recovery is **not** tested.
 The NuGet supply-chain gate separately audits the external test project's
 dependency graph and retains its own advisory/SBOM evidence.
+
+**Verified provider-native drill evidence:** [CI 43313417455](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43313417455) passed 7/7 isolated SQL/PostgreSQL recovery and negative safety cases, 16/16 existing real-service integration tests, and 16/16 offline supply-chain regressions. Both independent NuGet project graphs were audited.

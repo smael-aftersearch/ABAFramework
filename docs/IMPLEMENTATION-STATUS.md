@@ -11,8 +11,8 @@ do not count as generic framework features.
 The **generic .NET 10 API template** is the primary product. This matrix is separate from the
 historical Academy Phase 1 demo below. A feature can be implemented technically while
 its **production release gates remain open**. Evidence refers to the last reviewed baseline:
-[CI run 43311281662](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43311281662)
-(commit `73423678333d`). New commits must pass their own CI before being treated as verified.
+[CI run 43313417455](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43313417455)
+(commit `3e8f18552d9b`). New commits must pass their own CI before being treated as verified.
 
 **Tracked: 54** · Implemented: 31 · Partial: 4 · Not implemented: 19.
 
@@ -39,7 +39,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | Persistence | Optional per-context EF Core scaffold | **Implemented** | --with-db creates empty context-owned DbContext for both SQL engines | No business entities, actual migrations or policies are invented | P1 |
 | Persistence | Business context schema and migrations | **Not implemented** | Not implemented | Implement real owner-specific models and migrations after requirements | P0 |
 | Persistence | Business optimistic concurrency handling | **Not implemented** | Not implemented | Implement rowversion/concurrency tokens and conflict semantics per context | P1 |
-| Persistence | Backup, recovery, rollback and restore drill | **Partial** | Disposable CI-only PostgreSQL pg_dump/pg_restore and SQL Server BACKUP/RESTORE VERIFYONLY drills with negative safety guards; production operations remain incomplete | Prove business-schema and point-in-time recovery, migration rollback, offsite encrypted backups, RTO/RPO and operator restore rehearsal | P0 |
+| Persistence | Backup, recovery, rollback and restore drill | **Partial** | CI-verified disposable PostgreSQL 16 native dump/restore and SQL Server native checksum BACKUP/RESTORE: 7 safety/recovery tests; production backup/rollback not delivered | Prove business-schema and point-in-time recovery, migration rollback, offsite encrypted backups, RTO/RPO and operator restore rehearsal | P0 |
 | Reliability | Transactional idempotency receipt and work | **Implemented** | Same-DbContext work and receipt commit/rollback together | External provider side effects still require dedicated idempotency | P0 |
 | Reliability | Concurrent duplicate request suppression | **Implemented** | Four concurrent callers; only one same-key transaction commits | Cross-service external payment retries need real owning context | P0 |
 | Messaging | Wolverine 6 durable local queues | **Implemented** | Durable relational messaging with either SQL engine | External broker delivery not yet wired | P0 |
@@ -66,7 +66,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | Testing | Real PostgreSQL/SQL Server/Redis/Wolverine CI | **Implemented** | 16 executable real-service tests across both SQL engines | Crash, high-load and external broker remain release gates | P0 |
 | Testing | CI bundled into each generated API | **Implemented** | Push/PR build gate and manually triggered real-service workflow | Generated-project pipelines need repository policy/hardening to be adopted | P1 |
 | Deployment | Non-root OCI image and local Compose | **Implemented** | Multi-stage .NET 10 Dockerfile, localhost-only Development Compose | Production image signing, secrets/TLS/hosting still open | P1 |
-| Deployment | SBOM, vulnerability scans and signed releases | **Partial** | NuGet direct/transitive fail-closed scan and SPDX inventory for default solution AND isolated integration-test project, in framework and generated-project CI | Pin and scan OCI image digests; sign/verify release artifacts, attest provenance and approve publication controls | P0 |
+| Deployment | SBOM, vulnerability scans and signed releases | **Partial** | CI-verified fail-closed NuGet advisory and SPDX 2.3 scans for default (161 packages) and external integration project (104 packages), with 16 negative/positive tests | Pin and scan OCI image digests; sign/verify release artifacts, attest provenance and approve publication controls | P0 |
 | Deployment | Production deployment with TLS, identity and rollback | **Not implemented** | Not implemented | Choose target hosting, configure DNS/TLS/secrets and deployment rollback | P0 |
 | Operations | Latency/throughput/load and failover baseline | **Not implemented** | Not implemented | Set SLO and run load/chaos tests across two provider deployments | P1 |
 | Business | Owner-defined versioned cross-context contracts | **Partial** | Context generator creates Contracts project; no real product Contracts | Specify real public V1 schemas, consumers and compatibility evolution | P0 |

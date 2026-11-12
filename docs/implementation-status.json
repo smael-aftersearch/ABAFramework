@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "baseline": {
-    "ci_run": 43311281662,
-    "commit": "73423678333d0c7d21b429652f0f349f8e7f5618",
-    "note": "Six-job verified .NET 10 generic API run: 73 default API xUnit, 16 external SQL/Redis/Wolverine integration tests, 13 fail-closed NuGet security regression tests, 161 resolved NuGet packages in SPDX 2.3 inventory, Keycloak, Docker and template installation."
+    "ci_run": 43313417455,
+    "commit": "3e8f18552d9b64bc9da21af1433b62d51b1f6c44",
+    "note": "Six-job verified .NET 10 generic API CI: 73 default xUnit cases, 16 existing PostgreSQL/SQL Server/Redis/Wolverine integration cases plus 7 protected provider-native backup/restore safety and recovery cases; 16 supply-chain negative/positive tests, two independently scanned package graphs with 161 and 104 NuGet packages, Keycloak, container and template package."
   },
   "features": [
     {
@@ -360,7 +360,7 @@
       "status": "partial",
       "owner": "Operations / DBA",
       "priority": "P0",
-      "delivered": "Disposable CI-only PostgreSQL pg_dump/pg_restore and SQL Server BACKUP/RESTORE VERIFYONLY drills with negative safety guards; production operations remain incomplete",
+      "delivered": "CI-verified disposable PostgreSQL 16 native dump/restore and SQL Server native checksum BACKUP/RESTORE: 7 safety/recovery tests; production backup/rollback not delivered",
       "remaining": "Prove business-schema and point-in-time recovery, migration rollback, offsite encrypted backups, RTO/RPO and operator restore rehearsal",
       "acceptance": "Recover both SQL engines and confirm data integrity after test failure",
       "evidence": [
@@ -796,7 +796,7 @@
       "status": "partial",
       "owner": "Release engineering",
       "priority": "P0",
-      "delivered": "NuGet direct/transitive fail-closed scan and SPDX inventory for default solution AND isolated integration-test project, in framework and generated-project CI",
+      "delivered": "CI-verified fail-closed NuGet advisory and SPDX 2.3 scans for default (161 packages) and external integration project (104 packages), with 16 negative/positive tests",
       "remaining": "Pin and scan OCI image digests; sign/verify release artifacts, attest provenance and approve publication controls",
       "acceptance": "Release pipeline rejects vulnerable/untrusted dependencies and verifies provenance",
       "evidence": [

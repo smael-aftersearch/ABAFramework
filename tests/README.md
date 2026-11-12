@@ -44,3 +44,5 @@ tests exclude this category; CI invokes it separately when the disposable
 containers are provisioned. See `templates/aba-api/docs/disaster-recovery.md`.
 NuGet CI now audits both the normal Solution and the separate integration
 project, with independent SPDX package inventories.
+
+**Actual verification:** [CI 43313417455](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43313417455) passed 7/7 disposable provider-native recovery/safety tests and 16/16 regular integration tests; independent NuGet scans produced two manifests with 161 and 104 packages.

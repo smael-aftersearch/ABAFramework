@@ -1,4 +1,4 @@
-> **Generic API current evidence (2026-11-13):** [successful .NET 10 full CI](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43311281662) verifies generated API tests, both PostgreSQL and SQL Server, Redis, Wolverine technical Outbox tests, real Keycloak tokens, non-root Docker and NuGet install. The exact implemented/partial/not-yet-implemented matrix and acceptance checklist are [here](IMPLEMENTATION-STATUS.md). Production remains gated by real business authorization/RLS, crash/dead-letter recovery, backup/restore, collector/export validation, security review, deployment and release controls. The numbered Phase-1 notes below apply **only to the optional Academy example**, not the generic template.
+> **Generic API current evidence (2026-11-13):** [successful .NET 10 full CI](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43313417455) verifies generated API tests, both PostgreSQL and SQL Server, Redis, Wolverine technical Outbox tests, real Keycloak tokens, non-root Docker and NuGet install. The exact implemented/partial/not-yet-implemented matrix and acceptance checklist are [here](IMPLEMENTATION-STATUS.md). Production remains gated by real business authorization/RLS, crash/dead-letter recovery, backup/restore, collector/export validation, security review, deployment and release controls. The numbered Phase-1 notes below apply **only to the optional Academy example**, not the generic template.
 # Known limitations and security warnings
 
 ## Optional Academy Phase 1 — historical example constraints
@@ -39,7 +39,7 @@ three .NET steps were NOT_RUN due to absent SDK. Check `VERIFICATION-REPORT.md`.
 
 The generic API starter now includes authored NuGet vulnerability checks
 and an SPDX 2.3 resolved-package SBOM in CI for the default solution.
-The default solution gate passed 13 Python regressions and produced a 161-package SPDX inventory in CI run 43311281662; it is executable evidence, not production certification.
+The default solution gate passed 13 Python regressions and produced a 161-package SPDX inventory in CI run 43313417455; it is executable evidence, not production certification.
 The external integration-only test project is not in that solution;
 pinning/scanning OCI digests and signing/verifying release attestations
 have not been completed. Existing Production gates still apply.
@@ -61,3 +61,5 @@ its own vulnerability audit and SPDX artifact, alongside the default solution.
 Container scanning/digest pinning and signing of release artifacts remain open.
 Inspect the newest run for executable evidence; no generic technical probe
 certifies a production release.
+
+**Latest recovery evidence:** [CI run 43313417455](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43313417455) passed 7/7 isolated restore-and-guard tests, 16/16 existing service tests, and two independent NuGet audits. Production restore points, encrypted retention, schema migration rollback, RPO/RTO, container image scans and artifact attestations remain release gates.

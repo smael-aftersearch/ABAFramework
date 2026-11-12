@@ -28,3 +28,5 @@ The generated project's normal tests exclude the `RecoveryDrill` category.
 Production backup/restore requires its own approved runbook, least-privilege
 credentials, encrypted isolated staging and human change control. See
 [generated-project recovery guide](../templates/aba-api/docs/disaster-recovery.md).
+
+**CI verification:** [run 43313417455](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43313417455) confirms both disposable database recovery drills and independent NuGet scans; no real production restore, image trust or release attestation was certified.

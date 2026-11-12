@@ -19,15 +19,16 @@ The authoritative, maintained **54-feature status table** and prioritized open-t
 
 [Source-grounded full framework CI evidence](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43298754432) | `docs/verification/2026-11-12-platform-providers.md`.
 
-## Recent P0 infrastructure work — gated by live CI evidence
+## Recent P0 infrastructure work — verified against disposable CI services
 
-- **Recovery:** added provider-native backup/restore tests on uniquely named
-  disposable PostgreSQL and SQL Server CI databases. They require an explicit
+- **Recovery:** [CI run 43313417455](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43313417455)
+  passed 7 provider-native backup/restore/safety tests on uniquely named
+  disposable PostgreSQL and SQL Server databases. They require an explicit
   CI-only opt-in and prove data recovery after an injected mutation. Production
   restore/rollback rehearsal, business tables, backups and RTO/RPO are still open.
-- **Dependency security:** framework and generated-project CI now scan both the
-  three-project default solution and the independent real-service integration
-  project, with a separate SPDX inventory for each. OCI scanning, digest
+- **Dependency security:** the same CI passed 16 regression tests and independently
+  scanned 161 default-Solution and 104 integration-project NuGet packages,
+  generating separate SPDX 2.3 inventories. OCI scanning, digest
   pinning and artifact attestations remain open.
 
 ## Still incomplete (release blockers, not yet delivered)
