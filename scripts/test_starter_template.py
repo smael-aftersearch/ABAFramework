@@ -12,7 +12,7 @@ class GenericTemplateTests(unittest.TestCase):
     def test_versioned_template_pack_script_matches_metadata(self):
         package = ET.parse(ROOT / "packaging/ABAFramework.GenericApi.Template.csproj")
         version = package.findtext("./PropertyGroup/Version")
-        self.assertEqual("0.3.0-preview.1", version)
+        self.assertEqual("0.3.0-preview.2", version)
         script = (ROOT / "scripts/pack-template.sh").read_text()
         self.assertIn("PackageVersion=" + version, script)
         self.assertIn("ABAFramework.GenericApi.Template." + version + ".nupkg", script)

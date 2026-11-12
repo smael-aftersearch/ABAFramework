@@ -18,8 +18,8 @@ mkdir -p "$ROOT/packaging/content/aba-api" artifacts/packages
 cp -a "$ROOT/templates/aba-api/." "$ROOT/packaging/content/aba-api/"
 dotnet pack packaging/ABAFramework.GenericApi.Template.csproj -c Release \
   -o "$ROOT/artifacts/packages" \
-  /p:PackageVersion=0.3.0-preview.1
-PACKAGE="$ROOT/artifacts/packages/ABAFramework.GenericApi.Template.0.3.0-preview.1.nupkg"
+  /p:PackageVersion=0.3.0-preview.2
+PACKAGE="$ROOT/artifacts/packages/ABAFramework.GenericApi.Template.0.3.0-preview.2.nupkg"
 test -s "$PACKAGE"
 python3 - "$PACKAGE" <<'PY'
 import sys, zipfile

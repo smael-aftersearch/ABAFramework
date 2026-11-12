@@ -11,16 +11,16 @@ do not count as generic framework features.
 The **generic .NET 10 API template** is the primary product. This matrix is separate from the
 historical Academy Phase 1 demo below. A feature can be implemented technically while
 its **production release gates remain open**. Evidence refers to the last reviewed baseline:
-[CI run 43302521502](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43302521502)
-(commit `b170e1c7858c`). New commits must pass their own CI before being treated as verified.
+[CI run 43305238518](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43305238518)
+(commit `31362d6d8595`). New commits must pass their own CI before being treated as verified.
 
-**Tracked: 54** · Implemented: 29 · Partial: 4 · Not implemented: 21.
+**Tracked: 54** · Implemented: 30 · Partial: 3 · Not implemented: 21.
 
 | Area | Parameter / feature | Status | Delivered scope | Remaining task | Priority |
 | --- | --- | --- | --- | --- | --- |
 | API | Domain-neutral .NET 10 HTTP API | **Implemented** | Versioned Minimal API with composition root | No generic framework work outstanding | P0 |
 | API | OpenAPI plus interactive Scalar | **Implemented** | Generated OpenAPI and Development-only Scalar UI | Production API docs need a reviewed access policy | P1 |
-| API | Problem Details and HTTP errors | **Implemented** | ASP.NET ProblemDetails and exception handler | Per-context business error taxonomy not yet specified | P1 |
+| API | Problem Details and HTTP errors | **Partial** | ProblemDetails and exception middleware registered; error-response payload still lacks a focused HTTP test | Add deterministic HTTP exception fixture and assert safe RFC 7807 response payload | P1 |
 | API | Request correlation IDs | **Implemented** | Validated X-Correlation-ID response header | Correlate logs, traces and message envelopes across services | P1 |
 | API | Liveness and readiness | **Implemented** | Separate health/live and health/ready with dependency tags | Prove health behavior during dependency outage and at scale | P0 |
 | API | Authenticated per-identity rate limits | **Implemented** | JWT subject + tenant partition; anonymous TCP peer; Health bypass | Multi-node shared quotas require a gateway | P1 |
@@ -32,7 +32,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | Security | EF tenant row query and SaveChanges guards | **Implemented** | Tenant-scoped EF filtering and foreign-row write rejection | Raw SQL, bulk updates and SQL-level RLS remain open | P0 |
 | Security | Database-enforced Row-Level Security | **Not implemented** | Not implemented | Plan and verify provider-specific RLS for both databases | P0 |
 | Security | Bulk/raw SQL tenant authorization | **Not implemented** | Not implemented | Add trusted tenant-bound access policies beyond EF tracking | P0 |
-| Persistence | Production SQL TLS and certificate identity | **Partial** | Startup guard authored for PostgreSQL VerifyFull and SQL Server encryption; new CI not yet reviewed | Verify compile/negative tests, production cert trust and deployment integration | P0 |
+| Persistence | Production SQL TLS and certificate identity | **Implemented** | Production startup rejects PostgreSQL without VerifyFull and SQL Server without verified encryption; real container negative tests passed | Configure real certificate authority/trust chain and rotation in target deployment | P0 |
 | Persistence | EF Core 10 PostgreSQL provider | **Implemented** | Runtime Npgsql provider selected by config | Context-owned schema migrations require real domains | P0 |
 | Persistence | EF Core 10 Microsoft SQL Server provider | **Implemented** | Runtime EF SqlServer provider selected by config | Context-owned schema migrations require real domains | P0 |
 | Persistence | EF technical idempotency migration | **Implemented** | Provider-neutral checked-in EF technical migration | Production migration rollback/backup remains unverified | P0 |
@@ -57,11 +57,11 @@ its **production release gates remain open**. Evidence refers to the last review
 | Observability | Collector pipeline and export integration test | **Not implemented** | Not implemented | Add isolated OTLP receiver/collector to CI and verify trace/metric export | P1 |
 | Observability | Tamper-evident audit trail | **Not implemented** | Not implemented | Define context-owned auditable actions with safe retention/PII policy | P0 |
 | Operations | Production secrets, key rotation and policy | **Not implemented** | Not implemented | Add approved secret store, rotation and least-privilege deployment setup | P0 |
-| Developer | Installable versioned NuGet API template | **Implemented** | v0.3.0-preview.1 NuGet template artifact installs successfully | NuGet.org publishing and signed release not done | P1 |
+| Developer | Installable versioned NuGet API template | **Implemented** | Installable versioned NuGet template verified at v0.3.0-preview.1; next v0.3.0-preview.2 package is gated by new CI | Verify v0.3.0-preview.2 packing plus NuGet.org release/signing strategy | P1 |
 | Developer | Domain/Application/Contracts/Infrastructure generator | **Implemented** | Scaffold real named contexts with ownership docs; no fictional entities | Complete real domain behavior remains owner-dependent | P1 |
 | Governance | ABA ownership and forbidden-edge checks | **Implemented** | Repo and generated-project architecture checks with negative cases | Semantic/IL enforcement still requires human architecture review | P0 |
 | Governance | Portable agent Skill, task plan and verification | **Implemented** | AGENTS, Skill, task-aware reader, PASS/FAIL/NOT_RUN evidence | AI agent adoption varies by platform; semantic review still manual | P1 |
-| Governance | Machine-readable feature status and remaining tasks | **Partial** | JSON catalog/renderer and negative tests authored; first CI pending | Publish synchronized README+backlog tables and enforce CI drift check | P1 |
+| Governance | Machine-readable feature status and remaining tasks | **Implemented** | 54-feature machine-readable catalog drives README and detailed backlog; six negative/positive tests and CI drift gate passed | Maintain each feature's owner, test evidence, acceptance gate and backlog after future tasks | P1 |
 | Testing | Default xUnit HTTP/authorization/EF tests | **Implemented** | 60+ API xUnit checks in fresh generated solution | Business invariants and load testing need real domains | P0 |
 | Testing | Real PostgreSQL/SQL Server/Redis/Wolverine CI | **Implemented** | 16 executable real-service tests across both SQL engines | Crash, high-load and external broker remain release gates | P0 |
 | Testing | CI bundled into each generated API | **Implemented** | Push/PR build gate and manually triggered real-service workflow | Generated-project pipelines need repository policy/hardening to be adopted | P1 |
@@ -80,7 +80,6 @@ its **production release gates remain open**. Evidence refers to the last review
 | `auth-membership` | Define owning membership model, roles and permissions — Unauthorized member and cross-organization privilege escalation tests | Not implemented |
 | `auth-sql-rls` | Plan and verify provider-specific RLS for both databases — Direct SQL and EF ExecuteUpdate cannot modify foreign tenant records | Not implemented |
 | `auth-raw-sql` | Add trusted tenant-bound access policies beyond EF tracking — Cross-tenant raw SQL and bulk mutation are denied | Not implemented |
-| `db-transport-tls` | Verify compile/negative tests, production cert trust and deployment integration — Non-Development refuses insecure or unverified SQL connection strings | Partial |
 | `db-business-migrations` | Implement real owner-specific models and migrations after requirements — Both SQL engines perform context migration without shared business tables | Not implemented |
 | `db-backup-restore` | Build reversible migration and recoverable backup/restore runbooks — Recover both SQL engines and confirm data integrity after test failure | Not implemented |
 | `msg-poison-replay` | Add reviewed dead-letter administration/replay without bypassing authorization — Poison message is quarantined, inspected and safely replayed exactly as intended | Not implemented |
@@ -106,7 +105,6 @@ Run `python3 scripts/status_matrix.py --check` to fail CI on mismatched tables.
 | `auth-membership` | Identity (business owner TBD) | P0 | Not implemented | Unauthorized member and cross-organization privilege escalation tests |
 | `auth-sql-rls` | Owning business context / DBA | P0 | Not implemented | Direct SQL and EF ExecuteUpdate cannot modify foreign tenant records |
 | `auth-raw-sql` | Owning business context / Security | P0 | Not implemented | Cross-tenant raw SQL and bulk mutation are denied |
-| `db-transport-tls` | Platform / Operations | P0 | Partial | Non-Development refuses insecure or unverified SQL connection strings |
 | `db-business-migrations` | Actual context owner (TBD) | P0 | Not implemented | Both SQL engines perform context migration without shared business tables |
 | `db-backup-restore` | Operations / DBA | P0 | Not implemented | Recover both SQL engines and confirm data integrity after test failure |
 | `msg-poison-replay` | Platform / Operations | P0 | Not implemented | Poison message is quarantined, inspected and safely replayed exactly as intended |
@@ -119,6 +117,7 @@ Run `python3 scripts/status_matrix.py --check` to fail CI on mismatched tables.
 | `biz-contracts` | Business owners (TBD) | P0 | Partial | V1 consumers stay compatible; private implementation edges rejected |
 | `biz-contract-tests` | Business owners (TBD) | P0 | Not implemented | A breaking V1 change fails CI and requires an explicit V2 |
 | `biz-endpoints` | Actual business owner (TBD) | P0 | Not implemented | Owner-specific happy/negative/invariant and provider integration tests pass |
+| `api-problems` | Host | P1 | Partial | Unexpected errors produce stable nonsecret ProblemDetails with correlation ID |
 | `api-shared-limits` | Operations | P1 | Not implemented | Verify one limit across two replicas under concurrent load |
 | `db-concurrency` | Actual context owner (TBD) | P1 | Not implemented | Two updates cannot silently overwrite the same business aggregate |
 | `msg-broker` | Platform | P1 | Not implemented | Broker outage, retry and duplicate-delivery integration scenarios pass |
@@ -126,7 +125,6 @@ Run `python3 scripts/status_matrix.py --check` to fail CI on mismatched tables.
 | `cache-stampede` | Platform / Operations | P1 | Not implemented | No excessive authoritative DB load during simultaneous cache misses |
 | `otel-instrument` | Platform | P1 | Partial | Collector receives correlated spans/metrics without secrets |
 | `otel-collector` | Platform / Operations | P1 | Not implemented | Collector observes test request traces and identifies service correctly |
-| `dev-status-matrix` | Governance | P1 | Partial | Every row has owner, status, task, acceptance, source/test evidence |
 | `ops-load` | Operations / Performance | P1 | Not implemented | SLO and recovery objectives measurable under load |
 
 ## Implemented or partial: checked-in source / executable tests
@@ -135,7 +133,7 @@ Run `python3 scripts/status_matrix.py --check` to fail CI on mismatched tables.
 | --- | --- | --- |
 | `api-host` | `templates/aba-api/src/Aba.Starter.Api/Program.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/ApiSmokeTests.cs`, `scripts/verify-starter.sh` |
 | `api-openapi` | `templates/aba-api/src/Aba.Starter.Api/Program.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/ApiSmokeTests.cs`, `scripts/verify-starter.sh` |
-| `api-problems` | `templates/aba-api/src/Aba.Starter.Api/Program.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/ApiSmokeTests.cs` |
+| `api-problems` | `templates/aba-api/src/Aba.Starter.Api/Program.cs` | NOT RUN / no complete test |
 | `api-correlation` | `templates/aba-api/src/Aba.Starter.Api/Program.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/ApiSmokeTests.cs` |
 | `api-health` | `templates/aba-api/src/Aba.Starter.Api/Program.cs`, `templates/aba-api/src/Aba.Starter.Platform/AbaPlatformSetup.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/ApiSmokeTests.cs`, `scripts/verify-container-starter.sh` |
 | `api-rate-limits` | `templates/aba-api/src/Aba.Starter.Api/Platform/AbaRateLimitOptions.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/RateLimitTests.cs` |
@@ -143,7 +141,7 @@ Run `python3 scripts/status_matrix.py --check` to fail CI on mismatched tables.
 | `auth-keycloak` | `scripts/verify-keycloak-oidc.sh`, `infra/keycloak/aba-ci-realm.json` | `scripts/verify-keycloak-oidc.sh` |
 | `auth-tenant-claim` | `templates/aba-api/src/Aba.Starter.Platform/Security/AbaTenantClaims.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/AbaPlatformTests.cs`, `scripts/verify-keycloak-oidc.sh` |
 | `auth-tenant-ef` | `templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaTenantDbContext.cs` | `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/TenantDatabaseBoundaryTests.cs`, `templates/aba-api/tests/Aba.Starter.Api.Tests/TenantPersistenceTests.cs` |
-| `db-transport-tls` | `templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaDatabaseOptions.cs`, `templates/aba-api/src/Aba.Starter.Platform/AbaPlatformSetup.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/AbaPlatformTests.cs` |
+| `db-transport-tls` | `templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaDatabaseOptions.cs`, `templates/aba-api/src/Aba.Starter.Platform/AbaPlatformSetup.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/AbaPlatformTests.cs`, `templates/aba-api/tests/Aba.Starter.Api.Tests/SecurityGuardTests.cs`, `scripts/verify-container-starter.sh` |
 | `db-postgres` | `templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaPersistenceServices.cs` | `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs` |
 | `db-sqlserver` | `templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaPersistenceServices.cs` | `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs` |
 | `db-technical-migrations` | `templates/aba-api/src/Aba.Starter.Platform/Persistence/Migrations/202611120001_InitialTechnicalStore.cs` | `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs` |
@@ -160,7 +158,7 @@ Run `python3 scripts/status_matrix.py --check` to fail CI on mismatched tables.
 | `dev-contexts` | `templates/aba-api/tools/new_context.py` | `scripts/verify-starter.sh` |
 | `dev-architecture` | `scripts/governance.py`, `templates/aba-api/tools/new_context.py` | `scripts/test_governance.py`, `scripts/verify-starter.sh` |
 | `dev-agent` | `templates/aba-api/tools/aba_task.py`, `templates/aba-api/.agents/skills/aba-engineering/SKILL.md` | `templates/aba-api/tools/test_aba_task.py`, `scripts/verify-starter.sh` |
-| `dev-status-matrix` | `scripts/status_matrix.py`, `scripts/test_status_matrix.py` | `scripts/test_status_matrix.py` |
+| `dev-status-matrix` | `scripts/status_matrix.py`, `docs/implementation-status.json` | `scripts/test_status_matrix.py`, `.github/workflows/verify.yml` |
 | `dev-xunit` | `templates/aba-api/tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj` | `scripts/verify-starter.sh` |
 | `dev-services-ci` | `scripts/verify-platform-services.sh` | `scripts/verify-platform-services.sh` |
 | `dev-generated-ci` | `templates/aba-api/.github/workflows/ci.yml`, `templates/aba-api/.github/workflows/integration.yml` | `scripts/test_starter_template.py`, `scripts/pack-template.sh` |
