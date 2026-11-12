@@ -89,6 +89,9 @@ public sealed class RowLevelSecurityTests
             foreach (var statement in AbaTenantRlsPolicies.Remove("PostgreSql", "public", TableName))
                 await ExecAsync(admin, statement);
             await ExecAsync(admin, "DROP TABLE IF EXISTS \"public\".\"aba_ci_rls_rows\"");
+            // PostgreSQL keeps schema USAGE grants even after a role's
+            // target table is dropped; release test-only privileges first.
+            await ExecAsync(admin, $"REVOKE USAGE ON SCHEMA public FROM \"{role}\"");
             await ExecAsync(admin, $"DROP ROLE IF EXISTS \"{role}\"");
         }
     }
