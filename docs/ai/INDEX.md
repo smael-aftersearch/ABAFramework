@@ -38,6 +38,11 @@ backup/restore tests are not production runbooks. For NuGet source verification
 read `templates/aba-api/tools/supply_chain.py` and both workflow audit jobs;
 there are separate default-Solution and external-integration SBOMs.
 
+For database isolation and release changes also read the
+[tenant RLS decision](../../templates/aba-api/docs/decisions/ADR-005-tenant-row-security.md)
+and [release integrity policy](../release-integrity.md). The Platform
+provides technical guardrails, not a business membership provider.
+
 ## Quick start for an agent
 
 ```bash

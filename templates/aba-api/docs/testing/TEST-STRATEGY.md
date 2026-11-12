@@ -126,3 +126,21 @@ workflow run them with explicit disposable infrastructure and opt-in.
 Passing this suite does **not** imply PITR, actual business data restore,
 migration rollback, secure backup retention or RTO/RPO compliance.
 Read `docs/disaster-recovery.md` before any operational use.
+
+## Database Row-Level Security — negative provider tests
+
+`TenantRlsPolicyTests` verifies provider-specific policy DDL
+and validation of SQL identifiers and absent tenant identities.
+`RowLevelSecurityTests` runs on real PostgreSQL and SQL Server
+with a technical test table, demonstrating raw SQL and EF bulk
+cross-tenant read/write denial, forged inserts and connection
+context reset. PostgreSQL uses a restricted non-superuser fixture;
+SQL Server's disposable CI admin fixture must not be treated
+as production least-privilege evidence. More detail is in
+`docs/decisions/ADR-005-tenant-row-security.md`.
+
+The generated build/test CI also builds and vulnerability-scans
+its actual final runtime container image; fixable CRITICAL
+findings fail the separate `container-security` job, with JSON
+evidence retained. Generated projects are not automatically
+published or signed under the upstream ABAFramework identity.

@@ -140,3 +140,18 @@ The NuGet supply-chain gate separately audits the external test project's
 dependency graph and retains its own advisory/SBOM evidence.
 
 **Verified provider-native drill evidence:** [CI 43313417455](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43313417455) passed 7/7 isolated SQL/PostgreSQL recovery and negative safety cases, 16/16 existing real-service integration tests, and 16/16 offline supply-chain regressions. Both independent NuGet project graphs were audited.
+
+## Provider database RLS and OCI/package security negative gates
+
+`TenantRlsPolicyTests.cs` verifies PostgreSQL/SQL Server policy SQL,
+invalid identifiers, negative tenant scope and migration scope.
+`RowLevelSecurityTests.cs` exercises real PostgreSQL/SQL Server,
+rejecting cross-tenant direct SQL, ORM `ExecuteUpdate` and
+`ExecuteDelete`, forged inserts, and unbound/leftover sessions.
+A non-superuser PostgreSQL role avoids silently bypassing RLS.
+
+A commit-pinned Trivy action scans the final runtime image and must
+reject fixable CRITICAL findings. The NuGet template SLSA provenance
+job, gated on upstream success, must validate a signed artifact and
+reject a modified same-name artifact. Only passing CI jobs count as
+executed evidence; these do not approve a production release.

@@ -2,6 +2,20 @@
 
 The authoritative, maintained **54-feature status table** and prioritized open-task backlog live at [docs/IMPLEMENTATION-STATUS.md](IMPLEMENTATION-STATUS.md); the machine-readable source is [docs/implementation-status.json](implementation-status.json). This file is a high-level release narrative, not an independent status source. Run `python3 scripts/status_matrix.py --write` after every change.
 
+## New P0 SQL isolation and release-integrity work
+
+- **SQL security:** PostgreSQL FORCE RLS and SQL Server FILTER/BLOCK
+  policy builders are in the generic Platform, with trusted per-transaction
+  tenant scopes and actual raw-SQL/EF bulk mutation negative tests.
+  Context-owned migrations, user membership and least-privileged production
+  roles remain release blockers.
+- **Supply chain:** the root framework and generated CI build and Trivy-scan
+  the final runtime image (fixable CRITICAL severity); the root CI also
+  creates/verifies signed SLSA provenance for its tested NuGet template
+  only after all upstream verification succeeds. Immutable base image
+  digests, publication signatures, HIGH-severity policy and production
+  deployment controls remain open.
+
 ## Main product is the generic API starter
 
 - **Now implemented and GitHub CI verified:** `dotnet new aba-api` template; generated OpenAPI, Scalar interactive API UI in Development, standard errors, correlation IDs, rate limits, OIDC/JWT fail-closed configuration, xUnit/WebApplicationFactory API tests, generic project instructions and AI docs.

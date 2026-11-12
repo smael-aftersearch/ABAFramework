@@ -204,6 +204,20 @@ class GenericTemplateTests(unittest.TestCase):
             self.assertIn(required, root)
         self.assertIn('needs:', root)
 
+    def test_database_rls_policies_and_live_sql_negative_tests_are_bundled(self):
+        code = (TEMPLATE / 'src/Aba.Starter.Platform/Persistence/AbaTenantRlsPolicies.cs').read_text()
+        live = (TEMPLATE / 'tests/Aba.Starter.Platform.IntegrationTests/RowLevelSecurityTests.cs').read_text()
+        tests = (TEMPLATE / 'tests/Aba.Starter.Api.Tests/TenantRlsPolicyTests.cs').read_text()
+        adr = (TEMPLATE / 'docs/decisions/ADR-005-tenant-row-security.md').read_text()
+        for text in ('FORCE ROW LEVEL SECURITY', 'SESSION_CONTEXT',
+                     'ADD FILTER PREDICATE', 'AFTER INSERT', 'AFTER UPDATE',
+                     'AbaTenantSqlScope'):
+            self.assertIn(text, code)
+        self.assertIn('ExecuteUpdateAsync', live)
+        self.assertIn('ExecuteDeleteAsync', live)
+        self.assertIn('PostgresRequiresForcedRls', tests)
+        self.assertIn('non-superuser', adr)
+
     def test_xunit_and_companion_script_exist(self):
         proj = (TEMPLATE / 'tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj').read_text()
         self.assertIn('PackageReference Include="xunit"', proj)

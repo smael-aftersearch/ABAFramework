@@ -63,3 +63,20 @@ Inspect the newest run for executable evidence; no generic technical probe
 certifies a production release.
 
 **Latest recovery evidence:** [CI run 43313417455](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43313417455) passed 7/7 isolated restore-and-guard tests, 16/16 existing service tests, and two independent NuGet audits. Production restore points, encrypted retention, schema migration rollback, RPO/RTO, container image scans and artifact attestations remain release gates.
+
+## Additional RLS and signed release limitations
+
+The generic template now includes provider RLS builders and a parameterized
+tenant transaction scope, but **does not** install any customer's table
+policy, authorize user membership, eliminate SQL-injection-based tenant
+session spoofing or provision least-privileged production database roles.
+The PostgreSQL real test runs as a non-superuser, while the disposable SQL
+Server fixture uses an administrator; DBA bypass and production grants
+need separate testing.
+
+A commit-pinned Trivy final-runtime image scan blocks fixable CRITICAL
+vulnerabilities in CI, and an upstream main-branch job is configured to
+attest/verify the tested NuGet template with GitHub/Sigstore identity.
+Neither is proof of public OCI signature, immutable base-image digest
+pinning, production secrets and TLS, or policy approval for unpatched/
+HIGH vulnerabilities. Always inspect the exact CI run.

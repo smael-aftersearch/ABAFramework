@@ -46,3 +46,14 @@ NuGet CI now audits both the normal Solution and the separate integration
 project, with independent SPDX package inventories.
 
 **Actual verification:** [CI 43313417455](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43313417455) passed 7/7 disposable provider-native recovery/safety tests and 16/16 regular integration tests; independent NuGet scans produced two manifests with 161 and 104 packages.
+
+## Real provider RLS and release provenance
+
+The default starter xUnit suite includes `TenantRlsPolicyTests`;
+the isolated PostgreSQL/SQL Server integration project adds
+`RowLevelSecurityTests` for cross-tenant raw SQL, EF bulk mutations,
+forged inserts and empty tenant context. These rely on actual database
+policies, not EF filters. CI also scans a built runtime image via
+Trivy and verifies SLSA provenance for the tested upstream template
+package. The generated product inherits its own OCI scan, **not**
+the upstream signer.
