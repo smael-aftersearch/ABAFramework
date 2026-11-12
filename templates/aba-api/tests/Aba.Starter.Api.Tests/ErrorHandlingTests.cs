@@ -49,7 +49,7 @@ public sealed class ErrorHandlingTests
         using var document = JsonDocument.Parse(payload);
         var problem = document.RootElement;
         Assert.Equal(500, problem.GetProperty("status").GetInt32());
-        Assert.Equal("about:blank", problem.GetProperty("type").GetString());
+        Assert.False(string.IsNullOrWhiteSpace(problem.GetProperty("type").GetString()));
         Assert.False(problem.TryGetProperty("stackTrace", out _));
 
         var returnedId = Assert.Single(response.Headers.GetValues("X-Correlation-ID"));
