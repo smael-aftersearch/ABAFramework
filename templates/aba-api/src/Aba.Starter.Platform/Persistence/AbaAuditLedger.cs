@@ -160,7 +160,10 @@ public sealed class AbaAuditLedger(IServiceScopeFactory scopes, AbaAuditOptions 
                 {
                     TenantId = command.TenantId,
                     Sequence = last is null ? 1 : checked(last.Sequence + 1),
-                    OccurredUtc = DateTimeOffset.UtcNow,
+                    // PostgreSQL timestamp(tz) stores microseconds rather than
+                    // .NET's 100ns ticks. Normalize BEFORE signing so SQL Server
+                    // and PostgreSQL round-trip to identical canonical bytes.
+                    OccurredUtc = MicrosecondUtcNow(),
                     ActorId = command.ActorId,
                     Action = command.Action,
                     Outcome = command.Outcome,
@@ -182,10 +185,18 @@ public sealed class AbaAuditLedger(IServiceScopeFactory scopes, AbaAuditOptions 
         throw new InvalidOperationException("Audit concurrency retry limit exceeded.");
     }
 
+    private static DateTimeOffset MicrosecondUtcNow()
+    {
+        var now = DateTimeOffset.UtcNow;
+        return now.AddTicks(-(now.UtcDateTime.Ticks % 10));
+    }
+
     private static bool Retryable(Exception error)
     {
-        if (error is DbUpdateException db && db.InnerException is not null)
-            return Retryable(db.InnerException);
+        // EF Core can wrap provider deadlock/serialization errors inside its
+        // execution strategy's InvalidOperationException, not only DbUpdateException.
+        if (error.InnerException is not null && error is not System.Data.Common.DbException)
+            return Retryable(error.InnerException);
         return error switch
         {
             PostgresException pg when pg.SqlState is "40001" or "40P01" or "23505" => true,
