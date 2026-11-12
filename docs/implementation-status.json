@@ -786,14 +786,21 @@
       "id": "dev-release-sbom",
       "area": "Deployment",
       "feature": "SBOM, vulnerability scans and signed releases",
-      "status": "not_started",
+      "status": "partial",
       "owner": "Release engineering",
       "priority": "P0",
-      "delivered": "Not implemented",
-      "remaining": "Add pinned image digests, dependency audits, SBOM and artifact attestations",
+      "delivered": "NuGet direct/transitive vulnerability gate and SPDX 2.3 resolved-package inventory wired to framework/generated-project CI; latest run awaiting verification",
+      "remaining": "Audit separate integration tests; pin and scan OCI digests; sign and verify release artifact provenance before any publication",
       "acceptance": "Release pipeline rejects vulnerable/untrusted dependencies and verifies provenance",
-      "evidence": [],
-      "tests": []
+      "evidence": [
+        "templates/aba-api/tools/supply_chain.py",
+        ".github/workflows/verify.yml",
+        "templates/aba-api/.github/workflows/ci.yml"
+      ],
+      "tests": [
+        "templates/aba-api/tools/test_supply_chain.py",
+        "scripts/test_starter_template.py"
+      ]
     },
     {
       "id": "dev-prod-deploy",

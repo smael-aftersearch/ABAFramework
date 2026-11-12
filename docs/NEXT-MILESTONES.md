@@ -28,6 +28,15 @@ The authoritative, maintained **54-feature status table** and prioritized open-t
 5. **OpenTelemetry and operations:** real collector/export verification, logs correlation, sampling/PII policy, health dependency readiness, performance baselines, load/failover tests, audit events and dashboards.
 6. **Distribution/deployment:** the `0.3.0-preview.2` NuGet API template package and a non-root OCI image are build/test artifacts. Each generated project has default self-contained CI and an opt-in real-infrastructure workflow. Public NuGet.org publishing, signed attestations, selected cloud deployment, SLA/release automation, threat modeling and vulnerability scans remain incomplete.
 
+## Supply-chain work (partial, P0)
+
+- Authored a new fail-closed direct/transitive NuGet vulnerability scan
+  and SPDX 2.3 resolved-package inventory for the default generic API
+  solution in both repository CI and generated-project CI.
+- Mandatory next gates: verify the fresh pipeline, add dependency audit
+  for the isolated integration tests, scan and pin container image digests,
+  and implement verifiable release signing/attestations and publication policy.
+
 ## Release gates
 
 Never confuse a successful generated API starter or Academy smoke run with production readiness. Each implemented adapter must have focused unit tests, failure tests, integration tests and evidence. Keep this status updated to match actual files and CI results.

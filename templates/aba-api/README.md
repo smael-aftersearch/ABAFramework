@@ -31,6 +31,28 @@ dotnet test Aba.Starter.slnx -c Release --no-build
 
 To run **real external-service tests**, configure the three `ABA_TEST_*` connection strings and run `dotnet test tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj`. This suite is intentionally excluded from the default solution; it fails if an external connection is missing.
 
+## NuGet dependency audit and SPDX inventory
+
+The generated default CI checks the .NET 10 machine-readable NuGet
+`--vulnerable --include-transitive` report and fails on any advisory,
+unavailable HTTPS advisory sources, malformed results or missing restore
+graphs. It also exports an SPDX 2.3 inventory of **resolved NuGet packages**
+from `project.assets.json`; CI retains both artifacts.
+
+After a normal restore and build, run:
+
+```bash
+python3 tools/test_supply_chain.py
+mkdir -p artifacts/supply-chain
+dotnet package list --project Aba.Starter.slnx --vulnerable --include-transitive --format json --output-version 1 --no-restore > artifacts/supply-chain/audit.json
+python3 tools/supply_chain.py --root . --solution Aba.Starter.slnx --audit-json artifacts/supply-chain/audit.json --output artifacts/supply-chain/sbom.spdx.json
+```
+
+The optional real-service integration test project is deliberately excluded
+from the default solution and therefore is not scanned by this specific job.
+This does **not** scan container images, pin image digests, sign packages,
+verify provenance or authorize deployment.
+
 ## Installable NuGet template package
 
 Repository CI packs this template as `ABAFramework.GenericApi.Template.0.3.0-preview.2.nupkg` and verifies installation by generating a new project. Download the package artifact from the successful GitHub Actions run and install it with `dotnet new install ./ABAFramework.GenericApi.Template.0.3.0-preview.2.nupkg`. This does not require Academy or any business sample. The package is not yet published to NuGet.org.

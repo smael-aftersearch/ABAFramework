@@ -34,3 +34,12 @@ missing xUnit/integration tests. The verification runner executes fixed local
 checks and writes evidence, but it **does not** run in the background or
 certify production readiness. In this environment six Python gates passed and
 three .NET steps were NOT_RUN due to absent SDK. Check `VERIFICATION-REPORT.md`.
+
+## Supply-chain and signed release limits
+
+The generic API starter now includes authored NuGet vulnerability checks
+and an SPDX 2.3 resolved-package SBOM in CI for the default solution.
+This must pass a fresh pipeline before being counted as executed evidence.
+The external integration-only test project is not in that solution;
+pinning/scanning OCI digests and signing/verifying release attestations
+have not been completed. Existing Production gates still apply.

@@ -20,6 +20,17 @@ The generated project has no Academy or business examples. It includes a version
 
 **CI verification:** `bash scripts/verify-starter.sh` installs the template, generates a fresh named solution, runs restore/build/xUnit and checks the real local HTTP host. The original Academy sample remains an **optional reference only**, not the base API.
 
+## Supply-chain audit and SBOM
+
+New framework and generated-project CI checks use the .NET 10 NuGet direct and
+transitive advisory report to fail closed on known vulnerabilities or missing
+audit evidence. They also export an SPDX 2.3 inventory of resolved NuGet
+dependencies in the **default API solution**. These are newly added checks;
+verify the new workflow before claiming they passed. External integration
+test dependencies, OCI image scanning, pinned image digests and signed
+release attestations remain release gates. See
+[template instructions](templates/aba-api/README.md).
+
 ## Installable template package
 
 CI also builds and tests a versioned `ABAFramework.GenericApi.Template.*.nupkg` NuGet template artifact. After downloading it from the successful [GitHub Actions](https://github.com/smael-aftersearch/ABAFramework/actions) run, install with `dotnet new install ./ABAFramework.GenericApi.Template.0.3.0-preview.2.nupkg`, then `dotnet new aba-api -n YourCompany.Api`. This is an artifact attached to CI, **not yet a NuGet.org publication**. Pack locally with `bash scripts/pack-template.sh`.
@@ -44,10 +55,10 @@ its **production release gates remain open**. Evidence refers to the last review
 [CI run 43308144489](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43308144489)
 (commit `af70d88ecc9c`). New commits must pass their own CI before being treated as verified.
 
-**Tracked: 54** · Implemented: 31 · Partial: 2 · Not implemented: 21.
+**Tracked: 54** · Implemented: 31 · Partial: 3 · Not implemented: 20.
 
 | Area | Parameter / feature | Status | Delivered scope | Remaining task | Priority |
-| --- | --- | --- | --- | --- | --- |
+| --- | --- | --- | --- | --- |
 | API | Domain-neutral .NET 10 HTTP API | **Implemented** | Versioned Minimal API with composition root | No generic framework work outstanding | P0 |
 | API | OpenAPI plus interactive Scalar | **Implemented** | Generated OpenAPI and Development-only Scalar UI | Production API docs need a reviewed access policy | P1 |
 | API | Problem Details and HTTP errors | **Implemented** | RFC 7807 HTTP 500 with nonsecret Production response, validated header/body correlation ID and focused HTTP failure tests | Review validation/client errors, proxy traces and application logging policy per deployment | P1 |
@@ -96,7 +107,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | Testing | Real PostgreSQL/SQL Server/Redis/Wolverine CI | **Implemented** | 16 executable real-service tests across both SQL engines | Crash, high-load and external broker remain release gates | P0 |
 | Testing | CI bundled into each generated API | **Implemented** | Push/PR build gate and manually triggered real-service workflow | Generated-project pipelines need repository policy/hardening to be adopted | P1 |
 | Deployment | Non-root OCI image and local Compose | **Implemented** | Multi-stage .NET 10 Dockerfile, localhost-only Development Compose | Production image signing, secrets/TLS/hosting still open | P1 |
-| Deployment | SBOM, vulnerability scans and signed releases | **Not implemented** | Not implemented | Add pinned image digests, dependency audits, SBOM and artifact attestations | P0 |
+| Deployment | SBOM, vulnerability scans and signed releases | **Partial** | NuGet direct/transitive vulnerability gate and SPDX 2.3 resolved-package inventory wired to framework/generated-project CI; latest run awaiting verification | Audit separate integration tests; pin and scan OCI digests; sign and verify release artifact provenance before any publication | P0 |
 | Deployment | Production deployment with TLS, identity and rollback | **Not implemented** | Not implemented | Choose target hosting, configure DNS/TLS/secrets and deployment rollback | P0 |
 | Operations | Latency/throughput/load and failover baseline | **Not implemented** | Not implemented | Set SLO and run load/chaos tests across two provider deployments | P1 |
 | Business | Owner-defined versioned cross-context contracts | **Partial** | Context generator creates Contracts project; no real product Contracts | Specify real public V1 schemas, consumers and compatibility evolution | P0 |
@@ -117,7 +128,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | `msg-domain-consumers` | Implement owner-approved domain contracts, Inbox and cross-context handlers — Consumer cannot mutate another context's tables; duplicate events are safe | Not implemented |
 | `ops-audit` | Define context-owned auditable actions with safe retention/PII policy — Audit cannot be silently rewritten and records actor, action, tenant, outcome | Not implemented |
 | `ops-prod-secrets` | Add approved secret store, rotation and least-privilege deployment setup — No plaintext production secret in repo/container/CI logs | Not implemented |
-| `dev-release-sbom` | Add pinned image digests, dependency audits, SBOM and artifact attestations — Release pipeline rejects vulnerable/untrusted dependencies and verifies provenance | Not implemented |
+| `dev-release-sbom` | Audit separate integration tests; pin and scan OCI digests; sign and verify release artifact provenance before any publication — Release pipeline rejects vulnerable/untrusted dependencies and verifies provenance | Partial |
 | `dev-prod-deploy` | Choose target hosting, configure DNS/TLS/secrets and deployment rollback — Production smoke, zero-downtime deploy and rollback drill pass | Not implemented |
 | `biz-contracts` | Specify real public V1 schemas, consumers and compatibility evolution — V1 consumers stay compatible; private implementation edges rejected | Partial |
 | `biz-contract-tests` | Introduce consumer-driven tests for real event/HTTP contracts — A breaking V1 change fails CI and requires an explicit V2 | Not implemented |

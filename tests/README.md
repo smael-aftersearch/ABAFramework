@@ -21,3 +21,13 @@ Read `docs/testing/TEST-STRATEGY.md` before changing behavior. It defines the **
 - `../scripts/verify-all.sh`: complete verification entrypoint via the evidence runner; .NET required for all stages.
 
 The target xUnit-style Unit/Integration/Contract/Architecture/E2E project layout in the policy is a **proposal**, not a set of existing directories or successful test runs. Do not invent success or coverage metrics.
+
+## Generic NuGet vulnerability and package-inventory regression tests
+
+The default generated solution includes `tools/supply_chain.py` and
+`tools/test_supply_chain.py`. The framework runs the same portable
+offline negative tests in `.github/workflows/verify.yml`, then checks
+actual direct/transitive NuGet advisories against the restored default
+solution. The SPDX 2.3 inventory and advisory report are retained as
+artifacts. A missing/failed advisory check must never silently pass.
+The optional real-service integration project is a separate release gate.

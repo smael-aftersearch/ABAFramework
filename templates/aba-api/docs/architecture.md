@@ -55,3 +55,12 @@ The default xUnit suite injects a disposable test-only key into the actual ASP.N
 The Host registers `AddAbaErrorHandling` and `UseAbaErrorHandling` so unexpected exceptions become RFC 7807 `application/problem+json` (HTTP 500), with a validated `X-Correlation-ID` response header and matching `correlationId` property. Test fixtures assert that Production responses omit the exception's private message. No diagnostics/fault endpoint is exposed in generated APIs. The correlation ID helps troubleshoot failures but is not authorization evidence.
 
 `/health/live` excludes dependency checks while `/health/ready` includes checks tagged `ready`; opted-in EF database and Redis adapters register such checks. An injected failing readiness check is covered by a deterministic HTTP test. Actual service outages, degraded networks and load still need independent deployment testing.
+
+## Dependency provenance and supply-chain boundary
+
+The default generated-project and framework CI run a fail-closed direct and
+transitive NuGet advisory check and export an SPDX 2.3 NuGet-only inventory
+from the restored default solution. Offline negative test fixtures reject
+missing/invalid audits, vulnerabilities and missing package resolution. The
+integration-only project, OCI image digests, signed releases, provenance
+verification and production deployment remain out of scope.

@@ -96,3 +96,16 @@ The generator supports `--with-db` to add an empty owner-specific Infrastructure
 ## Tagged readiness failure without liveness failure
 
 `ReadinessTests.cs` injects a failed `ready`-tagged dependency into the real WebApplicationFactory host and verifies `/health/ready` returns HTTP 503 while `/health/live` remains HTTP 200. This is deterministic in-memory failure injection, **not** a claim of a live PostgreSQL or Redis outage/recovery test. Provider disconnect and load behavior remain a release gate.
+
+## NuGet advisory and SPDX test gate
+
+`tools/test_supply_chain.py` has offline positive/negative tests for
+direct and transitive advisories, absent HTTPS advisory sources, missing
+project coverage, missing restore graphs, unsafe project paths, malformed
+scans and generation of an SPDX 2.3 NuGet package inventory.
+The default generated workflow runs the validator using the actual
+`dotnet package list --vulnerable --include-transitive --format json`
+output after restore/build and uploads audit JSON plus SPDX inventory.
+The optional external integration test project is outside the
+default solution and requires separate scanning; release signing,
+image verification and attestations remain undone.
