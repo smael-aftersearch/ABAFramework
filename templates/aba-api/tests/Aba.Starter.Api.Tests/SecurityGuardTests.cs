@@ -1,4 +1,7 @@
 using Aba.Starter.Api.Platform;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Configuration;
 using Xunit;
 
 namespace Aba.Starter.Api.Tests;
@@ -47,6 +50,36 @@ public sealed class SecurityGuardTests
     {
         Assert.Throws<InvalidOperationException>(() =>
             StartupSecurityGuard.Validate(false, authority, audience));
+    }
+
+    [Theory]
+    [InlineData("PostgreSql",
+        "Host=localhost;Database=aba;Username=app;Password=DevOnly;SSL Mode=Require",
+        "Production PostgreSQL requires SSL Mode=VerifyFull")]
+    [InlineData("SqlServer",
+        "Server=localhost;Database=aba;User ID=app;Password=DevOnly;Encrypt=True;TrustServerCertificate=True",
+        "Production SQL Server requires Encrypt=True or Strict")]
+    public void ProductionHostRefusesUnverifiedDatabaseTlsBeforeServingRequests(
+        string provider, string insecureConnection, string diagnostic)
+    {
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(host =>
+        {
+            host.UseEnvironment("Production");
+            host.ConfigureAppConfiguration((_, config) =>
+                config.AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["Authentication:Authority"] = "https://idp.example.invalid/realms/aba",
+                    ["Authentication:Audience"] = "aba-prod-api",
+                    ["Platform:Database:Provider"] = provider,
+                    ["ConnectionStrings:AbaDatabase"] = insecureConnection
+                }));
+        });
+        var exception = Record.Exception(() =>
+        {
+            using var client = factory.CreateClient();
+        });
+        Assert.NotNull(exception);
+        Assert.Contains(diagnostic, exception.ToString());
     }
 
     [Fact]
