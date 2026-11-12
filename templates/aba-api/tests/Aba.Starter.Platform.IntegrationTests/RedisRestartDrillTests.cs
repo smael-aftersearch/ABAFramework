@@ -25,8 +25,20 @@ public sealed class RedisRestartDrillTests
             string.IsNullOrWhiteSpace(connection))
             throw new InvalidOperationException("Redis restart requires an explicit disposable CI container.");
         var parsed = ConfigurationOptions.Parse(connection);
-        if (parsed.EndPoints.Count != 1 ||
-            parsed.EndPoints[0].ToString() is not ("localhost:6379" or "127.0.0.1:6379"))
+        // StackExchange.Redis endpoint ToString() does not guarantee a
+        // normalized host:port literal (especially for default port 6379).
+        // Inspect the parsed network endpoint's actual host and port.
+        if (parsed.EndPoints.Count != 1)
+            throw new InvalidOperationException("Redis restart targets only one loopback CI service.");
+        var safe = parsed.EndPoints[0] switch
+        {
+            System.Net.DnsEndPoint dns =>
+                dns.Port == 6379 && dns.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase),
+            System.Net.IPEndPoint ip =>
+                ip.Port == 6379 && System.Net.IPAddress.IsLoopback(ip.Address),
+            _ => false
+        };
+        if (!safe)
             throw new InvalidOperationException("Redis restart targets only the CI loopback service on port 6379.");
     }
 
