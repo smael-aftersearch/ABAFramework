@@ -21,13 +21,30 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Registry 502/503 errors are transient and must not invalidate JWT behavior.
+# Retry a pinned image; never silently switch to an unpinned latest version.
+IMAGE="quay.io/keycloak/keycloak:26.4.0"
+PULLED=0
+for attempt in 1 2 3 4; do
+  if docker pull "$IMAGE" > "$TMP/keycloak-pull.log" 2>&1; then
+    PULLED=1; break
+  fi
+  echo "Keycloak image registry unavailable on attempt $attempt/4" >&2
+  sleep $((attempt * 5))
+done
+if [[ "$PULLED" -ne 1 ]]; then
+  tail -n 30 "$TMP/keycloak-pull.log" >&2
+  echo "FAIL: pinned Keycloak image could not be fetched" >&2
+  exit 1
+fi
+
 docker run -d --rm --name "$KEYCLOAK" -m 1536m \
   -p 127.0.0.1:8180:8080 \
   -e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
   -e KC_BOOTSTRAP_ADMIN_PASSWORD=Aba_CiAdmin_2026! \
   -e KC_HOSTNAME=http://localhost:8180 \
   -v "$ROOT/infra/keycloak/aba-ci-realm.json:/opt/keycloak/data/import/aba-ci-realm.json:ro" \
-  quay.io/keycloak/keycloak:26.4.0 start-dev --import-realm >/dev/null
+  "$IMAGE" start-dev --import-realm >/dev/null
 
 IDP="http://localhost:8180/realms/aba-ci"
 READY=0
