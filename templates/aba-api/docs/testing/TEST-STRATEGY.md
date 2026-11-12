@@ -60,3 +60,7 @@ The tenant multi-engine fixture now **provisions its own EF platform database fi
 ## Real Identity Provider and HTTP metadata guard
 
 Fast tests require HTTPS discovery by default even in Development, allow an explicit test-only local HTTP discovery opt-in, and prove that Production ignores that flag. An independent Keycloak CI job exercises public OIDC discovery and bearer JWT response codes. No real production tenant memberships or login UI are bundled.
+
+## Optional per-context database scaffolding
+
+The generator supports `--with-db` to add an empty owner-specific Infrastructure DbContext and dual-provider selector. CI generates a second context in this mode and proves an xUnit test can resolve both EF Core providers without a database; provider integration and business migrations must be tested independently when actual persistence is added.

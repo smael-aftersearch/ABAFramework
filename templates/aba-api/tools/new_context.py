@@ -41,7 +41,7 @@ def proj(refs=(), extra=()):
     return '\n'.join(body) + '\n'
 
 
-def files_for(name, ns):
+def files_for(name, ns, with_db=False):
     prefix = f"{ns}.{name}"
     mod = Path("src/Modules") / name
     testdir = Path("tests") / f"{prefix}.Tests"
@@ -89,6 +89,83 @@ def files_for(name, ns):
             f"        using var provider = services.BuildServiceProvider();\n"
             f"        Assert.NotNull(provider.GetRequiredService<{name}ModuleMarker>());\n    }}\n}}\n",
     }
+    if with_db:
+        # Infrastructure-owned EF model shell; no fictional business entities.
+        db_context = mod / "Infrastructure" / "Persistence" / f"{name}DbContext.cs"
+        files[db_context] = (
+            "using Microsoft.EntityFrameworkCore;\n"
+            f"namespace {prefix}.Infrastructure;\n"
+            f"public sealed class {name}DbContext(DbContextOptions<{name}DbContext> options)"
+            " : DbContext(options)\n{\n"
+            "    // Add ONLY context-owned EF mappings after real requirements exist.\n"
+            "}\n"
+        )
+        module_registration = mod / "Infrastructure" / "ModuleRegistration.cs"
+        files[module_registration] = (
+            f"using {ns}.Platform.Persistence;\n"
+            "using Microsoft.EntityFrameworkCore;\n"
+            "using Microsoft.Extensions.Configuration;\n"
+            "using Microsoft.Extensions.DependencyInjection;\n"
+            f"namespace {prefix}.Infrastructure;\n"
+            f"public sealed class {name}ModuleMarker {{ }}\n"
+            "public static class ModuleRegistration\n{\n"
+            f"    public static IServiceCollection Add{name}Module("
+            "this IServiceCollection services, IConfiguration config)\n    {\n"
+            f"        services.AddSingleton<{name}ModuleMarker>();\n"
+            "        var database = AbaDatabaseOptions.FromConfiguration(config);\n"
+            "        if (!database.Enabled) return services;\n"
+            f"        services.AddDbContext<{name}DbContext>(options =>\n        {{\n"
+            "            if (database.Provider == AbaDatabaseProvider.PostgreSql)\n"
+            "                options.UseNpgsql(database.ConnectionString);\n"
+            "            else if (database.Provider == AbaDatabaseProvider.SqlServer)\n"
+            "                options.UseSqlServer(database.ConnectionString);\n"
+            "            else\n                throw new InvalidOperationException("
+            "\"Unsupported database provider.\");\n"
+            "        });\n"
+            "        return services;\n    }\n}\n"
+        )
+        test_path = testdir / "ModuleRegistrationTests.cs"
+        files[test_path] = (
+            f"using {prefix}.Infrastructure;\n"
+            "using Microsoft.Extensions.Configuration;\n"
+            "using Microsoft.Extensions.DependencyInjection;\n"
+            "using Xunit;\n"
+            f"namespace {prefix}.Tests;\n"
+            "public sealed class ModuleRegistrationTests\n{\n"
+            "    [Fact]\n    public void NoDatabaseIsRequiredForAQuickStart()\n    {\n"
+            "        var config = new ConfigurationBuilder().AddInMemoryCollection("
+            "new Dictionary<string,string?>()).Build();\n"
+            f"        var services = new ServiceCollection().Add{name}Module(config);\n"
+            "        using var provider = services.BuildServiceProvider();\n"
+            f"        Assert.NotNull(provider.GetRequiredService<{name}ModuleMarker>());\n"
+            f"        Assert.Null(provider.GetService<{name}DbContext>());\n"
+            "    }\n"
+            "    [Theory]\n"
+            "    [InlineData(\"PostgreSql\", \"Npgsql.EntityFrameworkCore.PostgreSQL\")]\n"
+            "    [InlineData(\"SqlServer\", \"Microsoft.EntityFrameworkCore.SqlServer\")]\n"
+            "    public void BothEfProvidersCanBeSelected(string name, string expected)\n    {\n"
+            "        var config = new ConfigurationBuilder().AddInMemoryCollection("
+            "new Dictionary<string,string?>\n        {\n"
+            "            [\"Platform:Database:Provider\"] = name,\n"
+            "            [\"ConnectionStrings:AbaDatabase\"] = name == \"PostgreSql\"\n"
+            "                ? \"Host=localhost;Database=aba;Username=app;Password=test\"\n"
+            "                : \"Server=localhost;Database=aba;User ID=sa;Password=Test!12345;TrustServerCertificate=True\"\n"
+            "        }).Build();\n"
+            "        var services = new ServiceCollection();\n"
+            "        services.AddLogging();\n"
+            f"        services.Add{name}Module(config);\n"
+            "        using var provider = services.BuildServiceProvider();\n"
+            "        using var scope = provider.CreateScope();\n"
+            f"        var db = scope.ServiceProvider.GetRequiredService<{name}DbContext>();\n"
+            "        Assert.Equal(expected, db.Database.ProviderName);\n"
+            "    }\n}\n"
+        )
+        files[mod / "Infrastructure" / "Persistence" / "README.md"] = (
+            f"# {name} owned persistence\n\n"
+            "This optional EF Core DbContext has no business entities and no migrations yet. "
+            "Create context-owned migrations only after real data/rules are defined. "
+            "Use the shared database provider selection but do not share other contexts' tables.\n"
+        )
     docs = mod / "_Docs"
     metadata = {
         "ownership.yaml": {"context": name, "owner": name, "owns": {
@@ -126,7 +203,7 @@ def check():
         if not IDENT.fullmatch(name) or name.lower() in seen:
             raise ValueError(f"Invalid or duplicate context name: {name}")
         seen.add(name.lower())
-        files, projects = files_for(name, ns)
+        files, projects = files_for(name, ns, with_db=record.get("efCore", False))
         if record["owner"] != name or record["path"] != f"src/Modules/{name}":
             raise ValueError("Context ownership/path metadata mismatch")
         owned = record.get("owns")
@@ -189,7 +266,8 @@ def check():
                     raise ValueError(f"Forbidden cross-context implementation import: {source}")
         if f"../Modules/{name}/Infrastructure/{ns}.{name}.Infrastructure.csproj" not in api.read_text():
             raise ValueError(f"Missing host project reference for {name}")
-        if f"builder.Services.Add{name}Module();" not in (api.parent / "Program.cs").read_text():
+        registration = ("builder.Configuration" if record.get("efCore", False) else "")
+        if f"builder.Services.Add{name}Module({registration});" not in (api.parent / "Program.cs").read_text():
             raise ValueError(f"Missing host service registration for {name}")
     modules = ROOT / "src/Modules"
     extras = ({p.name.lower() for p in modules.iterdir() if p.is_dir()} - seen) if modules.exists() else set()
@@ -199,7 +277,7 @@ def check():
     return records
 
 
-def create(name):
+def create(name, with_db=False):
     if not IDENT.fullmatch(name):
         raise ValueError("Context name must start with a capital letter and contain only letters/digits")
     records = check()
@@ -217,7 +295,8 @@ def create(name):
     if hook not in program:
         raise ValueError("API composition anchor missing")
     program = f"using {ns}.{name}.Infrastructure;\n" + program.replace(
-        hook, hook + f"\nbuilder.Services.Add{name}Module();", 1)
+        hook, hook + f"\nbuilder.Services.Add{name}Module(" +
+        ("builder.Configuration" if with_db else "") + ");", 1)
     api_tree = ET.parse(api)
     group = next((g for g in api_tree.getroot().findall("ItemGroup")
                   if g.find("ProjectReference") is not None), None)
@@ -232,6 +311,7 @@ def create(name):
     catalog = json.loads(CATALOG.read_text())
     catalog["contexts"].append({
         "name": name, "owner": name, "path": f"src/Modules/{name}",
+        "efCore": with_db,
         "owns": {"data": [], "businessRules": [], "decisions": [], "publicContracts": []}})
     catalog["contexts"].sort(key=lambda x: x["name"].lower())
     replacements = {
@@ -255,19 +335,20 @@ def create(name):
         shutil.rmtree(srcdir, ignore_errors=True)
         shutil.rmtree(testdir, ignore_errors=True)
         raise
-    print(f"CREATED: {name} Domain, Application, Infrastructure, Contracts, tests, ownership and host wiring")
+    print(f"CREATED: {name} Domain, Application, Infrastructure, Contracts, tests, ownership and host wiring" + (" with isolated EF Core" if with_db else ""))
 
 
 def main():
     parser = argparse.ArgumentParser(description="ABA generic bounded-context generator")
     parser.add_argument("command", choices=("create", "check", "list"))
     parser.add_argument("--name")
+    parser.add_argument("--with-db", action="store_true", help="Generate a context-owned EF Core DbContext and both SQL provider wiring")
     args = parser.parse_args()
     try:
         if args.command == "create":
             if not args.name:
                 parser.error("create requires --name")
-            create(args.name)
+            create(args.name, with_db=args.with_db)
         elif args.command == "check":
             check()
         else:

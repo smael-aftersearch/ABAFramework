@@ -16,7 +16,7 @@ description: >
 2. Inspect `metadata/contexts.json`: it starts with no fictional business owners.
 3. For new business behavior, derive its single owning context from the real requirements. Record the owner and public versioned contracts before adding dependencies. Ask for clarification only when ownership cannot be determined safely.
 4. Read the affected code and existing tests before editing.
-5. For a new real bounded context, run `python3 tools/new_context.py create --name ActualContext`; inspect `src/Modules/<ActualContext>/_Docs` and run `python3 tools/new_context.py check`. The generator creates no business rules or published contracts.
+5. For a new real bounded context, run `python3 tools/new_context.py create --name ActualContext` (add `--with-db` only if actual context persistence is required); inspect `src/Modules/<ActualContext>/_Docs` and run `python3 tools/new_context.py check`. The generator creates no business rules or published contracts.
 
 ## Mandatory boundaries
 

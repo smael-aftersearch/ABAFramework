@@ -36,7 +36,7 @@ fi
 python3 "$OUTPUT/tools/new_context.py" check
 python3 "$OUTPUT/tools/new_context.py" create --name BoundaryProbe
 python3 "$OUTPUT/tools/new_context.py" check
-python3 "$OUTPUT/tools/new_context.py" create --name AuditProbe
+python3 "$OUTPUT/tools/new_context.py" create --name AuditProbe --with-db
 python3 "$OUTPUT/tools/new_context.py" check
 # Deliberately introduce an illegal cross-context source dependency and confirm
 # executable governance rejects it, then restore the file unchanged.

@@ -58,3 +58,5 @@ Read [docs/platform-infrastructure.md](docs/platform-infrastructure.md) for conf
 ## OIDC test-only local discovery
 
 `Authentication__AllowHttpMetadataInDevelopment=true` permits a loopback HTTP identity provider **only in Development**, for the separate real Keycloak/JWKS integration test. Production HTTPS discovery remains mandatory; never use this flag to bypass TLS outside isolated local tests.
+
+**If your actual context needs its own EF Core persistence**, use `python3 tools/new_context.py create --name Inventory --with-db` instead. It registers a context-owned empty DbContext for either PostgreSQL or SQL Server, plus provider-selection tests. No database tables or migrations are fabricated.
