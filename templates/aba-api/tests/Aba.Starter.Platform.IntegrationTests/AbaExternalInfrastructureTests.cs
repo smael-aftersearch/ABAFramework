@@ -355,6 +355,56 @@ public sealed class AbaExternalInfrastructureTests
     }
 
     [Fact]
+    public async Task ActualRedisClientCanBypassUnreachableServerForAuthorizedQueriesOnly()
+    {
+        // Reserve an unused loopback TCP port, then release it. The real Redis
+        // client will attempt a network connection to that deliberately offline port.
+        var listener = new System.Net.Sockets.TcpListener(
+            System.Net.IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
+        listener.Stop();
+
+        var settings = new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?>
+            {
+                ["Platform:Cache:Provider"] = "Redis",
+                ["ConnectionStrings:AbaRedis"] =
+                    $"127.0.0.1:{port},abortConnect=false,connectRetry=0,connectTimeout=400,asyncTimeout=400"
+            }).Build();
+        var services = new ServiceCollection().AddLogging();
+        services.AddAbaCaching(settings);
+        await using var provider = services.BuildServiceProvider();
+        var query = provider.GetRequiredService<ReadThroughQueryCache>();
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(12));
+        var sourceCalls = 0;
+
+        var value = await query.GetOrLoadAsync(
+            "authorized-tenant", "noncritical-query", TimeSpan.FromMinutes(1),
+            _ =>
+            {
+                sourceCalls++;
+                return Task.FromResult("fresh-source-value");
+            },
+            CacheOutagePolicy.UseAuthoritativeSource, deadline.Token);
+        Assert.Equal("fresh-source-value", value);
+        Assert.Equal(1, sourceCalls);
+
+        var strictFailure = await Record.ExceptionAsync(() => query.GetOrLoadAsync(
+            "authorized-tenant", "strict-query", TimeSpan.FromMinutes(1),
+            _ =>
+            {
+                sourceCalls++;
+                return Task.FromResult("must-not-load");
+            },
+            CacheOutagePolicy.FailClosed, deadline.Token));
+        Assert.NotNull(strictFailure);
+        Assert.True(strictFailure is StackExchange.Redis.RedisException or TimeoutException,
+            $"Unexpected failure type: {strictFailure.GetType().FullName}");
+        Assert.Equal(1, sourceCalls);
+    }
+
+    [Fact]
     public async Task RealRedisProvidesScopedRoundTripAndInvalidation()
     {
         var connection = Environment.GetEnvironmentVariable("ABA_TEST_REDIS");

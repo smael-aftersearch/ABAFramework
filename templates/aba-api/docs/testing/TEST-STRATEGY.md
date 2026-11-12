@@ -76,3 +76,7 @@ The generator supports `--with-db` to add an empty owner-specific Infrastructure
 ## Configurable rate-limiting and health resilience
 
 `RateLimitTests` verifies invalid limits fail configuration, JWT subject/tenant isolation is unaffected by untrusted tenant headers, anonymous IP partitioning ignores forwarded spoofing, and a tiny 2-request quota returns 429 on the next API request while Health remains available. Production multi-instance quotas still require gateway or distributed rate enforcement.
+
+## Redis driver failure with actual network outage
+
+`ActualRedisClientCanBypassUnreachableServerForAuthorizedQueriesOnly` uses the real `StackExchangeRedisCache` adapter pointed at an intentionally unreachable loopback TCP port. With explicit `UseAuthoritativeSource` a non-authoritative read-through query must call its source exactly once. The identical real Redis failure in default `FailClosed` must propagate and **must not invoke the source**. The suite does not yet prove recovery after a previously connected live Redis service restarts.
