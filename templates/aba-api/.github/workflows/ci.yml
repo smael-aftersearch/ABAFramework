@@ -23,6 +23,24 @@ jobs:
         run: python3 tools/test_aba_task.py
       - name: Verify context ownership, restore, build and xUnit
         run: python3 tools/aba_task.py verify --level build --output artifacts/verification/default.json
+      - name: Negative regressions for NuGet supply-chain gate
+        run: python3 tools/test_supply_chain.py
+      - name: Fail closed on direct/transitive NuGet vulnerabilities and generate SPDX
+        run: |
+          mkdir -p artifacts/supply-chain
+          dotnet package list --project Aba.Starter.slnx \
+            --include-transitive --vulnerable --format json --output-version 1 --no-restore \
+            > artifacts/supply-chain/audit.json
+          python3 tools/supply_chain.py --root . --solution Aba.Starter.slnx \
+            --audit-json artifacts/supply-chain/audit.json \
+            --output artifacts/supply-chain/sbom.spdx.json
+      - name: Upload NuGet vulnerability audit and SPDX evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aba-api-nuget-sbom
+          path: artifacts/supply-chain/
+          if-no-files-found: warn
       - name: Upload verification evidence
         if: always()
         uses: actions/upload-artifact@v4

@@ -40,6 +40,8 @@ for required in \
   Dockerfile \
   .github/workflows/ci.yml \
   .github/workflows/integration.yml \
+  tools/supply_chain.py \
+  tools/test_supply_chain.py \
   tests/Pilot.Packaged.Platform.IntegrationTests/Pilot.Packaged.Platform.IntegrationTests.csproj; do
   if [[ ! -f "$TMP/from-package/$required" ]]; then
     echo "FAIL: template package omitted generated file: $required" >&2

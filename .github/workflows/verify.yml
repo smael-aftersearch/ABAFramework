@@ -120,3 +120,36 @@ jobs:
           python-version: '3.12'
       - name: Verify real Keycloak OIDC, JWKS and tenant 204/401/403
         run: bash scripts/verify-keycloak-oidc.sh
+
+  supply-chain:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Supply-chain positive and deliberately failing test cases
+        run: python3 templates/aba-api/tools/test_supply_chain.py
+      - name: Fail closed on NuGet advisories and inventory the restored solution
+        run: |
+          dotnet restore templates/aba-api/Aba.Starter.slnx
+          mkdir -p templates/aba-api/artifacts/supply-chain
+          dotnet package list --project templates/aba-api/Aba.Starter.slnx \
+            --include-transitive --vulnerable --format json --output-version 1 --no-restore \
+            > templates/aba-api/artifacts/supply-chain/audit.json
+          python3 templates/aba-api/tools/supply_chain.py \
+            --root templates/aba-api --solution templates/aba-api/Aba.Starter.slnx \
+            --audit-json templates/aba-api/artifacts/supply-chain/audit.json \
+            --output templates/aba-api/artifacts/supply-chain/sbom.spdx.json
+      - name: Preserve NuGet audit and SPDX package evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aba-nuget-supply-chain-evidence
+          path: templates/aba-api/artifacts/supply-chain/
+          if-no-files-found: warn

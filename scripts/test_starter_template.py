@@ -142,6 +142,19 @@ class GenericTemplateTests(unittest.TestCase):
         self.assertIn('tools/test_aba_task.py', verify_script)
         self.assertIn('tools/aba_task.py" verify --level static', verify_script)
 
+    def test_generated_supply_chain_gate_is_present(self):
+        source = (TEMPLATE / 'tools/supply_chain.py').read_text()
+        cases = (TEMPLATE / 'tools/test_supply_chain.py').read_text()
+        root_ci = (ROOT / '.github/workflows/verify.yml').read_text()
+        template_ci = (TEMPLATE / '.github/workflows/ci.yml').read_text()
+        self.assertIn("SPDX-2.3", source)
+        self.assertIn("Known vulnerable NuGet packages", source)
+        self.assertIn("test_transitive_vulnerability_is_rejected", cases)
+        for phrase in ("--vulnerable", "--include-transitive", "--output-version 1",
+                       "tools/supply_chain.py", "tools/test_supply_chain.py"):
+            self.assertIn(phrase, root_ci)
+            self.assertIn(phrase, template_ci)
+
     def test_xunit_and_companion_script_exist(self):
         proj = (TEMPLATE / 'tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj').read_text()
         self.assertIn('PackageReference Include="xunit"', proj)
