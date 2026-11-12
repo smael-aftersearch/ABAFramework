@@ -1,5 +1,4 @@
-> **Updated evidence (2026-11-12):** [five-job integration run](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43298754432) verifies 44 generic API xUnit checks, 13 real-service tests, Keycloak OIDC/JWKS, Docker and NuGet package installation. The optional Academy example has different limitations; see `docs/verification/2026-11-12-hardening.md`.
-
+> **Updated evidence (2026-11-12):** [five-job successful run](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43301970172) verifies 60 default API xUnit tests, 16 real SQL/Redis/Wolverine integration tests, Keycloak, Docker, template packaging and the portable ABA task runner. A later template update bundles CI workflows into generated projects; check its exact run for final verification.
 # AI knowledge entrypoint — ABA .NET 10
 
 This is the **navigation map** for humans and coding agents. **For any new customer/product API, prefer the domain-neutral `templates/aba-api` starter, not the optional Academy example.** Its generated AGENTS.md and docs are scoped to the new repository. The repository provides a portable engineering skill at `.agents/skills/aba-engineering/SKILL.md` and permanent rules at `/AGENTS.md`. Read the relevant documentation for the request; do not assume an AI automatically reads every file.

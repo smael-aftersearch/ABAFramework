@@ -4,6 +4,8 @@
 
 **Purpose:** Build and evolve an Adaptive Business Architecture (ABA) modular-monolith framework and its Academy example without increasing future cost of change.
 
+**New generic API agent workflow:** Each project created with `dotnet new aba-api` carries `tools/aba_task.py`, a local `AGENTS.md` and `.agents/skills/aba-engineering/SKILL.md`. Use `python3 tools/aba_task.py plan --task "<request>" --file <path>`, `verify --level static/build` and `--level full` for real infrastructure, plus the project's generated CI. The script never assigns unproven business ownership and redacts known connection strings from evidence.
+
 **Start here:** `docs/ai/INDEX.md` (knowledge map). The reusable workflow is `.agents/skills/aba-engineering/SKILL.md`. For task-oriented reading suggestions run `python3 scripts/ai_check.py brief --task "<request>"`. Read only the context and references relevant to the task; do not read all 78 PDF pages on each small change.
 
 ## Non-negotiable architectural rules

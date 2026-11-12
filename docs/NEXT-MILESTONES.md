@@ -8,11 +8,11 @@
 ## Currently implemented and verified in the domain-neutral template
 
 - **EF Core 10 both PostgreSQL and Microsoft SQL Server:** runtime provider selection; technical idempotency model with provider-neutral migration; real integration tests against both engines.
-- **Redis:** optional distributed caching, scoped JSON keys, explicit TTL and removal, and actual Redis test.
+- **Redis:** optional distributed caching, scoped JSON keys, TTL and invalidation; strict fail-closed by default. Explicit read-through of *non-authoritative* query data on Redis network failure is tested with fault injection and the real Redis client against an unreachable TCP endpoint. Multi-node invalidation and reconnect/load resilience remain incomplete.
 - **Wolverine 6:** durable EF transaction+outbox happy path and injected pre-commit rollback verified on both SQL engines, plus persistent scheduled-message recovery after a clean host restart. Real business handlers and arbitrary process-kill recovery remain unverified.
 - **OIDC/JWT:** real ephemeral Keycloak OIDC discovery/JWKS and signed bearer 204/401/403 tests; Production requires HTTPS identity metadata, with HTTP loopback opt-in allowed only in Development. Claim-based tenant gates and EF row query/write guards are tested against both SQL engines. Full IdP user membership, SQL RLS and operational key rotation are not delivered.
 - **OpenTelemetry:** optional ASP.NET+HttpClient tracing/metrics, validated OTLP endpoint, no collector auto-installed.
-- **Quality and AI:** xUnit/WebApplicationFactory, provider/tenant/Outbox recovery CI, governance negative cases, agent Skills/AGENTS, installable versioned NuGet template and a context generator with optional dual-provider `--with-db` EF persistence.
+- **Quality and AI:** xUnit/WebApplicationFactory, provider/tenant/Outbox recovery CI, concurrent four-caller idempotency tests on both SQL engines, JWT/tenant-partitioned rate limits with health bypass, agent Skill/AGENTS and a portable `aba_task.py` document/evidence runner, installable NuGet template and optional per-context dual-provider `--with-db` EF scaffolding. Generated projects include their own default and manually triggered integration CI workflows.
 
 [Source-grounded full framework CI evidence](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43298754432) | `docs/verification/2026-11-12-platform-providers.md`.
 
@@ -21,9 +21,9 @@
 1. **Wolverine release reliability:** technical outbox atomicity, injected pre-commit rollback and clean restart recovery are VERIFIED on both providers; still needed: actual context-owned domain handlers, ungraceful process-kill crash windows, poison/dead-letter/replay tooling, duplicate/concurrent consumers and optional broker transports.
 2. **Production security:** Keycloak real OIDC/JWKS positive/negative token tests and EF query/SaveChanges tenant guards on both SQL providers are VERIFIED. Still needed: organization membership and RBAC/ABAC policies, tenant database RLS, bulk/raw-SQL guardrails, externally managed IdP key rotation and secure HTTPS deployment.
 3. **EF Core production operations:** optional per-context empty DbContext scaffolding now exists; real context-owned models/migrations, optimistic concurrency, forward/rollback/backup/restore verification, TLS-enforced SQL Server connections and PostgreSQL operations remain to deliver when real business ownership exists.
-4. **Redis resilience:** outage fallback, distributed invalidation, cross-service tenancy checks, key rotation, race/cache stampede behavior and load tests.
+4. **Redis resilience:** an opt-in authoritative-source fallback for noncritical reads and real-client network-failure test now exist; remaining: controlled live restart/reconnect, distributed invalidation, tenant authorization across services, key rotation, stampede protection and load testing.
 5. **OpenTelemetry and operations:** real collector/export verification, logs correlation, sampling/PII policy, health dependency readiness, performance baselines, load/failover tests, audit events and dashboards.
-6. **Distribution/deployment:** a versioned installable NuGet template package and a tested non-root OCI Docker image are generated in CI. Public NuGet.org publishing, signed release attestations, cloud deployment infrastructure, SLA/release pipeline, threat modeling and vulnerability checks remain incomplete.
+6. **Distribution/deployment:** the `0.3.0-preview.1` NuGet API template package and a non-root OCI image are build/test artifacts. Each generated project has default self-contained CI and an opt-in real-infrastructure workflow. Public NuGet.org publishing, signed attestations, selected cloud deployment, SLA/release automation, threat modeling and vulnerability scans remain incomplete.
 
 ## Release gates
 

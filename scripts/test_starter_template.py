@@ -9,6 +9,14 @@ ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE = ROOT / 'templates' / 'aba-api'
 
 class GenericTemplateTests(unittest.TestCase):
+    def test_versioned_template_pack_script_matches_metadata(self):
+        package = ET.parse(ROOT / "packaging/ABAFramework.GenericApi.Template.csproj")
+        version = package.findtext("./PropertyGroup/Version")
+        self.assertEqual("0.3.0-preview.1", version)
+        script = (ROOT / "scripts/pack-template.sh").read_text()
+        self.assertIn("PackageVersion=" + version, script)
+        self.assertIn("ABAFramework.GenericApi.Template." + version + ".nupkg", script)
+
     def test_dotnet_new_metadata(self):
         meta = json.loads((TEMPLATE / '.template.config/template.json').read_text())
         self.assertEqual(meta['shortName'], 'aba-api')

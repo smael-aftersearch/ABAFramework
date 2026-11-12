@@ -1,6 +1,6 @@
 # ABA Framework — .NET 10 generic API quick start
 
-**Current verified baseline (2026-11-12):** [five successful GitHub CI jobs](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43298754432) verify a fresh .NET 10 API, 44 xUnit API tests, 13 live database/Redis/Wolverine tests on PostgreSQL and SQL Server, actual Keycloak OIDC/JWKS signed JWT 204/401/403, a non-root Docker image, and an installable NuGet template package. A separate generated-context CI has also built and tested an opt-in per-context `--with-db` EF Core shell; treat full CI result on later commits separately. The optional Academy sample below is NOT the default template. **Production release remains gated.**
+**Verified technical baseline (2026-11-12):** [five passing GitHub Actions jobs](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43301970172) compiled a fresh .NET 10 domain-neutral API, passed **60 xUnit API tests** plus generated-context registration checks and **16 real-service integration tests** (PostgreSQL, SQL Server, Redis and Wolverine). CI also verified actual Keycloak OIDC/JWKS 204/401/403, non-root Docker, installable NuGet package and ABA governance. Improvements in the new template include optional per-context `--with-db` scaffolding, transactional/concurrent idempotency, an explicit source-backed Redis outage path, JWT-partitioned rate limiting and an agent task/evidence runner. A later change adds CI directly inside generated projects; verify the latest run before calling that addition green. Academy remains an **optional example**, not the base framework. **Production release is still gated.**
 
 
 **Start here if you want a new, ordinary API.** The domain-neutral `aba-api` template is the primary deliverable. You do **not** need the Academy enrollment/payment example to create your product.
@@ -22,7 +22,7 @@ The generated project has no Academy or business examples. It includes a version
 
 ## Installable template package
 
-CI also builds and tests a versioned `ABAFramework.GenericApi.Template.*.nupkg` NuGet template artifact. After downloading it from the successful [GitHub Actions](https://github.com/smael-aftersearch/ABAFramework/actions) run, install with `dotnet new install ./ABAFramework.GenericApi.Template.0.2.0-preview.1.nupkg`, then `dotnet new aba-api -n YourCompany.Api`. This is an artifact attached to CI, **not yet a NuGet.org publication**. Pack locally with `bash scripts/pack-template.sh`.
+CI also builds and tests a versioned `ABAFramework.GenericApi.Template.*.nupkg` NuGet template artifact. After downloading it from the successful [GitHub Actions](https://github.com/smael-aftersearch/ABAFramework/actions) run, install with `dotnet new install ./ABAFramework.GenericApi.Template.0.3.0-preview.1.nupkg`, then `dotnet new aba-api -n YourCompany.Api`. This is an artifact attached to CI, **not yet a NuGet.org publication**. Pack locally with `bash scripts/pack-template.sh`.
 
 ## Roadmap and scope
 
@@ -174,3 +174,7 @@ The local store uses atomic same-filesystem rename of a serialized envelope cont
 ## Next milestone
 
 Replace the local data adapters with **PostgreSQL/EF Core 10 and Wolverine's supported durable messaging/outbox**, add Redis, OAuth/OIDC via a standards-based identity provider, generated OpenAPI, observability, xUnit/Testcontainers, and `dotnet new` templates—while preserving versioned Contracts and governance. See `docs/NEXT-MILESTONES.md` for sequence and acceptance gates.
+
+## Agent-guided task workflow in every new API
+
+Generated projects now contain `tools/aba_task.py`, `docs/ai/TASK-PROTOCOL.md`, and a local ABA Engineering Skill. Run `python3 tools/aba_task.py plan --task "Change an API" --file src/MyCompany.MyApi.Api/Program.cs` to get a document/ownership/test plan, then `python3 tools/aba_task.py verify --level build` for explicit evidence. Unknown business ownership is flagged instead of guessed. Every new repository also includes a default GitHub Actions build/test workflow and a manual real-service integration workflow.

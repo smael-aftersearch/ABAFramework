@@ -25,6 +25,12 @@ For a material change, write a short internal or user-visible plan with:
 
 If ownership or requirements remain ambiguous, investigate code, metadata, ADRs, and the book. For destructive, financially sensitive, or boundary-breaking decisions, request explicit approval rather than inventing ownership. Prefer a safe, scoped change to speculative architecture.
 
+## Generated-project agent protocol (new)
+
+- The **generic generated API** now contains `tools/aba_task.py` and `docs/ai/TASK-PROTOCOL.md`: run `python3 tools/aba_task.py plan --task "<request>" --file <affected/path>` before edits and `python3 tools/aba_task.py verify --level static` and `--level build` afterward. For SQL, Wolverine and Redis changes, use `--level full` against live PostgreSQL/SQL Server/Redis; missing connections must return NOT_RUN/nonzero.
+- Generated `.github/workflows/ci.yml` runs unit and architecture checks; `integration.yml` is manually dispatched for real services. CI does not imply a deployed production system or authorization to publish.
+- Redis outage bypass is opt-in for non-authoritative read-through queries only. Never use it for financial rules, authentication, tenant authorization or idempotency. Rate limits partition authenticated JWT users, not spoofed tenant/proxy headers. Keep Health unaffected by quotas.
+
 ## Generic API quick-start first
 
 - For a request to create a **new project or blank API**, use `templates/aba-api`, not the Academy business sample.

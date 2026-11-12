@@ -33,7 +33,7 @@ To run **real external-service tests**, configure the three `ABA_TEST_*` connect
 
 ## Installable NuGet template package
 
-Repository CI packs this template as `ABAFramework.GenericApi.Template.0.2.0-preview.1.nupkg` and verifies installation by generating a new project. Download the package artifact from the successful GitHub Actions run and install it with `dotnet new install ./ABAFramework.GenericApi.Template.0.2.0-preview.1.nupkg`. This does not require Academy or any business sample. The package is not yet published to NuGet.org.
+Repository CI packs this template as `ABAFramework.GenericApi.Template.0.3.0-preview.1.nupkg` and verifies installation by generating a new project. Download the package artifact from the successful GitHub Actions run and install it with `dotnet new install ./ABAFramework.GenericApi.Template.0.3.0-preview.1.nupkg`. This does not require Academy or any business sample. The package is not yet published to NuGet.org.
 
 ## Security
 

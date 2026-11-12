@@ -2,7 +2,7 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <PackageId>ABAFramework.GenericApi.Template</PackageId>
-    <Version>0.2.0-preview.1</Version>
+    <Version>0.3.0-preview.1</Version>
     <Title>ABA Framework Generic API .NET 10 Template</Title>
     <Authors>ABA Framework Contributors</Authors>
     <Description>Domain-neutral .NET 10 API starter with PostgreSQL, SQL Server, Redis, Wolverine, OIDC/JWT, OpenTelemetry, xUnit, and agent documentation.</Description>
