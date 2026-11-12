@@ -45,7 +45,7 @@ except Exception as exc:
     errors.append(f'Cannot parse solution: {exc}')
 
 for path in root.rglob('*.yaml'):
-    if path.parent.name == 'infra' or (path.parent.name == 'agents' and path.name == 'openai.yaml'):
+    if path.name in {'compose.yaml', 'compose.yml', 'docker-compose.yaml', 'docker-compose.yml'} or path.parent.name == 'infra' or (path.parent.name == 'agents' and path.name == 'openai.yaml'):
         continue  # Docker Compose and Skill UI metadata use ordinary YAML.
     try:
         json.loads(path.read_text(encoding='utf-8'))
