@@ -90,12 +90,35 @@ public sealed class AbaExternalInfrastructureTests
         builder.Services.AddHealthChecks();
         builder.AddAbaPlatform();
         await using var app = builder.Build();
+        // EF owns the idempotency table and creates the DB itself. Wolverine
+        // cannot provision its own relational message schema until the target
+        // database exists (especially important for SQL Server).
+        await using (var setup = app.Services.CreateAsyncScope())
+        {
+            var context = setup.ServiceProvider.GetRequiredService<AbaPlatformDbContext>();
+            for (var attempt = 0; ; attempt++)
+            {
+                try
+                {
+                    await context.Database.MigrateAsync();
+                    break;
+                }
+                catch (Exception ex) when (attempt < 29 &&
+                    (ex is System.Data.Common.DbException || ex is TimeoutException))
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(2));
+                }
+            }
+        }
         await app.StartAsync();
         try
         {
             var probeId = Guid.NewGuid();
-            var bus = app.Services.GetRequiredService<Wolverine.IMessageBus>();
-            await bus.SendAsync(new Aba.Starter.Platform.Messaging.AbaDurabilityProbe(probeId));
+            await using (var sendScope = app.Services.CreateAsyncScope())
+            {
+                var bus = sendScope.ServiceProvider.GetRequiredService<Wolverine.IMessageBus>();
+                await bus.SendAsync(new Aba.Starter.Platform.Messaging.AbaDurabilityProbe(probeId));
+            }
             var found = false;
             for (var attempt = 0; attempt < 60; attempt++)
             {

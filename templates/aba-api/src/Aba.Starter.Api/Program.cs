@@ -77,6 +77,15 @@ var statusRoute = app.MapGet("/api/v1/system/status", (IHostEnvironment env) =>
     .WithTags("System")
     .Produces<SystemStatusV1>(StatusCodes.Status200OK);
 
+// A deliberately protected, domain-neutral probe. Useful for verifying that a
+// configured JWT/OIDC authority is actually enforced in all environments.
+app.MapGet("/api/v1/system/authorization-check", () => Results.NoContent())
+    .WithName("CheckJwtAuthorization")
+    .WithTags("System")
+    .RequireAuthorization()
+    .Produces(StatusCodes.Status204NoContent)
+    .Produces(StatusCodes.Status401Unauthorized);
+
 if (app.Environment.IsDevelopment())
 {
     // Local-only developer conveniences: never publish these anonymously in production.

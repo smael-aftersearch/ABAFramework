@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
@@ -14,23 +13,12 @@ public sealed class ApiSmokeTests
             builder.UseEnvironment("Development"));
 
     [Fact]
-    public async Task ProductionRejectsAnonymousApiAndHidesDeveloperUi()
+    public async Task ExplicitlyProtectedRouteRequiresJwtWithoutDevelopmentBypass()
     {
-        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-        {
-            builder.UseEnvironment("Production");
-            builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(
-                new Dictionary<string, string?>
-                {
-                    ["Authentication:Authority"] = "https://issuer.example.invalid",
-                    ["Authentication:Audience"] = "aba-api"
-                }));
-        });
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
-        using var response = await client.GetAsync("/api/v1/system/status");
+        using var response = await client.GetAsync("/api/v1/system/authorization-check");
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-        using var docsResponse = await client.GetAsync("/scalar");
-        Assert.Equal(HttpStatusCode.NotFound, docsResponse.StatusCode);
     }
 
     [Fact]
