@@ -147,13 +147,13 @@ policies remain open P0 gates.
 
 ## New P0 crash-fault and audit checkpoint hardening
 
-Technical, opt-in SIGKILL drills have been authored against real
+Technical, opt-in SIGKILL drills have now been CI-verified against real
 PostgreSQL and SQL Server: a flushed but uncommitted SQL receipt
 must roll back when its child host dies, and a durably scheduled
 Wolverine envelope must be processed after a new host starts.
 The independent crash test category is explicitly CI-gated and
-rejects non-disposable DB targets. Pending the latest CI, do not
-present this as proven. The remaining P0 crash acceptance gap
+rejects non-disposable DB targets. CI run 43323597289 passed all
+8 crash cases, including committed-effect-before-consumer-ACK redelivery. The remaining P0 crash acceptance gap
 is kill in the same business Outbox commit/publish/ACK window,
 duplicate delivery and consumer/external side-effect idempotency.
 
@@ -163,9 +163,11 @@ must still deploy an actual immutable offsite checkpoint sink,
 isolate and rotate the offline signing key, set retention and
 operator permissions and audit actual context-owned decisions.
 
-**ACK-loss progress (authored, final CI pending):** a third
+**ACK-loss progress (verified on both SQL engines):** a third
 SIGKILL case now commits an idempotent technical receipt, kills
 the worker before handler ACK, and requires restored Wolverine
 to redeliver without duplicating the receipt. This still needs
 validation against the owning business domain's external effects,
 publisher Outbox and broker transports.
+
+**Full fault-injection evidence:** [run 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289) passed 8/8 jobs, with 99 default API xUnit tests, 26 live SQL/Redis/Wolverine integration tests, 7 recovery drills and 8 actual process-kill cases. Real business Outbox publication, externally compensated consumers and immutable checkpoint custody remain unfinished.

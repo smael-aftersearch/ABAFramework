@@ -80,3 +80,5 @@ tail truncation or older row changes only when the signed checkpoint
 is stored in independent immutable custody. No HSM, WORM archive,
 external checkpoint store or offline signing credentials are bundled.
 Keep the external key out of the application and ordinary CI logs.
+
+**Real fail-closed fault execution:** [CI 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289) confirmed that the technical process-kill fixture cannot target a remote/production database and that a separately committed synthetic effect survives lost ACK redelivery without duplication. This does not establish live operator identities, authenticated business memberships or KMS/WORM custody.

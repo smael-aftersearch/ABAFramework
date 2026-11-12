@@ -187,3 +187,5 @@ child process, restarts Wolverine on the same SQL store, requires
 at least one redelivery attempt and exactly one effect. This
 covers the ACK-loss idempotency invariant for a synthetic
 technical handler, not a domain consumer or external payment.
+
+**Verified execution:** [root CI 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289) passed 26/26 standard real-service tests, 7/7 provider-native recovery cases, and 8/8 separate SIGKILL fault-injection tests. Both SQL engines proved one committed technical effect after an actual pre-ACK crash and subsequent redelivery. The later safety preflight tests require separate CI evidence.

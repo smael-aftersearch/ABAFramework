@@ -128,3 +128,5 @@ of a historical prefix while permitting later appends. It does
 not provide an off-DB immutable retention service, secret custody,
 actual offline signing infrastructure or protection if both
 the ledger and checkpoint signing keys are compromised.
+
+**Verified CI-only crash scope:** [run 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289) passed 8/8 SIGKILL cases, including both providers' pre-commit rollback, persisted schedule recovery, and lost ACK redelivery without duplicating a technical effect. This is **not** a claim of real business Outbox/ACK, broker network partitions, full inter-context idempotency or Production supervision.

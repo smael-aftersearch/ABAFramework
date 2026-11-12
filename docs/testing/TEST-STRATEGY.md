@@ -206,3 +206,5 @@ attempt is required while the effect remains unique. This
 specifically exercises the at-least-once/duplicate-delivery
 ACK boundary under real process death. The generated Product
 still needs proof for its own handler and external side effects.
+
+**Execution update:** [all eight CI jobs passed](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289), with 99 default API xUnit cases, 26 live-service cases, 7 native recovery cases and 8 SIGKILL CrashDrill cases. The three crash boundaries are pre-COMMIT rollback, post-scheduled-durable persistence and post-technical-effect/pre-ACK redelivery. A later two-test negative startup safety addition must pass its own CI; this run is not Proof of Production business side effects.

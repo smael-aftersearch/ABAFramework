@@ -72,3 +72,7 @@ disabling or downgrading the category.
 
 A generated project must run this on its own explicitly authorized
 ephemeral SQL services before promising equivalent reliability.
+
+## First proven CI run
+
+[Run 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289) passed all 8 CrashDrill cases and 8/8 jobs. The SQL Server ACK-recovery case completed in 77 seconds; PostgreSQL in 79 seconds. Neither exercised Production privileges nor a context-owned real message contract.

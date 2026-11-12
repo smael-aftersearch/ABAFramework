@@ -79,3 +79,5 @@ detect a tampered or truncated historical prefix even after
 later valid records arrive. Without a real external checkpoint
 archive and separately protected signing key, this is only
 a technical primitive. Do not claim production immutability.
+
+**Signed historical checkpoints:** [source run 43322594901](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43322594901) passed both real PostgreSQL and SQL Server tests proving signature validation and historical-prefix tamper detection after new appends. The project has no automatic independent KMS/HSM or immutable archive.

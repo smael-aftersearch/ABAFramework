@@ -56,3 +56,7 @@ approval, immutable signed exports, monitoring, key revocation,
 retention and legal deletion processes remain Product/Security gates.
 
 No customer business model, endpoint or automatic publication is added.
+
+## First proven CI run
+
+[Run 43322594901](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43322594901) passed both SQL providers' signed-prefix tests and default unit negative cases. This evidence covers the signature codec and replayable historical chain verification, but not actual offsite immutable custody.

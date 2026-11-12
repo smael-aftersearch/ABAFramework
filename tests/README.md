@@ -91,3 +91,5 @@ cover separately signed historical checkpoints, wrong-key/tamper
 denial and PostgreSQL/SQL Server prefix rollback detection while
 allowing later legitimate audit writes. Real offsite immutable
 storage remains an operational responsibility.
+
+**Executed source CI:** [43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289) passed 8/8 CrashDrill cases (2 SQL engines x 3 crash windows plus negative/sentinel cases), 26/26 real-service tests, 7/7 backup/safety cases, and 99 generated API xUnit cases. Newer revisions must still pass their own run before being called verified.

@@ -244,9 +244,7 @@ class GenericTemplateTests(unittest.TestCase):
                        'ABA_ENABLE_DESTRUCTIVE_CI_DRILLS'):
             self.assertIn(phrase, code)
         for phrase in ('"preack"', 'effect-committed-before-ack',
-                       'ReceiptCountAsync', 'at least'):
-            if phrase == 'at least':
-                continue
+                       'ReceiptCountAsync'):
             self.assertIn(phrase, tests)
 
     def test_abrupt_sigkill_crash_drills_are_explicitly_gated(self):

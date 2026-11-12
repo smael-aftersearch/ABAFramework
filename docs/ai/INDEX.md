@@ -80,3 +80,5 @@ the generic template's ADR-008-kill-window-recovery.md and
 ADR-009-offline-audit-checkpoints.md. These technical decisions
 do not establish actual Production process supervision, legal
 immutability, operator key custody or consumer ACK semantics.
+
+**Latest source verification for CI-only process death:** [GitHub run 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289) passed three technical SIGKILL fault boundaries (8/8 cases) on PostgreSQL and SQL Server, plus offline audit checkpoint negative tests. Do not infer a production business Outbox ACK guarantee.

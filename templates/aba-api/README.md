@@ -187,3 +187,5 @@ handler acknowledgement. Restart must produce a second delivery
 attempt while the idempotent effect remains unique. This
 probe is CI-only and is not a Production business-handler
 guarantee; check the latest run's success before relying on it.
+
+**Verified technical crash evidence:** [CI 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289) passed all eight CI jobs, including 8 actual SIGKILL cases across both SQL providers and signed historical audit checkpoint checks. The new tests do not authorize Production process-kill, business side effects or shipping signing keys in appsettings.

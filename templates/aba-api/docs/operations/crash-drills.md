@@ -71,3 +71,7 @@ The marker is gated by CI=true, the drill opt-in and the temp
 directory restriction. The test remains outside normal xUnit.
 No real business side effect or callback can be invoked. A failure
 in this case must be investigated, not reclassified as a pass.
+
+## Actual reviewed execution
+
+[Source GitHub run 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289) passed all 8 process-kill cases (two providers, three crash boundaries, plus explicit safety and sentinel tests). The child was killed after a verified fault marker and a restarted host recovered the persisted message. In the ACK case, a second delivery attempt appeared while only one idempotent effect remained. No actual business payment, published domain event or broker was invoked.
