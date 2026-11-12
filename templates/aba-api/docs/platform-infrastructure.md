@@ -77,3 +77,7 @@ Set `Platform__Observability__Enabled=true` to enable ASP.NET Core and outgoing 
 ## EF tenant guards for new real bounded contexts
 
 In the owning context's Infrastructure project, derive its EF `DbContext` from `AbaTenantDbContext`, inject `IRequestTenant`, and mark **infrastructure row models** with `ITenantOwnedRow`. Do **not** put EF-specific concerns on pure Domain aggregates. Its query filter prevents accidental cross-tenant reads and SaveChanges guards updates/deletes. Requests without authenticated tenant context fail writes. This is a defense-in-depth convention, not database row-level security, global `ExecuteUpdate` protection, or proof of Identity membership; the owning context must enforce those separately.
+
+## Durable message scheduling across clean host restart
+
+`DurabilityRecoveryTests` schedules an actual durable technical message into a PostgreSQL or SQL Server Wolverine queue, stops the first host **before** its due time, starts a new host on the same database and requires the message to be processed. It is a real restart-and-recovery test; it is not a simulation of an ungraceful process crash at an arbitrary database commit stage.
