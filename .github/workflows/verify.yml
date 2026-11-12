@@ -22,6 +22,10 @@ jobs:
             --markdown artifacts/verification/ci.md
       - name: Prove development HTTP host starts and completes API demo
         run: bash scripts/verify-http.sh
+      - name: Validate generic starter template metadata
+        run: python3 scripts/test_starter_template.py
+      - name: Generate, build, test and start a clean generic API
+        run: bash scripts/verify-starter.sh
       - name: Upload QA evidence (including failed/incomplete runs)
         if: always()
         uses: actions/upload-artifact@v4

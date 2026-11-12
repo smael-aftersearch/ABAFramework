@@ -29,7 +29,13 @@ for path in root.rglob('*.cs'):
     if stack:
         errors.append(f'{path.relative_to(root)}: unclosed delimiters {stack[-3:]}')
 
-project_paths = {path.relative_to(root).as_posix() for path in root.rglob('*.csproj')}
+# A dotnet-new template is a separately buildable SOLUTION, not part of the repository's
+# current Academy solution. Verify template compilation independently in CI.
+project_paths = {
+    path.relative_to(root).as_posix()
+    for path in root.rglob('*.csproj')
+    if path.relative_to(root).parts[0] not in ('templates', 'artifacts')
+}
 try:
     solution = ET.parse(root / 'ABA.Net10.Phase1.slnx').getroot()
     solution_paths = {node.attrib['Path'] for node in solution.findall('Project')}

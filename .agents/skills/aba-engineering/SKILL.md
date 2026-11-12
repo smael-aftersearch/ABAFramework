@@ -25,6 +25,14 @@ For a material change, write a short internal or user-visible plan with:
 
 If ownership or requirements remain ambiguous, investigate code, metadata, ADRs, and the book. For destructive, financially sensitive, or boundary-breaking decisions, request explicit approval rather than inventing ownership. Prefer a safe, scoped change to speculative architecture.
 
+## Generic API quick-start first
+
+- For a request to create a **new project or blank API**, use `templates/aba-api`, not the Academy business sample.
+- Generate using `dotnet new install ./templates/aba-api` and `dotnet new aba-api -n <Actual.Product.Name> -o <target-folder>`; do not invent sample business domains.
+- A template change must update generated-project docs and relevant xUnit tests. Verify with `python3 scripts/test_starter_template.py` and `bash scripts/verify-starter.sh` in an SDK-capable environment. The latter must generate, build, test and launch a fresh project.
+- Academy-specific metadata checks remain relevant only when changing `samples/Academy`.
+- Do not mark OpenAPI/Scalar/JWT as complete before successful generated-project CI, and do not claim PostgreSQL/Redis/Wolverine adapters are present.
+
 ## 2. Read only relevant documents
 
 - All implementation tasks: `AGENTS.md`, `docs/ai/INDEX.md`, **`docs/testing/TEST-STRATEGY.md`**, `tests/README.md`, and affected source files and tests.

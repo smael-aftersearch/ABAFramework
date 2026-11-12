@@ -1,6 +1,6 @@
 # AI knowledge entrypoint — ABA .NET 10
 
-This is the **navigation map** for humans and coding agents. The repository provides a portable engineering skill at `.agents/skills/aba-engineering/SKILL.md` and permanent rules at `/AGENTS.md`. Read the relevant documentation for the request; do not assume an AI automatically reads every file.
+This is the **navigation map** for humans and coding agents. **For any new customer/product API, prefer the domain-neutral `templates/aba-api` starter, not the optional Academy example.** Its generated AGENTS.md and docs are scoped to the new repository. The repository provides a portable engineering skill at `.agents/skills/aba-engineering/SKILL.md` and permanent rules at `/AGENTS.md`. Read the relevant documentation for the request; do not assume an AI automatically reads every file.
 
 ## Sources of truth (use at different levels)
 

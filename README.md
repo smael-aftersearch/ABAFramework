@@ -1,3 +1,32 @@
+# ABA Framework — .NET 10 generic API quick start
+
+**Start here if you want a new, ordinary API.** The domain-neutral `aba-api` template is the primary deliverable. You do **not** need the Academy enrollment/payment example to create your product.
+
+```bash
+git clone https://github.com/smael-aftersearch/ABAFramework.git
+cd ABAFramework
+dotnet new install ./templates/aba-api
+dotnet new aba-api -n MyCompany.MyApi -o ../MyCompany.MyApi
+cd ../MyCompany.MyApi
+dotnet run --project src/MyCompany.MyApi.Api
+```
+
+Use .NET 10 SDK. In Development open `http://127.0.0.1:5174/scalar` for the **interactive API reference**, `/openapi/v1.json` for generated OpenAPI, or `/health/live` to check readiness. Run `dotnet test MyCompany.MyApi.slnx` for **real xUnit tests** included in every generated project.
+
+The generated project has no Academy or business examples. It includes a versioned HTTP route, OIDC/JWT startup guard (non-Development requires HTTPS issuer and audience), protected endpoints by default, standard Problem Details, correlation IDs, rate limiting, test cases, architecture documentation and AI agent instructions. See `templates/aba-api/README.md` and `docs/architecture.md`.
+
+**CI verification:** `bash scripts/verify-starter.sh` installs the template, generates a fresh named solution, runs restore/build/xUnit and checks the real local HTTP host. The original Academy sample remains an **optional reference only**, not the base API.
+
+## Roadmap and scope
+
+A generated starter is not a finished production platform. PostgreSQL/EF Core persistence, Redis distributed caching, Wolverine transactional Outbox/Inbox, tenant isolation and advanced deployment/observability are tracked separately in `docs/NEXT-MILESTONES.md`. Do not claim them implemented until the corresponding adapters and integration tests are passing.
+
+---
+
+## Optional legacy example: Academy (Phase 1 Developer Preview)
+
+The following section documents the old sample app and its limitations; it is **not part of projects created with `aba-api`**.
+
 # ABA .NET 10 Framework & Academy — Phase 1 (Developer Preview)
 
 A **real source-code starting point** for an ABA-aligned C#/.NET 10 modular monolith, implementing a complete **paid enrollment vertical slice** across five bounded contexts. This is a **development-only preview** with intentionally limited infrastructure, not a finished production framework.

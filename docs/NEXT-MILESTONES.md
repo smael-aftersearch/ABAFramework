@@ -1,3 +1,28 @@
+# Next implementation milestones (2026-11-12)
+
+## Main product is the generic API starter
+
+- **Now implemented / pending CI verification:** `dotnet new aba-api` template; generated OpenAPI, Scalar interactive API UI in Development, standard errors, correlation IDs, rate limits, OIDC/JWT fail-closed configuration, xUnit/WebApplicationFactory API tests, generic project instructions and AI docs.
+- **Do not add Academy example business contexts** to new generated projects. The existing Academy Phase 1 sample remains optional and separate.
+
+## Remaining platform implementation priorities
+
+1. Provide reusable EF Core 10 + PostgreSQL storage adapters with real migrations, transaction consistency, concurrency controls, health checks and Testcontainers integration tests.
+2. Provide Wolverine messaging with *real transactional* Outbox/Inbox, replay/dead letters, idempotency and failure-injection tests.
+3. Provide Redis distributed caching with key isolation, TTL/invalidation, outage fallback and isolation tests.
+4. Add OIDC/JWT integration tests with representative signed tokens, per-tenant isolation policy and negative 401/403 security cases. The starter currently validates OIDC configuration and uses JWT bearer middleware; no identity provider is bundled.
+5. Add OpenTelemetry traces/metrics/logs, deployment manifests, workload performance baselines and documented threat modeling.
+6. Add a CLI/generator for new real bounded contexts with ownership.yaml, context-map.yaml, ai-rules.yaml and public versioned contract metadata.
+7. Publish versioned framework NuGet packages and signed .NET template packages only after repeatable compatibility and CI coverage.
+
+## Release gates
+
+Never confuse a successful generated API starter or Academy smoke run with production readiness. Each implemented adapter must have focused unit tests, failure tests, integration tests and evidence. Keep this status updated to match actual files and CI results.
+
+---
+
+## Previous Phase 1 planning notes
+
 # Work remaining to reach the requested full framework
 
 The original requirement is in `docs/reference/TARGET-SPECIFICATION.md`. The phase-1 source demonstrates an initial ABA vertical slice and is intentionally incomplete.
