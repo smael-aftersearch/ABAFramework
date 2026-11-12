@@ -296,17 +296,8 @@ class GenericTemplateTests(unittest.TestCase):
         self.assertEqual(set(lock['images']), {'build', 'runtime'})
         for stage, value in lock['images'].items():
             self.assertIn(value['name'] + '@' + value['digest'] + ' AS ' + stage, docker)
-            self.assertRegex(value['digest'], r'^sha256:[0-9a-f]{64}
-        proj = (TEMPLATE / 'tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj').read_text()
-        self.assertIn('PackageReference Include="xunit"', proj)
-        self.assertIn('Microsoft.AspNetCore.Mvc.Testing', proj)
-        script = (ROOT / 'scripts/verify-starter.sh').read_text()
-        for gate in ('dotnet new aba-api', 'dotnet build', 'dotnet test', 'health/live', 'openapi/v1.json'):
-            self.assertIn(gate, script)
-
-if __name__ == '__main__':
-    unittest.main(verbosity=2)
-)
+            self.assertRegex(value['digest'], r'^sha256:[0-9a-f]{64}')
+            self.assertEqual(len(value['digest']), 71)
         self.assertTrue((TEMPLATE / 'tools/oci_base_lock.py').is_file())
         self.assertTrue((TEMPLATE / 'tools/test_oci_base_lock.py').is_file())
         root_ci = (ROOT / '.github/workflows/verify.yml').read_text()
