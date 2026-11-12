@@ -68,3 +68,7 @@ The generator supports `--with-db` to add an empty owner-specific Infrastructure
 ## Read-through cache outage behavior
 
 `ReadThroughCacheTests` checks default fail-closed on cache outage, explicit fresh authoritative-source fallback on read/write Redis timeouts, never swallowing loader exceptions, rejecting unsafe cache scopes before loading, honoring cancellation and avoiding source reads on cache hits. These deterministic fault-injection tests run with the default generated API solution; a separate live Redis shutdown/reconnect test remains a release gate.
+
+## Real concurrent callback claims
+
+`ConcurrentSameKeyClaimsHaveOneWinnerAndNoDuplicateWork` starts four concurrent isolated EF scopes with the same idempotency key on both PostgreSQL and SQL Server. Acceptance: exactly one transaction commits the receipt and its associated technical row, the other three are duplicates, and the database contains exactly one of each. This exercises actual unique constraints and transaction overlap, not a single-threaded repeat. A failure must trigger a code fix, not removal of the assertion.

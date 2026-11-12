@@ -102,3 +102,5 @@ var result = await readThroughCache.GetOrLoadAsync(
 ```
 
 This resilience behavior has positive/negative unit tests with an injected connection-timeout cache. It is **not** a substitute for a real Redis kill/recovery, distributed stampede or load test.
+
+Concurrent idempotency is exercised by four overlapping `ExecuteOnceInTransactionAsync` calls against **both** real SQL engines. Exactly one worker may commit the receipt and same-transaction work; the others must report duplicate, with no additional work persisted. This does not make external calls exactly-once or promise automatic retries on unrelated SQL deadlocks.

@@ -298,6 +298,62 @@ public sealed class AbaExternalInfrastructureTests
                 "Duplicate callback must not execute.")));
     }
 
+    [Theory]
+    [InlineData("PostgreSql", "ABA_TEST_POSTGRESQL")]
+    [InlineData("SqlServer", "ABA_TEST_SQLSERVER")]
+    public async Task ConcurrentSameKeyClaimsHaveOneWinnerAndNoDuplicateWork(
+        string provider, string variable)
+    {
+        var connection = Environment.GetEnvironmentVariable(variable);
+        Assert.False(string.IsNullOrWhiteSpace(connection),
+            $"Missing integration connection: {variable}");
+        var config = new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?>
+            {
+                ["Platform:Database:Provider"] = provider,
+                ["ConnectionStrings:AbaDatabase"] = connection
+            }).Build();
+        var services = new ServiceCollection().AddLogging();
+        services.AddAbaPersistence(AbaDatabaseOptions.FromConfiguration(config));
+        await using var providerServices = services.BuildServiceProvider();
+        await using (var bootstrap = providerServices.CreateAsyncScope())
+        {
+            var bootstrapDb = bootstrap.ServiceProvider.GetRequiredService<AbaPlatformDbContext>();
+            await bootstrapDb.Database.MigrateAsync();
+        }
+        var unique = Guid.NewGuid().ToString("N");
+        var start = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var tasks = Enumerable.Range(0, 4).Select(async _ =>
+        {
+            await using var scope = providerServices.CreateAsyncScope();
+            var store = scope.ServiceProvider.GetRequiredService<EfIdempotencyStore>();
+            await start.Task;
+            return await store.ExecuteOnceInTransactionAsync("concurrent", unique,
+                (db, ct) =>
+                {
+                    db.IdempotencyReceipts.Add(new IdempotencyReceipt
+                    {
+                        Scope = "concurrent-work",
+                        Key = unique,
+                        CreatedUtc = DateTimeOffset.UtcNow
+                    });
+                    return Task.CompletedTask;
+                });
+        }).ToArray();
+
+        start.SetResult(true);
+        var outcomes = await Task.WhenAll(tasks);
+        Assert.Equal(1, outcomes.Count(success => success));
+        Assert.Equal(3, outcomes.Count(success => !success));
+        await using var verification = providerServices.CreateAsyncScope();
+        var dbVerify = verification.ServiceProvider.GetRequiredService<AbaPlatformDbContext>();
+        Assert.Equal(1, await dbVerify.IdempotencyReceipts.CountAsync(x =>
+            x.Scope == "concurrent" && x.Key == unique));
+        Assert.Equal(1, await dbVerify.IdempotencyReceipts.CountAsync(x =>
+            x.Scope == "concurrent-work" && x.Key == unique));
+    }
+
     [Fact]
     public async Task RealRedisProvidesScopedRoundTripAndInvalidation()
     {
