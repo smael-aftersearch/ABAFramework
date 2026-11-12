@@ -142,7 +142,7 @@ def redact_output(content: str) -> str:
     # Also mask common password segments when diagnostics render only fragments.
     import re
     content = re.sub(
-        r"(?i)(password|pwd)\\s*=\\s*[^;\\s]+",
+        r"(?i)(password|pwd)\s*=\s*[^;\s]+",
         lambda match: match.group(1) + "=[REDACTED]",
         content,
     )
