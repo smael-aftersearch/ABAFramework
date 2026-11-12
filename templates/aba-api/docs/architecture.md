@@ -35,3 +35,7 @@ Set `Platform:Tenancy:Enabled=true` to require a trusted tenant claim on every a
 ## Signed JWT validation tests
 
 The default xUnit suite injects a disposable test-only key into the actual ASP.NET Core bearer middleware and exercises signature, issuer, audience and lifetime checks. These tests do **not** connect to a real Keycloak/Entra/Okta OIDC provider or certify token key rotation, per-tenant membership or permission claims. Read `docs/decisions/ADR-002-verified-token-test-boundary.md`.
+
+## Container build and runtime boundary
+
+`Dockerfile` is multi-stage (.NET 10 SDK build and ASP.NET runtime) and uses the non-root `APP_UID`. `compose.yaml` provides an ergonomic **loopback-only Development** API, not a public deployment. The root repository's `scripts/verify-container-starter.sh` generates a fresh named API, builds the OCI image, confirms Production rejects missing OIDC configuration, verifies a non-root process and tests Health, OpenAPI and Scalar through the actual container. A production release must still configure trusted HTTPS OIDC, TLS termination, secrets, service accounts, firewall, migrations, resource limits and an appropriately secured deployment target.

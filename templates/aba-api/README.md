@@ -9,6 +9,10 @@ A reusable .NET 10 starting point. **No example business domain is included.**
 
 ## Start locally
 
+With Docker installed, the quickest launch is `docker compose up --build` in the generated project directory. The API and Scalar UI are bound to **localhost:5174 only**; no database or Redis is required unless explicitly enabled. The generated multi-stage Dockerfile uses the non-root .NET runtime user. The image is designed for trusted configurable deployments, but does **not** turn Development mode into a secure publicly exposed server.
+
+You can also run the .NET SDK directly:
+
 ```bash
 dotnet restore Aba.Starter.slnx
 dotnet run --project src/Aba.Starter.Api

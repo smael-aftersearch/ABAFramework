@@ -1,0 +1,13 @@
+# One-command local demo: docker compose up --build
+# HTTP is bound ONLY to localhost. Not a production deployment specification.
+services:
+  api:
+    build: .
+    ports:
+      - "127.0.0.1:5174:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true

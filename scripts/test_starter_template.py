@@ -80,6 +80,16 @@ class GenericTemplateTests(unittest.TestCase):
         self.assertIn('MapHealthChecks', host)
         self.assertIn('AddRateLimiter', host)
 
+    def test_generated_container_is_nonroot_and_loopback(self):
+        dockerfile = (TEMPLATE / 'Dockerfile').read_text()
+        compose = (TEMPLATE / 'compose.yaml').read_text()
+        self.assertIn('USER $APP_UID', dockerfile)
+        self.assertIn('mcr.microsoft.com/dotnet/aspnet:10.0', dockerfile)
+        self.assertIn('127.0.0.1:5174:8080', compose)
+        self.assertIn('no-new-privileges:true', compose)
+        self.assertIn('Non-development API requires', 
+                      (TEMPLATE / 'src/Aba.Starter.Api/Platform/StartupSecurityGuard.cs').read_text())
+
     def test_xunit_and_companion_script_exist(self):
         proj = (TEMPLATE / 'tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj').read_text()
         self.assertIn('PackageReference Include="xunit"', proj)
