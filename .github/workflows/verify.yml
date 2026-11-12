@@ -206,9 +206,6 @@ jobs:
     timeout-minutes: 25
     permissions:
       contents: read
-      id-token: write
-      attestations: write
-      artifact-metadata: write
     steps:
       - uses: actions/checkout@v4
       - name: Fail closed on an unreviewed SDK/runtime OCI base
@@ -251,32 +248,6 @@ jobs:
           restored="$(docker image inspect --format '{{.Id}}' aba-ci-security:local)"
           test "$original" = "$restored"
           echo "PASS: scanned image recovered from the exact archive that will be signed"
-      - name: Sign scanned image ARCHIVE provenance with keyless CI identity
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
-        with:
-          subject-path: artifacts/container/aba-runtime-image.tar.gz
-      - name: Verify image archive signature and reject tampered bytes
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          image='artifacts/container/aba-runtime-image.tar.gz'
-          gh attestation verify "$image" --repo "$GITHUB_REPOSITORY" \
-            --source-ref refs/heads/main --source-digest "$GITHUB_SHA" \
-            --format json > artifacts/container/verified-oci-archive-attestation.json
-          test -s artifacts/container/verified-oci-archive-attestation.json
-          mkdir -p artifacts/container/tampered
-          cp --reflink=auto "$image" artifacts/container/tampered/aba-runtime-image.tar.gz
-          printf 'altered-after-scan' >> artifacts/container/tampered/aba-runtime-image.tar.gz
-          if gh attestation verify artifacts/container/tampered/aba-runtime-image.tar.gz \
-            --repo "$GITHUB_REPOSITORY" --source-digest "$GITHUB_SHA"; then
-            echo 'FAIL: mutated OCI image archive passed source-attestation verification' >&2
-            exit 1
-          fi
-          rm -rf artifacts/container/tampered
-          echo 'PASS: exact OCI image archive signed and modified archive rejected'
       - name: Retain real image vulnerability evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -297,7 +268,7 @@ jobs:
       - supply-chain
       - container-security
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     permissions:
       contents: read
       id-token: write
@@ -338,6 +309,46 @@ jobs:
           fi
           rm -rf artifacts/provenance/tamper-test
           echo "PASS: signed build provenance verified and tampered payload denied"
+      - name: Download scanned Docker archive after all eight prerequisite jobs passed
+        uses: actions/download-artifact@v4
+        with:
+          name: aba-runtime-image-security
+          path: artifacts/oci-provenance
+      - name: Verify scanned Docker archive digest and recovered runtime identity
+        run: |
+          set -euo pipefail
+          cd artifacts/oci-provenance
+          sha256sum --check image-archive-sha256.txt
+          original="$(cat built-image-id.txt)"
+          test -s aba-runtime-image.tar.gz
+          docker load -i aba-runtime-image.tar.gz
+          restored="$(docker image inspect --format '{{.Id}}' aba-ci-security:local)"
+          test "$original" = "$restored"
+          echo "PASS: Docker archive matches the previously scanned image"
+      - name: Attest OCI archive after every upstream gate succeeded
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-path: artifacts/oci-provenance/aba-runtime-image.tar.gz
+      - name: Verify gated OCI archive attestation and reject tampering
+        env:
+          GH_TOKEN: \${{ github.token }}
+        run: |
+          set -euo pipefail
+          image='artifacts/oci-provenance/aba-runtime-image.tar.gz'
+          gh attestation verify "$image" --repo "$GITHUB_REPOSITORY" \
+            --source-ref refs/heads/main --source-digest "$GITHUB_SHA" \
+            --format json > artifacts/provenance/verified-oci-archive-attestation.json
+          test -s artifacts/provenance/verified-oci-archive-attestation.json
+          mkdir -p artifacts/provenance/tampered
+          cp --reflink=auto "$image" artifacts/provenance/tampered/aba-runtime-image.tar.gz
+          printf 'altered-after-scan' >> artifacts/provenance/tampered/aba-runtime-image.tar.gz
+          if gh attestation verify artifacts/provenance/tampered/aba-runtime-image.tar.gz \
+            --repo "$GITHUB_REPOSITORY" --source-digest "$GITHUB_SHA"; then
+            echo 'FAIL: mutated OCI image archive passed source-attestation verification' >&2
+            exit 1
+          fi
+          rm -rf artifacts/provenance/tampered
+          echo 'PASS: exact OCI image archive signed and modified archive rejected'
       - name: Preserve signed release integrity verification evidence
         if: always()
         uses: actions/upload-artifact@v4
