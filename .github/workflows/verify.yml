@@ -26,6 +26,10 @@ jobs:
             --markdown artifacts/verification/ci.md
       - name: Prove development HTTP host starts and completes API demo
         run: bash scripts/verify-http.sh
+      - name: Reject OCI base-image drift and negative policy fixtures
+        run: |
+          python3 templates/aba-api/tools/test_oci_base_lock.py
+          python3 templates/aba-api/tools/oci_base_lock.py --root templates/aba-api
       - name: Validate generic starter template metadata
         run: python3 scripts/test_starter_template.py
       - name: Generate, build, test and start a clean generic API
@@ -207,6 +211,8 @@ jobs:
       artifact-metadata: write
     steps:
       - uses: actions/checkout@v4
+      - name: Fail closed on an unreviewed SDK/runtime OCI base
+        run: python3 templates/aba-api/tools/oci_base_lock.py --root templates/aba-api
       - name: Resolve trusted upstream base image index digests for reviewed pinning
         run: |
           mkdir -p artifacts/container

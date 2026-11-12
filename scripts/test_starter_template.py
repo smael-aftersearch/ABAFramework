@@ -290,6 +290,31 @@ class GenericTemplateTests(unittest.TestCase):
                        "PASS: exact OCI image archive signed and modified archive rejected"):
             self.assertIn(phrase, workflow)
 
+    def test_immutable_mcr_base_manifest_lock_is_enforced_everywhere(self):
+        docker = (TEMPLATE / 'Dockerfile').read_text()
+        lock = json.loads((TEMPLATE / 'oci-base-lock.json').read_text())
+        self.assertEqual(set(lock['images']), {'build', 'runtime'})
+        for stage, value in lock['images'].items():
+            self.assertIn(value['name'] + '@' + value['digest'] + ' AS ' + stage, docker)
+            self.assertRegex(value['digest'], r'^sha256:[0-9a-f]{64}
+        proj = (TEMPLATE / 'tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj').read_text()
+        self.assertIn('PackageReference Include="xunit"', proj)
+        self.assertIn('Microsoft.AspNetCore.Mvc.Testing', proj)
+        script = (ROOT / 'scripts/verify-starter.sh').read_text()
+        for gate in ('dotnet new aba-api', 'dotnet build', 'dotnet test', 'health/live', 'openapi/v1.json'):
+            self.assertIn(gate, script)
+
+if __name__ == '__main__':
+    unittest.main(verbosity=2)
+)
+        self.assertTrue((TEMPLATE / 'tools/oci_base_lock.py').is_file())
+        self.assertTrue((TEMPLATE / 'tools/test_oci_base_lock.py').is_file())
+        root_ci = (ROOT / '.github/workflows/verify.yml').read_text()
+        generated_ci = (TEMPLATE / '.github/workflows/ci.yml').read_text()
+        for source in (root_ci, generated_ci):
+            self.assertIn('test_oci_base_lock.py', source)
+            self.assertIn('oci_base_lock.py --root', source)
+
     def test_xunit_and_companion_script_exist(self):
         proj = (TEMPLATE / 'tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj').read_text()
         self.assertIn('PackageReference Include="xunit"', proj)
