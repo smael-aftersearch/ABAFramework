@@ -25,6 +25,7 @@ public static class AbaWolverineServices
             throw new InvalidOperationException(
                 "Durable Wolverine messaging requires PostgreSql or SqlServer under Platform:Database.");
 
+        builder.Services.AddAbaDeadLetterAdministration(builder.Configuration, database.Enabled);
         builder.Host.UseWolverine(options =>
         {
             // Wolverine 6 moved its Roslyn compiler to an explicit opt-in package.

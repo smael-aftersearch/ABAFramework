@@ -49,3 +49,27 @@ public static class AbaTransactionalOutboxProbeHandler
             throw new InvalidOperationException("Injected pre-commit fault for outbox atomicity test.");
     }
 }
+
+
+/// <summary>
+/// Test-only technical poison probe. A message is retried/dead-lettered until
+/// an EF receipt indicates the environment was fixed; never used by products.
+/// </summary>
+public sealed record AbaPoisonProbe(Guid Id);
+
+public static class AbaPoisonProbeHandler
+{
+    public static void Handle(AbaPoisonProbe message, AbaPlatformDbContext db)
+    {
+        var key = message.Id.ToString("N");
+        if (!db.IdempotencyReceipts.Any(x => x.Scope == "aba-poison-fixed" && x.Key == key))
+            throw new InvalidOperationException("Synthetic poison probe: dependency is still unhealthy.");
+
+        db.IdempotencyReceipts.Add(new IdempotencyReceipt
+        {
+            Scope = "aba-poison-handled",
+            Key = key,
+            CreatedUtc = DateTimeOffset.UtcNow
+        });
+    }
+}
