@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "baseline": {
-    "ci_run": 43322594901,
-    "commit": "dc651b465613c0579a511c0a0bde02820bd2831c",
-    "note": "Eight-job successful generic .NET 10 CI with independently signed audit checkpoint unit and real PostgreSQL/SQL Server historical-prefix tests; existing HMAC/DLQ, OIDC, NuGet SPDX/audit, runtime OCI Trivy and signed package provenance. Later SIGKILL crash-drill additions are authored but awaiting their own CI result."
+    "ci_run": 43323597289,
+    "commit": "dd77a1c1b0f23c168d3353bcfc0112a186d11364",
+    "note": "Eight-job green technical framework CI: 99 API xUnit, 26 live SQL/Redis/Wolverine tests, 7 native backup/restore and safety drills, 8 real SIGKILL fault drills on both PostgreSQL and SQL Server including pre-ACK redelivery with one idempotent effect, signed offline HMAC checkpoint verification, NuGet/SPDX, Trivy OCI security, Keycloak OIDC, non-root container and signed package provenance. Later changes must pass their own CI."
   },
   "features": [
     {
@@ -495,8 +495,8 @@
       "status": "partial",
       "owner": "Platform / Operations",
       "priority": "P0",
-      "delivered": "CI-gated real child-process SIGKILL harness for PostgreSQL/SQL Server; flushed-but-uncommitted SQL rollback and persisted Wolverine scheduled-message recovery tests authored, latest execution pending",
-      "remaining": "Verify both SIGKILL windows in green CI, kill at business Outbox COMMIT/publish/consumer ACK boundaries, prove controlled duplicate delivery, broker disruption and external idempotency",
+      "delivered": "CI-verified real SIGKILL on both PostgreSQL and SQL Server: uncommitted SQL rollback, durable Wolverine schedule recovery and genuine pre-ACK redelivery after one separately committed idempotent technical effect (8/8 CrashDrill cases)",
+      "remaining": "Owner-specific transactional business Outbox COMMIT/publish/consumer ACK fault tests, external provider side-effect deduplication, broker partitions, multi-node fencing and Production recovery approvals",
       "acceptance": "No message loss across abrupt process death and controlled duplicate deliveries",
       "evidence": [
         "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbruptCrashWindowTests.cs",

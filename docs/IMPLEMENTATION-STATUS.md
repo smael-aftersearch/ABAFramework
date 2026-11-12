@@ -11,8 +11,8 @@ do not count as generic framework features.
 The **generic .NET 10 API template** is the primary product. This matrix is separate from the
 historical Academy Phase 1 demo below. A feature can be implemented technically while
 its **production release gates remain open**. Evidence refers to the last reviewed baseline:
-[CI run 43322594901](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43322594901)
-(commit `dc651b465613`). New commits must pass their own CI before being treated as verified.
+[CI run 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289)
+(commit `dd77a1c1b0f2`). New commits must pass their own CI before being treated as verified.
 
 **Tracked: 54** · Implemented: 31 · Partial: 9 · Not implemented: 14.
 
@@ -46,7 +46,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | Messaging | EF Core/Wolverine technical transactional Outbox | **Implemented** | Technical state+outgoing message atomic under precommit fault | Real business consumers and crash windows remain open | P0 |
 | Messaging | Durable scheduled message across clean restart | **Implemented** | Persisted scheduled Wolverine message recovers after host restart | Abrupt crash and poison replay remain unverified | P1 |
 | Messaging | Poison/dead-letter inspection and replay | **Partial** | CI-verified opt-in Wolverine poison quarantine, metadata-only inspection and exact-ID audit-before-replay with permission/type/mismatch denial; 2 real SQL providers exercised | Issue real signed operator IdP permission, tenant-scoped message store authorization, replay dedup/business compensation, volume limits and approved production runbook | P0 |
-| Messaging | Crash-kill Outbox recovery and duplicate delivery | **Partial** | CI-gated real child-process SIGKILL harness for PostgreSQL/SQL Server; flushed-but-uncommitted SQL rollback and persisted Wolverine scheduled-message recovery tests authored, latest execution pending | Verify both SIGKILL windows in green CI, kill at business Outbox COMMIT/publish/consumer ACK boundaries, prove controlled duplicate delivery, broker disruption and external idempotency | P0 |
+| Messaging | Crash-kill Outbox recovery and duplicate delivery | **Partial** | CI-verified real SIGKILL on both PostgreSQL and SQL Server: uncommitted SQL rollback, durable Wolverine schedule recovery and genuine pre-ACK redelivery after one separately committed idempotent technical effect (8/8 CrashDrill cases) | Owner-specific transactional business Outbox COMMIT/publish/consumer ACK fault tests, external provider side-effect deduplication, broker partitions, multi-node fencing and Production recovery approvals | P0 |
 | Messaging | Optional external RabbitMQ/Kafka transport | **Not implemented** | Not implemented | Add a versioned optional broker adapter when actual demand exists | P1 |
 | Messaging | Real context-owned events and consumers | **Not implemented** | Not implemented | Implement owner-approved domain contracts, Inbox and cross-context handlers | P0 |
 | Caching | Redis distributed cache with TTL and scopes | **Implemented** | StackExchangeRedis adapter with scoped JSON TTL/invalidation | Distributed invalidation and PII audit remain open | P1 |
@@ -83,7 +83,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | `db-business-migrations` | Implement real owner-specific models and migrations after requirements — Both SQL engines perform context migration without shared business tables | Not implemented |
 | `db-backup-restore` | Prove business-schema and point-in-time recovery, migration rollback, offsite encrypted backups, RTO/RPO and operator restore rehearsal — Recover both SQL engines and confirm data integrity after test failure | Partial |
 | `msg-poison-replay` | Issue real signed operator IdP permission, tenant-scoped message store authorization, replay dedup/business compensation, volume limits and approved production runbook — Poison message is quarantined, inspected and safely replayed exactly as intended | Partial |
-| `msg-crash-window` | Verify both SIGKILL windows in green CI, kill at business Outbox COMMIT/publish/consumer ACK boundaries, prove controlled duplicate delivery, broker disruption and external idempotency — No message loss across abrupt process death and controlled duplicate deliveries | Partial |
+| `msg-crash-window` | Owner-specific transactional business Outbox COMMIT/publish/consumer ACK fault tests, external provider side-effect deduplication, broker partitions, multi-node fencing and Production recovery approvals — No message loss across abrupt process death and controlled duplicate deliveries | Partial |
 | `msg-domain-consumers` | Implement owner-approved domain contracts, Inbox and cross-context handlers — Consumer cannot mutate another context's tables; duplicate events are safe | Not implemented |
 | `ops-audit` | Deploy independently immutable off-DB checkpoint archive, real signing key custody/rotation and context-owned actor/event/retention rules; audit appender role restrictions and legal policies — Audit cannot be silently rewritten and records actor, action, tenant, outcome | Partial |
 | `ops-prod-secrets` | Add approved secret store, rotation and least-privilege deployment setup — No plaintext production secret in repo/container/CI logs | Not implemented |
