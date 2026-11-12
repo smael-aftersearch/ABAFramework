@@ -30,3 +30,23 @@ credentials, encrypted isolated staging and human change control. See
 [generated-project recovery guide](../templates/aba-api/docs/disaster-recovery.md).
 
 **CI verification:** [run 43313417455](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43313417455) confirms both disposable database recovery drills and independent NuGet scans; no real production restore, image trust or release attestation was certified.
+
+## Generic template: database-level tenant protection
+
+Opt-in provider RLS and trusted transaction-bound tenant propagation are
+now implemented as technical Platform components. A policy with verified
+DB row predicates can block cross-tenant raw SQL and EF bulk writes even
+when EF query filters are ignored. **This does not implement user-to-tenant
+membership, prevent SQL that maliciously changes session context or
+authorize migrations on business tables.** Production requires limited
+DB roles and owning-context identity policies. See
+[ADR-005](../templates/aba-api/docs/decisions/ADR-005-tenant-row-security.md).
+
+## Container and release provenance
+
+Repository CI now defines a commit-pinned fixable-CRITICAL Trivy runtime
+image check and a main-only GitHub/Sigstore provenance attestation for
+the previously tested NuGet package with a modified-artifact rejection
+test. Publication identity, base-image digest pins and Production
+deployment/secret rotation are not delivered. See
+[release-integrity.md](release-integrity.md) and the latest execution run.

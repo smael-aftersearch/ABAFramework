@@ -74,6 +74,26 @@ These operations are excluded from regular xUnit runs and require
 See [the disaster-recovery runbook](docs/disaster-recovery.md) for limitations,
 run commands and the independent production operations checklist.
 
+## PostgreSQL / SQL Server Row-Level Security
+
+The Platform includes migration-time `AbaTenantRlsPolicies.Install` DDL
+and a `AbaTenantSqlScope.RunAsync` transaction wrapper. In real SQL tests
+the installed policies protect direct SQL and EF bulk mutations, not just
+tracked EF entities. No default business table or RLS migration is
+auto-installed. An authorized membership claim, reviewed migrations and
+least-privilege production roles are still required. See
+[ADR-005](docs/decisions/ADR-005-tenant-row-security.md) and
+[platform infrastructure](docs/platform-infrastructure.md).
+
+## Generated CI runtime security
+
+The included `.github/workflows/ci.yml` now builds and scans the real
+runtime Docker image using commit-pinned Trivy. Fixable CRITICAL findings
+fail its job and JSON evidence is retained. A generated product does not
+inherit the source repository's NuGet template artifact signer or
+publication permissions. Independent product release identity and
+base image digest pinning remain separate tasks.
+
 ## Security
 
 All endpoints are authenticated by default (fallback authorization policy). `/health/live` and Development-only documentation are anonymous; the system status endpoint is also anonymous **only in Development**. In other environments, the host **refuses to start without a trusted HTTPS OIDC Authority and Audience**. It has no bundled signing key. Never treat Development mode as public-hosting configuration.

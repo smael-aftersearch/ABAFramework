@@ -120,3 +120,30 @@ Only tests explicitly marked `Category=RecoveryDrill` perform these actions
 and require a strict CI-only opt-in. Ordinary tests never drop databases.
 Read `docs/disaster-recovery.md` for acceptance cases, protected execution,
 retention limits and a **separate** production operational checklist.
+
+## Provider Row-Level Security (context-opt-in; not automatic)
+
+`AbaTenantRlsPolicies.Install(provider, schema, table)` yields migration
+SQL, not a runtime start-up operation. PostgreSQL uses ENABLE + FORCE RLS
+and both USING/WITH CHECK against `aba.tenant_id`; SQL Server uses a
+schema-bound function and FILTER plus AFTER INSERT/UPDATE BLOCK predicates
+against `SESSION_CONTEXT(N'aba_tenant_id')`. No tenant business table is
+created by Platform.
+
+`AbaTenantSqlScope.RunAsync` starts a transaction on a previously closed
+connection, binds the **authenticated** `IRequestTenant` with a SQL
+parameter, executes the supplied raw SQL/EF bulk delegate in that
+transaction, then clears the SQL Server session tenant before pooling.
+PostgreSQL uses transaction-local `set_config(..., true)`.
+The current isolated integration suite tests absence of a tenant, malicious
+cross-tenant raw SQL and EF ExecuteUpdate/ExecuteDelete, and forged writes
+against both live SQL engines.
+
+An application MUST validate tenant membership before creating the scope,
+use a role without DDL/policy privileges, protect against SQL injection
+(including commands capable of changing session context), and install
+policies in separately approved owner migrations. PostgreSQL superusers
+bypass RLS. The SQL Server CI fixture uses a disposable admin login:
+it is not least-privilege production proof. See
+[ADR-005](decisions/ADR-005-tenant-row-security.md) for rollback policy
+and trust boundaries.

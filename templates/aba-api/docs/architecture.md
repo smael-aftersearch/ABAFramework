@@ -74,3 +74,15 @@ negative safety guard, but does not replace owner-specific production DB
 restore tests or an approved DBA runbook. The NuGet supply-chain gate also
 separately audits the optional real-infrastructure test project's packages;
 signed release provenance and OCI image scans remain open.
+
+## Database tenant enforcement / release trust boundary
+
+The Platform owns only provider-specific tenant policy SQL and trusted
+transaction binding, never Identity membership or a context's own tables.
+PostgreSQL FORCE RLS and SQL Server filter/block policy syntax are tested
+with actual provider engines against raw and EF bulk mutations. Separate
+business migrations and least-privilege runtime access remain required.
+The generated CI adds a Trivy runtime image security gate; release
+signing of the template package is handled by the upstream repository,
+not automatically by each new product. Read
+[ADR-005](decisions/ADR-005-tenant-row-security.md).

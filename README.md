@@ -49,6 +49,28 @@ OCI image scanning/pinning and signed provenance remain open P0 release tasks.
 The maintained capability matrix below distinguishes these partial steps from
 production readiness.
 
+## Database-enforced tenant isolation and raw SQL protection
+
+The generic Platform now contains **opt-in PostgreSQL and SQL Server RLS
+policy builders** and a trusted `AbaTenantSqlScope.RunAsync` transaction
+boundary. The new real-provider tests check cross-tenant raw SQL, forged
+inserts and EF `ExecuteUpdate`/`ExecuteDelete` that bypass the ordinary
+EF query filter. Business owners still need to configure actual membership
+permissions, schema migrations, separate low-privilege runtime DB roles and
+SQL injection prevention. See the
+[RLS design decision](templates/aba-api/docs/decisions/ADR-005-tenant-row-security.md).
+
+## Container vulnerability and signed package provenance gates
+
+A commit-pinned Trivy scanner now inspects the built runtime image and
+rejects fixable CRITICAL advisories. The root main-branch CI also requires
+the NuGet template package to pass signed Sigstore/SLSA build-provenance
+verification, including a negative tamper check, **after** all other
+verification jobs succeed. The generated project's CI includes its own
+OCI scan. See [release integrity](docs/release-integrity.md) for what is
+enforced and what remains unverified (including base-image digest pinning,
+publication/signing of OCI images and Production secrets).
+
 ## Installable template package
 
 CI also builds and tests a versioned `ABAFramework.GenericApi.Template.*.nupkg` NuGet template artifact. After downloading it from the successful [GitHub Actions](https://github.com/smael-aftersearch/ABAFramework/actions) run, install with `dotnet new install ./ABAFramework.GenericApi.Template.0.3.0-preview.2.nupkg`, then `dotnet new aba-api -n YourCompany.Api`. This is an artifact attached to CI, **not yet a NuGet.org publication**. Pack locally with `bash scripts/pack-template.sh`.

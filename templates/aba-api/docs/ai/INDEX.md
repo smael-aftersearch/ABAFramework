@@ -14,3 +14,9 @@ Read these sources progressively before changing behavior:
 Before committing code, run `python3 tools/new_context.py check`, `dotnet build -c Release` and `dotnet test -c Release`. For changes to PostgreSQL, SQL Server, Wolverine or Redis, run the separate fail-closed integration tests against real services; for deployment changes, validate the generated Docker image and NuGet package. Report PASS/FAIL/NOT_RUN with exact evidence.
 
 This template is intentionally **domain-neutral**; no Academy or Enrollment behavior is present. The AI instructions guide work but cannot substitute for independent tests or verified ownership.
+
+For RLS/raw-SQL or release-related work also read
+`docs/decisions/ADR-005-tenant-row-security.md` and
+`docs/platform-infrastructure.md`, plus the actual generated
+`.github/workflows/ci.yml` image vulnerability job. The upstream
+template artifact attestation does not automatically sign new products.
