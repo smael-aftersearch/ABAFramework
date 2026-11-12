@@ -1,5 +1,7 @@
 using System.Threading.RateLimiting;
 using Aba.Starter.Api.Platform;
+using Aba.Starter.Platform;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
@@ -14,6 +16,8 @@ StartupSecurityGuard.Validate(builder.Environment.IsDevelopment(), authority, au
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
+// Data, cache and Wolverine are opt-in; a blank project never needs an external service.
+builder.AddAbaPlatform();
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -63,6 +67,10 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapHealthChecks("/health/live").AllowAnonymous().WithTags("Health");
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = registration => registration.Tags.Contains("ready")
+}).AllowAnonymous().WithTags("Health");
 var statusRoute = app.MapGet("/api/v1/system/status", (IHostEnvironment env) =>
     Results.Ok(new SystemStatusV1("Aba.Starter", "v1", env.EnvironmentName)))
     .WithName("GetSystemStatus")

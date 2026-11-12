@@ -20,7 +20,7 @@ class GenericTemplateTests(unittest.TestCase):
         declared = {p.attrib['Path'] for p in slnx.findall('Project')}
         actual = {p.relative_to(TEMPLATE).as_posix() for p in TEMPLATE.rglob('*.csproj')}
         self.assertEqual(declared, actual)
-        self.assertEqual(len(actual), 2)
+        self.assertEqual(len(actual), 3)
         for project in TEMPLATE.rglob('*.csproj'):
             ET.parse(project)
 
@@ -32,6 +32,17 @@ class GenericTemplateTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertTrue((TEMPLATE / path).is_file())
         self.assertEqual(json.loads((TEMPLATE / 'metadata/contexts.json').read_text())['contexts'], [])
+
+    def test_platform_providers_messaging_and_redis_are_real_packages(self):
+        package = (TEMPLATE / 'src/Aba.Starter.Platform/Aba.Starter.Platform.csproj').read_text()
+        for name in ('Microsoft.EntityFrameworkCore.SqlServer',
+                     'Npgsql.EntityFrameworkCore.PostgreSQL',
+                     'Microsoft.Extensions.Caching.StackExchangeRedis',
+                     'WolverineFx.EntityFrameworkCore', 'WolverineFx.Postgresql',
+                     'WolverineFx.SqlServer'):
+            self.assertIn(name, package)
+        program = (TEMPLATE / 'src/Aba.Starter.Api/Program.cs').read_text()
+        self.assertIn('builder.AddAbaPlatform()', program)
 
     def test_ai_skill_has_trigger_metadata(self):
         skill = (TEMPLATE / '.agents/skills/aba-engineering/SKILL.md').read_text()
