@@ -68,3 +68,9 @@ AuditLedgerIntegrationTests.cs and DeadLetterOperatorIntegrationTests.cs
 on PostgreSQL and SQL Server, with real durable poison quarantine,
 authorized single-envelope recovery and tamper-evident audit checks.
 No public DLQ endpoint or customer message transport is created.
+
+**Executed validation:** [CI 43320400760](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43320400760)
+passed 96 generated API xUnit, 24 real SQL/Redis/Wolverine integration,
+7 recovery/safety cases and signed/verified template package provenance.
+Real business poison replay and external checkpoint durability are
+not part of this technical test fixture.

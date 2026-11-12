@@ -137,3 +137,10 @@ pending tenant-specific store authorization. Replay does not guarantee
 a business outcome or prevent duplicate external side effects.
 The synthetic poison-message SQL integration test is being verified
 in GitHub Actions. See the template runbook and ADRs 006/007.
+
+**Verification update:** [CI 43320400760](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43320400760)
+passed 8/8 jobs, including 96 API xUnit cases, 24 actual SQL/Redis/Wolverine
+integration cases (with HMAC audit and technical dead-letter replay on
+both SQL engines), plus 7 native recovery tests. An owner-approved
+operator IdP, immutable audit checkpoints, retention and business replay
+policies remain open P0 gates.

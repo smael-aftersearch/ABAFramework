@@ -4,6 +4,13 @@
 Security/Operations change request.** These opt-in services have no HTTP
 management endpoint and are disabled in a clean generated API.
 
+**Verified technical scope:** [source GitHub Actions run 43320400760](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43320400760)
+proved on both SQL engines that poisoned technical Wolverine messages
+are quarantined, inspected with permission checks, then replayed
+successfully only after a synthetic dependency repair. HMAC audit-chain
+integrity was independently verified. This does not approve Production
+operator identities or tenant-specific message stores.
+
 ## Signing configuration
 
 A relational provider must be enabled and its technical migrations

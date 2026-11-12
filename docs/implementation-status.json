@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "baseline": {
-    "ci_run": 43317295032,
-    "commit": "bffe4efc341a9c34a2472b686c81e5033aa8f2e8",
-    "note": "Eight-job green CI with 81 default API xUnit tests, 18 real PostgreSQL/SQL Server/Redis/Wolverine integration tests including provider RLS/raw SQL/EF bulk, 7 native recovery+safety tests, both NuGet advisory/SPDX inventories, Keycloak, non-root image, fixable-CRITICAL Trivy image scan and signed/verified SLSA NuGet template provenance with tamper rejection."
+    "ci_run": 43320400760,
+    "commit": "976c21325b85190ef29c8d239b05cc50f39557be",
+    "note": "Eight-job green .NET 10 generic starter CI: 96 default API xUnit, 24 real PostgreSQL/SQL Server/Redis/Wolverine integration cases including HMAC audit concurrency/tamper/rotation and two audited poison quarantine/replay cases, 7 native recovery/safety cases; NuGet audits/SPDX, Keycloak, non-root Docker, Trivy runtime vulnerability gate and signed/verified SLSA NuGet provenance."
   },
   "features": [
     {
@@ -475,8 +475,8 @@
       "status": "partial",
       "owner": "Platform / Operations",
       "priority": "P0",
-      "delivered": "Opt-in audited, role-claim-gated Wolverine dead-letter metadata inspection and exact-ID replay request with positive/negative real-service tests authored; final replay CI still pending",
-      "remaining": "Verify actual poison recovery on both SQL engines, adopt signed operator IdP, tenant-scoped stores, consumer idempotency and safe retry/rate/retention policy",
+      "delivered": "CI-verified opt-in Wolverine poison quarantine, metadata-only inspection and exact-ID audit-before-replay with permission/type/mismatch denial; 2 real SQL providers exercised",
+      "remaining": "Issue real signed operator IdP permission, tenant-scoped message store authorization, replay dedup/business compensation, volume limits and approved production runbook",
       "acceptance": "Poison message is quarantined, inspected and safely replayed exactly as intended",
       "evidence": [
         "templates/aba-api/src/Aba.Starter.Platform/Messaging/AbaDeadLetterAdministration.cs",
@@ -625,8 +625,8 @@
       "status": "partial",
       "owner": "Security / business owners",
       "priority": "P0",
-      "delivered": "Opt-in per-tenant HMAC-SHA256 audit chain, externally injected versioned keys, serializable append, integrity/rotation/checkpoint checks and PostgreSQL/SQL Server live tests; final CI pending",
-      "remaining": "Approve owning-context audited actions/actor auth, external immutable head anchors, production key custody and rotation, PII/retention policies and append-only DB permissions",
+      "delivered": "CI-verified opt-in HMAC-SHA256 per-tenant audit ledger with PostgreSQL/SQL Server SERIALIZABLE append, rotation, tamper/checkpoint detection and concurrent sequence tests",
+      "remaining": "Define context-owned audited decisions, signed actor/tenant authorization, immutable independent head checkpoints, production HMAC secret custody, privacy retention and append-only database grants",
       "acceptance": "Audit cannot be silently rewritten and records actor, action, tenant, outcome",
       "evidence": [
         "templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaAuditLedger.cs",

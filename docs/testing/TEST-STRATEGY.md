@@ -170,3 +170,9 @@ anonymous and type-mismatched operator denial, repairs a technical
 dependency, requests exactly one audited replay and verifies the
 eventual receipt plus HMAC chain. It never calls real business handlers.
 CI must complete before any such test is claimed successful.
+
+**Verified HMAC and dead-letter tests:** [run 43320400760](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43320400760)
+passed all 24 real-service tests and 7 recovery/safety tests, including
+PostgreSQL/SQL Server audit concurrency, tampering and rotation,
+and each provider's poison quarantine, repaired replay and
+pre-committed HMAC operator audit.

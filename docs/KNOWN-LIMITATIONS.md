@@ -102,3 +102,11 @@ pending tenant-specific store authorization. Replay does not guarantee
 a business outcome or prevent duplicate external side effects.
 The synthetic poison-message SQL integration test is being verified
 in GitHub Actions. See the template runbook and ADRs 006/007.
+
+**Latest HMAC/DLQ evidence:** [eight successful CI jobs](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43320400760)
+verify HMAC tampering and key rotation under concurrent append on both
+relational providers, plus quarantined poison-message replay by
+an explicitly authorized technical operator. This does not
+implement production operator entitlements, multi-tenant dead-letter
+isolation, legally compliant audit storage, signed checkpoints or
+business consumer compensation.

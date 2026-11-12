@@ -158,3 +158,8 @@ For non-authoritative, already-authorized queries you may use `ReadThroughQueryC
 ## CI is included in every generated repository
 
 The generated project includes `.github/workflows/ci.yml`, which automatically checks agent documentation/architecture governance, .NET 10 restore/build, and xUnit on every Push and PR. A second workflow, `.github/workflows/integration.yml`, is started explicitly with **Run workflow** in GitHub Actions and provisions isolated PostgreSQL, SQL Server and Redis services for the fail-closed Wolverine/EF/Redis integration suite. Both workflows upload JSON test evidence with no production secrets. They do not publish images or deploy without your authorization.
+
+**Latest source verification:** [all 8 GitHub Actions jobs passed](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43320400760),
+including per-provider HMAC audit and Wolverine poison quarantine/replay
+negative and positive tests. Generated products must independently validate
+their own operator policies, HMAC key custody and event processing.
