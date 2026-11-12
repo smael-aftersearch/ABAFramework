@@ -1,11 +1,5 @@
 using Aba.Starter.Api.Platform;
 using Xunit;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
 namespace Aba.Starter.Api.Tests;
 
@@ -17,20 +11,8 @@ public sealed class SecurityGuardTests
     public void LocalHttpOidcDiscoveryRequiresDevelopmentOptIn(
         bool allowHttp, bool expectedHttps)
     {
-        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(host =>
-        {
-            host.UseEnvironment("Development");
-            host.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(
-                new Dictionary<string, string?>
-                {
-                    ["Authentication:Authority"] = "http://localhost:8180",
-                    ["Authentication:Audience"] = "aba-api",
-                    ["Authentication:AllowHttpMetadataInDevelopment"] = allowHttp.ToString()
-                }));
-        });
-        var options = factory.Services.GetRequiredService<IOptionsMonitor<JwtBearerOptions>>()
-            .Get(JwtBearerDefaults.AuthenticationScheme);
-        Assert.Equal(expectedHttps, options.RequireHttpsMetadata);
+        Assert.Equal(expectedHttps, StartupSecurityGuard.RequireHttpsMetadata(
+            true, allowHttp, "http://localhost:8180"));
     }
 
     [Theory]
@@ -49,20 +31,11 @@ public sealed class SecurityGuardTests
     [Fact]
     public void ProductionNeverAllowsHttpDiscoveryEvenWithDevelopmentFlag()
     {
-        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(host =>
-        {
-            host.UseEnvironment("Production");
-            host.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(
-                new Dictionary<string, string?>
-                {
-                    ["Authentication:Authority"] = "https://identity.example.invalid",
-                    ["Authentication:Audience"] = "aba-api",
-                    ["Authentication:AllowHttpMetadataInDevelopment"] = "true"
-                }));
-        });
-        var options = factory.Services.GetRequiredService<IOptionsMonitor<JwtBearerOptions>>()
-            .Get(JwtBearerDefaults.AuthenticationScheme);
-        Assert.True(options.RequireHttpsMetadata);
+        Assert.True(StartupSecurityGuard.RequireHttpsMetadata(
+            false, true, "https://identity.example.invalid"));
+        Assert.True(StartupSecurityGuard.RequireHttpsMetadata(
+            false, true, "http://localhost:8180"));
+        StartupSecurityGuard.Validate(false, "https://identity.example.invalid", "aba-api");
     }
 
     [Theory]

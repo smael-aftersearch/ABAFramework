@@ -83,10 +83,25 @@ fi
 
 get_token() {
   local client="$1" payload="$TMP/token-$1.json"
-  curl -fsS --max-time 20 -X POST "$IDP/protocol/openid-connect/token" \
+  local status
+  status="$(curl -sS --max-time 20 -o "$payload" -w '%{http_code}' \
+    -X POST "$IDP/protocol/openid-connect/token" \
     -d 'grant_type=password' \
     -d 'username=aba-ci-user' -d 'password=Aba_CiUser_2026!' \
-    --data-urlencode "client_id=$client" > "$payload"
+    --data-urlencode "client_id=$client")"
+  if [[ "$status" != "200" ]]; then
+    python3 - "$payload" "$client" "$status" <<'PY'
+import json,sys
+try:
+    response=json.load(open(sys.argv[1]))
+    print(f"FAIL: Keycloak test client {sys.argv[2]} HTTP {sys.argv[3]}: "
+          f"{response.get('error', 'unknown')} / {response.get('error_description', '')}",
+          file=sys.stderr)
+except Exception:
+    print(f"FAIL: Keycloak token HTTP {sys.argv[3]} for {sys.argv[2]}", file=sys.stderr)
+PY
+    return 1
+  fi
   python3 - "$payload" <<'PY'
 import json, sys
 with open(sys.argv[1]) as stream:

@@ -87,7 +87,11 @@
           "value": "Aba_CiUser_2026!",
           "temporary": false
         }
-      ]
+      ],
+      "email": "ci-user@example.invalid",
+      "firstName": "CI",
+      "lastName": "User",
+      "requiredActions": []
     }
   ]
 }

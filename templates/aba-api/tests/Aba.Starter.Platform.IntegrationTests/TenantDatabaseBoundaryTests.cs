@@ -2,6 +2,7 @@ using Aba.Starter.Platform.Persistence;
 using Aba.Starter.Platform.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using Xunit;
 
 namespace Aba.Starter.Platform.IntegrationTests;
