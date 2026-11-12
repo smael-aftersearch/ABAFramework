@@ -1,6 +1,5 @@
 using Aba.Starter.Api.Platform;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
+using Aba.Starter.Platform.Persistence;
 using Microsoft.Extensions.Configuration;
 using Xunit;
 
@@ -59,27 +58,24 @@ public sealed class SecurityGuardTests
     [InlineData("SqlServer",
         "Server=localhost;Database=aba;User ID=app;Password=DevOnly;Encrypt=True;TrustServerCertificate=True",
         "Production SQL Server requires Encrypt=True or Strict")]
-    public void ProductionHostRefusesUnverifiedDatabaseTlsBeforeServingRequests(
+    public void ProductionSecurityPreflightRejectsUnverifiedDatabaseTls(
         string provider, string insecureConnection, string diagnostic)
     {
-        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(host =>
-        {
-            host.UseEnvironment("Production");
-            host.ConfigureAppConfiguration((_, config) =>
-                config.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["Authentication:Authority"] = "https://idp.example.invalid/realms/aba",
-                    ["Authentication:Audience"] = "aba-prod-api",
-                    ["Platform:Database:Provider"] = provider,
-                    ["ConnectionStrings:AbaDatabase"] = insecureConnection
-                }));
-        });
-        var exception = Record.Exception(() =>
-        {
-            using var client = factory.CreateClient();
-        });
-        Assert.NotNull(exception);
-        Assert.Contains(diagnostic, exception.ToString());
+        // Direct production preflight is deterministic; minimal-hosting startup
+        // reads configuration before WebApplicationFactory overrides apply.
+        // The actual generated Production process is checked in Docker CI.
+        StartupSecurityGuard.Validate(
+            isDevelopment: false, "https://idp.example.invalid/realms/aba", "aba-prod-api");
+        var config = new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?>
+            {
+                ["Platform:Database:Provider"] = provider,
+                ["ConnectionStrings:AbaDatabase"] = insecureConnection
+            }).Build();
+        var database = AbaDatabaseOptions.FromConfiguration(config);
+        var failure = Assert.Throws<InvalidOperationException>(() =>
+            database.ValidateTransportSecurity(isDevelopment: false));
+        Assert.Contains(diagnostic, failure.Message);
     }
 
     [Fact]

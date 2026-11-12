@@ -84,3 +84,7 @@ The generator supports `--with-db` to add an empty owner-specific Infrastructure
 ## Database transport security baseline
 
 `AbaPlatformTests.ProductionDatabaseRequiresVerifiedEncryptedTransport` checks fail-closed behavior for insecure PostgreSQL and SQL Server connections, including encrypted-without-identity-verification cases, and accepts PostgreSQL `SSL Mode=VerifyFull` or SQL Server `Encrypt=True/Strict;TrustServerCertificate=False`. Development-only self-signed local integration services remain supported. This validates startup configuration rather than real production certificate deployment; TLS/mTLS, CA rotation, DNS and secure secrets still need ops integration tests.
+
+## Real Production-startup TLS fail-closed check
+
+`SecurityGuardTests.ProductionSecurityPreflightRejectsUnverifiedDatabaseTls` validates both provider-specific security decisions directly. `scripts/verify-container-starter.sh` then launches the **actual generated non-root API image** in Production, with a syntactically valid HTTPS OIDC Authority/Audience and intentionally insecure PostgreSQL/SQL Server strings. Each process must exit nonzero promptly and report the **correct** TLS verification guard before listening. This avoids a false-positive WebApplicationFactory override of early Minimal API startup configuration.
