@@ -1,5 +1,6 @@
 using System.Net;
 using System.Security.Claims;
+using System.Threading.RateLimiting;
 using Aba.Starter.Api.Platform;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -59,6 +60,22 @@ public sealed class RateLimitTests
     }
 
     [Fact]
+    public async Task FixedWindowLimiterExhaustsAfterConfiguredPermits()
+    {
+        var settings = new AbaRateLimitOptions(PermitLimit: 2, WindowSeconds: 300);
+        using var limiter = PartitionedRateLimiter.Create<HttpContext, string>(
+            settings.ForRequest);
+        var context = new DefaultHttpContext();
+        context.Request.Path = "/api/v1/system/status";
+        using var one = await limiter.AcquireAsync(context, 1);
+        using var two = await limiter.AcquireAsync(context, 1);
+        using var three = await limiter.AcquireAsync(context, 1);
+        Assert.True(one.IsAcquired);
+        Assert.True(two.IsAcquired);
+        Assert.False(three.IsAcquired);
+    }
+
+    [Fact]
     public async Task HealthRemainsResponsiveAfterOrdinaryRequestQuotaIsExhausted()
     {
         using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
@@ -72,6 +89,11 @@ public sealed class RateLimitTests
                 }));
         });
         using var client = factory.CreateClient();
+        var effectiveConfig = factory.Services.GetService(typeof(IConfiguration))
+            as IConfiguration;
+        Assert.NotNull(effectiveConfig);
+        Assert.Equal(2, effectiveConfig.GetValue<int>(
+            "Platform:RateLimit:PermitLimit"));
         Assert.Equal(HttpStatusCode.OK,
             (await client.GetAsync("/api/v1/system/status")).StatusCode);
         Assert.Equal(HttpStatusCode.OK,

@@ -44,9 +44,11 @@ builder.Services.AddAuthorization(options =>
     options.DefaultPolicy = baseline;
     options.FallbackPolicy = baseline;
 });
-var rateLimit = AbaRateLimitOptions.FromConfiguration(builder.Configuration);
 builder.Services.AddRateLimiter(options =>
 {
+    // Resolve options when the container configures this middleware, after
+    // host/test overrides have been applied to IConfiguration.
+    var rateLimit = AbaRateLimitOptions.FromConfiguration(builder.Configuration);
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(
         rateLimit.ForRequest);
