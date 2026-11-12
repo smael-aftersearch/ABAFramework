@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -50,9 +49,9 @@ public static class AbaTenantClaims
         return value;
     }
 
-    public static AuthorizationPolicy BuildPolicy(AbaTenantOptions options)
+    public static AuthorizationPolicy BuildPolicy(AbaTenantOptions options, string authenticationScheme)
     {
-        var builder = new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme)
+        var builder = new AuthorizationPolicyBuilder(authenticationScheme)
             .RequireAuthenticatedUser();
         if (options.Enabled)
             builder.RequireAssertion(ctx => Resolve(ctx.User, options.ClaimType) is not null);

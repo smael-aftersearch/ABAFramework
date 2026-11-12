@@ -35,7 +35,7 @@ var tenancy = AbaTenantOptions.FromConfiguration(builder.Configuration);
 builder.Services.AddAbaTenantResolution(tenancy);
 builder.Services.AddAuthorization(options =>
 {
-    var baseline = AbaTenantClaims.BuildPolicy(tenancy);
+    var baseline = AbaTenantClaims.BuildPolicy(tenancy, JwtBearerDefaults.AuthenticationScheme);
     options.DefaultPolicy = baseline;
     options.FallbackPolicy = baseline;
 });

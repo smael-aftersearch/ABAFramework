@@ -51,7 +51,7 @@ public sealed class AbaPlatformTests
     public async Task OptInTenancyPolicyRequiresAuthenticatedTenantClaim()
     {
         var configured = new AbaTenantOptions(true, "tenant_id");
-        var policy = AbaTenantClaims.BuildPolicy(configured);
+        var policy = AbaTenantClaims.BuildPolicy(configured, "Bearer");
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
         serviceCollection.AddAuthorization();
