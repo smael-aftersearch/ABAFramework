@@ -1,0 +1,3 @@
+# Instructions for Claude Code in this repository
+
+Follow `AGENTS.md`. For ABA coding, architecture, API, messaging, security or documentation tasks, also read `.agents/skills/aba-engineering/SKILL.md` and navigate using `docs/ai/INDEX.md`. Only load the relevant context metadata and references. Run `python3 scripts/ai_check.py check` and `python3 scripts/governance.py` for material changes. Never claim passing .NET tests without executing them.

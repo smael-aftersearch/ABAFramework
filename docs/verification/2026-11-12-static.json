@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "generated_utc": "2026-11-11T23:06:13.133018+00:00",
+  "profile": "static",
+  "repository": "ABA.Net10.Phase1",
+  "checks": [
+    {
+      "name": "AI readiness",
+      "command": [
+        "/opt/pyvenv/bin/python3",
+        "scripts/ai_check.py",
+        "check"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_seconds": 0.82,
+      "failure_output_redacted": ""
+    },
+    {
+      "name": "AI negative tests",
+      "command": [
+        "/opt/pyvenv/bin/python3",
+        "scripts/test_ai_check.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_seconds": 0.67,
+      "failure_output_redacted": ""
+    },
+    {
+      "name": "Task protocol negative tests",
+      "command": [
+        "/opt/pyvenv/bin/python3",
+        "scripts/test_task_protocol.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_seconds": 1.57,
+      "failure_output_redacted": ""
+    },
+    {
+      "name": "ABA governance",
+      "command": [
+        "/opt/pyvenv/bin/python3",
+        "scripts/governance.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_seconds": 0.62,
+      "failure_output_redacted": ""
+    },
+    {
+      "name": "Governance negative tests",
+      "command": [
+        "/opt/pyvenv/bin/python3",
+        "scripts/test_governance.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_seconds": 3.45,
+      "failure_output_redacted": ""
+    },
+    {
+      "name": "Static C# scan (NOT compilation)",
+      "command": [
+        "/opt/pyvenv/bin/python3",
+        "scripts/static_review.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_seconds": 0.62,
+      "failure_output_redacted": ""
+    }
+  ],
+  "summary": {
+    "PASS": 6,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "claim_limit": "Static PASS is not a .NET compile/runtime result. NOT_RUN is not PASS."
+}

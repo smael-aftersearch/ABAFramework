@@ -1,0 +1,3 @@
+# ABA .NET 10 repository-wide instructions for Copilot
+
+Treat `AGENTS.md` as the repository's durable safety and architecture guidance. For changes to source, domain logic, APIs, events, infrastructure, tests or docs, follow `.agents/skills/aba-engineering/SKILL.md` and `docs/ai/CHANGE-PROTOCOL.md`. Identify owning bounded contexts using each `_Docs/ownership.yaml` and `_Docs/context-map.yaml`; cross-context integrations use versioned Contracts, not private implementation or database access. Update machine-readable metadata, catalog, OpenAPI and ADRs **when** changed behavior warrants it. Run `python3 scripts/ai_check.py check` and architecture governance. Never confuse Phase-1 local substitutes with PostgreSQL, Wolverine, Redis or OAuth production implementations.

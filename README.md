@@ -1,5 +1,119 @@
-# ABA Framework (.NET 10)
+# ABA .NET 10 Framework & Academy — Phase 1 (Developer Preview)
 
-Initial import in progress: ABA modular-monolith starter with Academy reference, governance, AI agent skill, and tests.
+A **real source-code starting point** for an ABA-aligned C#/.NET 10 modular monolith, implementing a complete **paid enrollment vertical slice** across five bounded contexts. This is a **development-only preview** with intentionally limited infrastructure, not a finished production framework.
 
-This is a development preview, not a production-ready framework. The import will include full implementation documentation and verification results.
+**Status (2026-11-12):** Repository created. Python architecture governance and negative tests passed in the authoring environment. **C# build, C# smoke suite, and HTTP runtime have NOT been executed here** because the .NET SDK/Docker are not installed and external network DNS is unavailable. Run the commands below on a computer with .NET 10 to validate and iterate.
+
+## Implemented versus not yet implemented
+
+| Area | Phase 1 status |
+| --- | --- |
+| C# and .NET 10 project structure | 15 source/test projects in a `.slnx` solution |
+| Five ABA business contexts | Identity, Enrollment, Payments, Accounting, Reporting |
+| Domain invariants / ownership | Implemented in context-owned source code |
+| Versioned cross-context Contracts | Implemented; context implementations reference only other Contracts |
+| Transactional local Outbox / Inbox | Implemented using atomic file replacement, **single process only** |
+| At-least-once delivery / retry / dead letter | Implemented local dispatcher; no external broker |
+| Simulated payment, idempotency, balanced journals | Implemented for local workflow |
+| Caching | Local in-memory TTL cache + invalidation only; **NOT Redis** |
+| HTTP endpoints / OpenAPI | ASP.NET Minimal API + static OpenAPI document (not generated) |
+| Executable architecture governance | Implemented with negative tests |
+| PostgreSQL / EF Core 10 | **NOT implemented** |
+| Wolverine / RabbitMQ | **NOT implemented** |
+| Redis distributed cache | **NOT implemented** |
+| OAuth/OIDC, JWT, tenant isolation | **NOT implemented**; host deliberately refuses non-development mode |
+| NuGet packaging / `dotnet new` | **NOT implemented** |
+| OpenTelemetry, integration testcontainers | **NOT implemented** |
+
+For the intended end-state see `docs/reference/TARGET-SPECIFICATION.md` and `docs/NEXT-MILESTONES.md`.
+
+## AI-first, document-driven development (new)
+
+This repository now includes the reusable **ABA Engineering Skill** at `.agents/skills/aba-engineering/SKILL.md` and a concise project-wide `AGENTS.md`. See `docs/ai/INDEX.md` for the source-of-truth map and `docs/ai/CHANGE-PROTOCOL.md` for the discovery-to-verification loop. The skill is also distributed separately as `skill.zip` for installation where Skills are supported; repository-local guidance stays with the source code.
+
+For new tasks, run `python3 scripts/ai_check.py brief --task "add a payment event"` to list relevant documents and `python3 scripts/task_protocol.py plan --task "add a payment event"` to propose a scope-aware **test plan**, then **confirm the owner manually against context metadata**. `python3 scripts/ai_check.py check` and `python3 scripts/test_ai_check.py` validate the document discovery contract and fail on intentionally broken agent instructions. GitHub Copilot, Claude Code, and Gemini-style repo pointers are included; actual auto-loading depends on each agent's supported conventions and settings. Instructions cannot guarantee compliance by themselves—ABA governance/CI is the enforcement layer.
+
+The skill makes the coding agent responsible for updating applicable metadata, catalog entries, ADRs, API docs and verification reports alongside code. It does **not** autonomously run in the background or claim that a planned framework capability is implemented.
+
+## Prerequisites
+
+- .NET 10 SDK (10.0.100 or compatible feature band). See `global.json`.
+- Python 3.10+ (standard library only) for governance.
+- No NuGet packages, PostgreSQL, Redis, or external services needed **for this first iteration**.
+
+## Testing structure and agent responsibilities
+
+**Existing tests** are at `tests/Aba.SmokeTests/Program.cs` (C# console runner) and `scripts/test_governance.py` / `scripts/test_ai_check.py` (Python negative rule tests). The complete inventory, test types per feature, proposed xUnit/Integration/Architecture/E2E directories and acceptance policy are in **`docs/testing/TEST-STRATEGY.md`** and `tests/README.md`. Those additional .NET test suites are future work, not current accomplishments.
+
+Run `python3 scripts/task_protocol.py verify --profile static --output artifacts/verification/static.json` to record actual Python check outcomes. `--profile all` additionally needs .NET 10 and runs restore/build/console smoke; it records `NOT_RUN` if unavailable. CI uploads JSON/Markdown evidence. The planner and runner have negative regression tests in `scripts/test_task_protocol.py`.
+
+For every material task, the ABA Engineering Skill requires an acceptance test plan (positive, negative, invariant), test code alongside source changes, actual execution when tools are available, and a truthful PASS/FAIL/NOT RUN report. `dotnet test` is not the runner for the current console smoke project.
+
+## Verify from a fresh checkout
+
+You can also run the single entrypoint `bash scripts/verify-all.sh`.
+
+```bash
+python3 scripts/task_protocol.py plan --task "Add payment refund" --file samples/Academy/Payments.Contracts/PaymentContracts.cs
+python3 scripts/test_task_protocol.py
+python3 scripts/task_protocol.py verify --profile static --output artifacts/verification/static.json
+# Full gate requires .NET 10 SDK:
+python3 scripts/task_protocol.py verify --profile all --output artifacts/verification/full.json
+```
+
+The smoke suite is a dependency-free console program, not an xUnit/NUnit project. It covers the real cross-context flow, local restart persistence, event redelivery/idempotency, full capacity/waitlist behavior, and accounting invariants. It is **authored but not yet runtime-verified** in this environment.
+
+## Start the development API
+
+```bash
+ASPNETCORE_ENVIRONMENT=Development \
+ASPNETCORE_URLS=http://127.0.0.1:5080 \
+dotnet run --project samples/Academy/Host
+```
+
+The API is intentionally **not authenticated**. Bind to loopback only and never expose it publicly. The server refuses non-Development environments. Data is saved in `samples/Academy/Host/local-data/` or `ACADEMY_DATA_DIR`.
+
+- Health: `GET http://127.0.0.1:5080/health/live`
+- OpenAPI specification: `GET http://127.0.0.1:5080/openapi/v1.json`
+- Course catalog: `GET /api/v1/catalog/courses`
+- Register user: `POST /api/v1/users` body `{ "email": "alice@example.org" }`
+- Read user: `GET /api/v1/users/{id}`
+- Request enrollment: `POST /api/v1/enrollments` body `{ "userId": "...", "courseId": "..." }`
+- Capture simulated payment: `POST /api/v1/payments/capture`, header `Idempotency-Key: your-key`, body `{ "enrollmentId": "..." }`
+- Read enrollment: `GET /api/v1/enrollments/{id}`
+- Accounting journals: `GET /api/v1/accounting/journals`
+- Reporting: `GET /api/v1/reporting/summary`
+
+Run the deterministic end-to-end HTTP script after startup:
+
+```bash
+bash scripts/demo-http.sh
+```
+
+The seeded course ID is `dc1311ec-bbd1-4ed7-a18c-886ff51f41b3`, price **USD 19.99** and capacity **two seats**. The fake payment provider does not charge money.
+
+## Optional Docker Compose
+
+With Docker installed, from the repository root:
+
+```bash
+docker compose -f infra/compose.yaml up --build
+```
+
+The API binds to `127.0.0.1:8080` on the host. The Compose volume persists the local demo state. This is **not** a production deployment and uses no external database or message broker yet.
+
+## Why this layout follows ABA
+
+The PDF emphasizes ownership over folder names and says only **Contracts** are public across bounded contexts (Chapters 6–9, 16, 19–24, 41–42 and 53–55). The sample uses separate Contracts projects plus private context implementations. Other contexts depend only on versioned public Contracts, never on another context's Domain or Infrastructure project. The Host is the composition root and wires the implementations without taking ownership of their business decisions.
+
+`src/Framework/` contains only technical foundation, local messaging, and local read caching; it cannot reference Academy business concepts. Context `Domain/` source files may depend on `Aba.Foundation` but not messaging/persistence or other contexts.
+
+See `docs/ABA-COMPLIANCE-MATRIX.md`, `docs/architecture.md`, `AGENTS.md`, and each context's `_Docs/` directory for enforceable rules and human explanations. The `.yaml` metadata files use **JSON syntax, which is valid YAML 1.2**, to allow dependency-free validation with Python's standard library.
+
+## Warning: local durability is not production durability
+
+The local store uses atomic same-filesystem rename of a serialized envelope containing context state + inbox + outbox. This proves the transactional design **only for a single-process local example**. It does not provide multi-process locking, a real database transaction, external broker guarantees, backup/recovery, or isolation between tenants. The payment provider is fake and has no settlement/reconciliation integration. Do not deploy this project to the public internet or connect real payments.
+
+## Next milestone
+
+Replace the local data adapters with **PostgreSQL/EF Core 10 and Wolverine's supported durable messaging/outbox**, add Redis, OAuth/OIDC via a standards-based identity provider, generated OpenAPI, observability, xUnit/Testcontainers, and `dotnet new` templates—while preserving versioned Contracts and governance. See `docs/NEXT-MILESTONES.md` for sequence and acceptance gates.

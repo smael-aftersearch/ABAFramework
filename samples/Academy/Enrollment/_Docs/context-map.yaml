@@ -1,0 +1,28 @@
+{
+  "context": "Enrollment",
+  "owned_capabilities": [
+    "Course catalog",
+    "Participation and capacity"
+  ],
+  "publishes": [
+    "EnrollmentRequestedV1",
+    "EnrollmentActivatedV1",
+    "EnrollmentWaitlistedV1"
+  ],
+  "consumes": [
+    "PaymentCapturedV1"
+  ],
+  "allowed_dependencies": [
+    "Aba.Foundation",
+    "Aba.LocalMessaging",
+    "Academy.Enrollment.Contracts",
+    "Academy.Identity.Contracts",
+    "Academy.Payments.Contracts"
+  ],
+  "forbidden_dependencies": [
+    "Academy.Identity",
+    "Academy.Payments",
+    "Academy.Accounting",
+    "Academy.Reporting"
+  ]
+}

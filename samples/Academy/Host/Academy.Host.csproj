@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <ProjectReference Include="../../../src/Framework/Aba.Foundation/Aba.Foundation.csproj" />
+    <ProjectReference Include="../../../src/Framework/Aba.LocalMessaging/Aba.LocalMessaging.csproj" />
+    <ProjectReference Include="../../../src/Framework/Aba.Caching/Aba.Caching.csproj" />
+    <ProjectReference Include="../Identity/Academy.Identity.csproj" />
+    <ProjectReference Include="../Enrollment/Academy.Enrollment.csproj" />
+    <ProjectReference Include="../Payments/Academy.Payments.csproj" />
+    <ProjectReference Include="../Accounting/Academy.Accounting.csproj" />
+    <ProjectReference Include="../Reporting/Academy.Reporting.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Update="openapi-v1.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

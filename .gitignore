@@ -1,0 +1,15 @@
+**/bin/
+**/obj/
+.vs/
+.idea/
+*.user
+.DS_Store
+.env
+local-data/
+*.db
+*.log
+*.tmp
+TestResults/
+coverage/
+# Generated verification evidence (do not commit per-task logs)
+artifacts/verification/

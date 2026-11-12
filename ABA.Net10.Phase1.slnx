@@ -1,0 +1,17 @@
+<Solution>
+  <Project Path="samples/Academy/Accounting.Contracts/Academy.Accounting.Contracts.csproj" />
+  <Project Path="samples/Academy/Accounting/Academy.Accounting.csproj" />
+  <Project Path="samples/Academy/Enrollment.Contracts/Academy.Enrollment.Contracts.csproj" />
+  <Project Path="samples/Academy/Enrollment/Academy.Enrollment.csproj" />
+  <Project Path="samples/Academy/Host/Academy.Host.csproj" />
+  <Project Path="samples/Academy/Identity.Contracts/Academy.Identity.Contracts.csproj" />
+  <Project Path="samples/Academy/Identity/Academy.Identity.csproj" />
+  <Project Path="samples/Academy/Payments.Contracts/Academy.Payments.Contracts.csproj" />
+  <Project Path="samples/Academy/Payments/Academy.Payments.csproj" />
+  <Project Path="samples/Academy/Reporting.Contracts/Academy.Reporting.Contracts.csproj" />
+  <Project Path="samples/Academy/Reporting/Academy.Reporting.csproj" />
+  <Project Path="src/Framework/Aba.Caching/Aba.Caching.csproj" />
+  <Project Path="src/Framework/Aba.Foundation/Aba.Foundation.csproj" />
+  <Project Path="src/Framework/Aba.LocalMessaging/Aba.LocalMessaging.csproj" />
+  <Project Path="tests/Aba.SmokeTests/Aba.SmokeTests.csproj" />
+</Solution>

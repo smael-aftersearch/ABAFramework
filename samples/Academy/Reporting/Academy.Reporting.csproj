@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../../src/Framework/Aba.Foundation/Aba.Foundation.csproj" />
+    <ProjectReference Include="../../../src/Framework/Aba.LocalMessaging/Aba.LocalMessaging.csproj" />
+    <ProjectReference Include="../../../src/Framework/Aba.Caching/Aba.Caching.csproj" />
+    <ProjectReference Include="../Reporting.Contracts/Academy.Reporting.Contracts.csproj" />
+    <ProjectReference Include="../Identity.Contracts/Academy.Identity.Contracts.csproj" />
+    <ProjectReference Include="../Enrollment.Contracts/Academy.Enrollment.Contracts.csproj" />
+    <ProjectReference Include="../Payments.Contracts/Academy.Payments.Contracts.csproj" />
+    <ProjectReference Include="../Accounting.Contracts/Academy.Accounting.Contracts.csproj" />
+  </ItemGroup>
+</Project>

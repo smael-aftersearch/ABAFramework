@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Framework/Aba.Foundation/Aba.Foundation.csproj" />
+    <ProjectReference Include="../../src/Framework/Aba.LocalMessaging/Aba.LocalMessaging.csproj" />
+    <ProjectReference Include="../../src/Framework/Aba.Caching/Aba.Caching.csproj" />
+    <ProjectReference Include="../../samples/Academy/Identity/Academy.Identity.csproj" />
+    <ProjectReference Include="../../samples/Academy/Enrollment/Academy.Enrollment.csproj" />
+    <ProjectReference Include="../../samples/Academy/Payments/Academy.Payments.csproj" />
+    <ProjectReference Include="../../samples/Academy/Accounting/Academy.Accounting.csproj" />
+    <ProjectReference Include="../../samples/Academy/Reporting/Academy.Reporting.csproj" />
+  </ItemGroup>
+</Project>
