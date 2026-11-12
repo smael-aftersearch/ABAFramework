@@ -1,5 +1,6 @@
 using Aba.Starter.Platform.Caching;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Aba.Starter.Api.Tests;
@@ -128,7 +129,7 @@ public sealed class ReadThroughCacheTests
         var cache = provider.GetRequiredService<ScopedJsonCache>();
         await cache.PutAsync("tenant-a", "query-1", "cached", TimeSpan.FromMinutes(1));
         var service = provider.GetRequiredService<ReadThroughQueryCache>();
-        var result = await service.GetOrLoadAsync(
+        var result = await service.GetOrLoadAsync<string>(
             "tenant-a", "query-1", TimeSpan.FromMinutes(1),
             _ => throw new InvalidOperationException("Loader should not run"));
         Assert.Equal("cached", result);
