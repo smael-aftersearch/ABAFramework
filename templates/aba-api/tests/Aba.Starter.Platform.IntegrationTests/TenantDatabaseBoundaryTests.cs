@@ -1,6 +1,7 @@
 using Aba.Starter.Platform.Persistence;
 using Aba.Starter.Platform.Security;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Aba.Starter.Platform.IntegrationTests;
@@ -51,6 +52,36 @@ public sealed class TenantDatabaseBoundaryTests
         var connection = Environment.GetEnvironmentVariable(variable);
         Assert.False(string.IsNullOrWhiteSpace(connection),
             $"Real integration connection missing: {variable}");
+
+        // Each integration test must provision its own database prerequisites;
+        // never depend on another xUnit class happening to migrate first.
+        var config = new Microsoft.Extensions.Configuration.ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Platform:Database:Provider"] = provider,
+                ["ConnectionStrings:AbaDatabase"] = connection
+            }).Build();
+        var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+        services.AddLogging();
+        services.AddAbaPersistence(AbaDatabaseOptions.FromConfiguration(config));
+        await using (var providerRoot = services.BuildServiceProvider())
+        {
+            await using var scope = providerRoot.CreateAsyncScope();
+            var platform = scope.ServiceProvider.GetRequiredService<AbaPlatformDbContext>();
+            for (var attempt = 0; ; attempt++)
+            {
+                try
+                {
+                    await platform.Database.MigrateAsync();
+                    break;
+                }
+                catch (Exception ex) when (attempt < 29
+                    && (ex is System.Data.Common.DbException or TimeoutException))
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(2));
+                }
+            }
+        }
 
         var optionsBuilder = new DbContextOptionsBuilder<TenantDb>();
         if (provider == "PostgreSql")

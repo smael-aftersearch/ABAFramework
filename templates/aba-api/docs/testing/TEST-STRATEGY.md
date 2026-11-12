@@ -54,3 +54,5 @@ The external integration suite includes `DurabilityRecoveryTests`: with PostgreS
 ## Real dual-engine tenant defense test
 
 `TenantDatabaseBoundaryTests` runs in the **external integration suite** against actual PostgreSQL and Microsoft SQL Server, asserting scope-based read filtering, automatic tenant ownership stamping, blocked `IgnoreQueryFilters` cross-tenant update, rejected forged insert, and rejected anonymous write. It never claims database RLS or defense against raw SQL/`ExecuteUpdate` bypass.
+
+The tenant multi-engine fixture now **provisions its own EF platform database first**, rather than assuming migration tests run before it. External integration suites disable xUnit class parallelization to eliminate schema/bootstrap races against a shared CI database. These are test isolation controls, not production migration shortcuts.
