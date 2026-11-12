@@ -90,6 +90,14 @@ class GenericTemplateTests(unittest.TestCase):
         self.assertIn('Non-development API requires', 
                       (TEMPLATE / 'src/Aba.Starter.Api/Platform/StartupSecurityGuard.cs').read_text())
 
+    def test_package_can_be_built_and_installed(self):
+        package = (ROOT / 'packaging/ABAFramework.GenericApi.Template.csproj').read_text()
+        self.assertIn('<PackageType>Template</PackageType>', package)
+        self.assertIn('<ContentTargetFolders>content</ContentTargetFolders>', package)
+        script = (ROOT / 'scripts/pack-template.sh').read_text()
+        self.assertIn('dotnet pack', script)
+        self.assertIn('dotnet new install "$PACKAGE"', script)
+
     def test_xunit_and_companion_script_exist(self):
         proj = (TEMPLATE / 'tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj').read_text()
         self.assertIn('PackageReference Include="xunit"', proj)

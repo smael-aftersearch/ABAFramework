@@ -1,6 +1,6 @@
 # ABA .NET 10: repository instructions for coding agents
 
-**Primary delivery goal:** Create reusable, generic .NET 10 APIs. A new product must be started with `templates/aba-api` (`dotnet new aba-api`) and must NOT inherit Academy's example business domains. The Academy module exists only as an optional isolated reference. Validate template changes with `python3 scripts/test_starter_template.py` and `bash scripts/verify-starter.sh`. Keep source, tests, AI rules and docs synchronized.
+**Primary delivery goal:** Create reusable, generic .NET 10 APIs. A new product must be started with `templates/aba-api` (`dotnet new aba-api`) and must NOT inherit Academy's example business domains. The Academy module exists only as an optional isolated reference. Validate template changes with `python3 scripts/test_starter_template.py`, `bash scripts/verify-starter.sh`, `bash scripts/verify-container-starter.sh`, and `bash scripts/pack-template.sh`. Keep source, tests, AI rules and docs synchronized.
 
 **Purpose:** Build and evolve an Adaptive Business Architecture (ABA) modular-monolith framework and its Academy example without increasing future cost of change.
 

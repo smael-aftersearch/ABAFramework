@@ -31,6 +31,10 @@ dotnet test Aba.Starter.slnx -c Release --no-build
 
 To run **real external-service tests**, configure the three `ABA_TEST_*` connection strings and run `dotnet test tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj`. This suite is intentionally excluded from the default solution; it fails if an external connection is missing.
 
+## Installable NuGet template package
+
+Repository CI packs this template as `ABAFramework.GenericApi.Template.0.2.0-preview.1.nupkg` and verifies installation by generating a new project. Download the package artifact from the successful GitHub Actions run and install it with `dotnet new install ./ABAFramework.GenericApi.Template.0.2.0-preview.1.nupkg`. This does not require Academy or any business sample. The package is not yet published to NuGet.org.
+
 ## Security
 
 All endpoints are authenticated by default (fallback authorization policy). `/health/live` and Development-only documentation are anonymous; the system status endpoint is also anonymous **only in Development**. In other environments, the host **refuses to start without a trusted HTTPS OIDC Authority and Audience**. It has no bundled signing key. Never treat Development mode as public-hosting configuration.

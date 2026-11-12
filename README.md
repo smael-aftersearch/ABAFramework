@@ -17,6 +17,10 @@ The generated project has no Academy or business examples. It includes a version
 
 **CI verification:** `bash scripts/verify-starter.sh` installs the template, generates a fresh named solution, runs restore/build/xUnit and checks the real local HTTP host. The original Academy sample remains an **optional reference only**, not the base API.
 
+## Installable template package
+
+CI also builds and tests a versioned `ABAFramework.GenericApi.Template.*.nupkg` NuGet template artifact. After downloading it from the successful [GitHub Actions](https://github.com/smael-aftersearch/ABAFramework/actions) run, install with `dotnet new install ./ABAFramework.GenericApi.Template.0.2.0-preview.1.nupkg`, then `dotnet new aba-api -n YourCompany.Api`. This is an artifact attached to CI, **not yet a NuGet.org publication**. Pack locally with `bash scripts/pack-template.sh`.
+
 ## Roadmap and scope
 
 **Implemented technical integrations (opt-in):** EF Core 10 for **both PostgreSQL and Microsoft SQL Server**, provider-neutral migrations, relational idempotency receipts, Redis distributed cache with TTL and scope isolation, Wolverine 6 durable local messaging with EF transactional middleware for either SQL engine, and OpenTelemetry traces/metrics with optional OTLP export. Optional authenticated JWT tenant-claim enforcement is configured separately; real tenant **row isolation is not implemented**. All dependencies default to off so the blank API starts immediately.

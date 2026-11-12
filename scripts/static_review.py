@@ -34,7 +34,7 @@ for path in root.rglob('*.cs'):
 project_paths = {
     path.relative_to(root).as_posix()
     for path in root.rglob('*.csproj')
-    if path.relative_to(root).parts[0] not in ('templates', 'artifacts')
+    if path.relative_to(root).parts[0] not in ('templates', 'artifacts', 'packaging')
 }
 try:
     solution = ET.parse(root / 'ABA.Net10.Phase1.slnx').getroot()

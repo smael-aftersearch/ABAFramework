@@ -23,7 +23,7 @@
 3. **EF Core production operations:** per-business-context models/migrations, concurrency/race and forward/rollback tests, encrypted SQL Server TLS configuration, PostgreSQL operational backups, migration orchestration and safe rollback.
 4. **Redis resilience:** outage fallback, distributed invalidation, cross-service tenancy checks, key rotation, race/cache stampede behavior and load tests.
 5. **OpenTelemetry and operations:** real collector/export verification, logs correlation, sampling/PII policy, health dependency readiness, performance baselines, load/failover tests, audit events and dashboards.
-6. **Distribution/deployment:** reusable versioned NuGet packages, published template packages, real container deployment and release pipeline after threat modeling, supply-chain and vulnerability checks.
+6. **Distribution/deployment:** a versioned installable NuGet template package and a tested non-root OCI Docker image are generated in CI. Public NuGet.org publishing, signed release attestations, cloud deployment infrastructure, SLA/release pipeline, threat modeling and vulnerability checks remain incomplete.
 
 ## Release gates
 

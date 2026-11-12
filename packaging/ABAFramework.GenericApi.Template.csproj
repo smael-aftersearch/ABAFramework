@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageId>ABAFramework.GenericApi.Template</PackageId>
+    <Version>0.2.0-preview.1</Version>
+    <Title>ABA Framework Generic API .NET 10 Template</Title>
+    <Authors>ABA Framework Contributors</Authors>
+    <Description>Domain-neutral .NET 10 API starter with PostgreSQL, SQL Server, Redis, Wolverine, OIDC/JWT, OpenTelemetry, xUnit, and agent documentation.</Description>
+    <PackageTags>dotnet-new;templates;aba;webapi;ddd;modular-monolith</PackageTags>
+    <PackageType>Template</PackageType>
+    <PackageProjectUrl>https://github.com/smael-aftersearch/ABAFramework</PackageProjectUrl>
+    <IsPackable>true</IsPackable>
+    <IncludeContentInPack>true</IncludeContentInPack>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <ContentTargetFolders>content</ContentTargetFolders>
+    <NoDefaultExcludes>true</NoDefaultExcludes>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="**/*.cs" />
+    <Content Include="../templates/aba-api/**/*" Exclude="../templates/aba-api/**/bin/**;../templates/aba-api/**/obj/**;../templates/aba-api/**/.vs/**;../templates/aba-api/**/artifacts/**">
+      <Pack>true</Pack>
+      <PackagePath>content/aba-api/%(RecursiveDir)</PackagePath>
+    </Content>
+  </ItemGroup>
+</Project>
