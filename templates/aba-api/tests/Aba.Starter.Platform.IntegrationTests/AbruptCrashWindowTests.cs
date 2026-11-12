@@ -109,7 +109,7 @@ public sealed class AbruptCrashWindowTests
     }
 
     private static async Task<int> ReceiptCountAsync(
-        string provider, string connection, string scope, string key)
+        string provider, string connection, string scope, string? key)
     {
         var options = new DbContextOptionsBuilder<AbaPlatformDbContext>();
         if (provider == "PostgreSql")
@@ -117,6 +117,8 @@ public sealed class AbruptCrashWindowTests
         else
             options.UseSqlServer(connection);
         await using var db = new AbaPlatformDbContext(options.Options);
+        if (key is null)
+            return await db.IdempotencyReceipts.AsNoTracking().CountAsync(x => x.Scope == scope);
         return await db.IdempotencyReceipts.AsNoTracking().CountAsync(x =>
             x.Scope == scope && x.Key == key);
     }
@@ -132,7 +134,7 @@ public sealed class AbruptCrashWindowTests
     {
         var mode = Environment.GetEnvironmentVariable(ChildMode);
         if (string.IsNullOrWhiteSpace(mode)) return;
-        if (mode is not ("uncommitted" or "scheduled"))
+        if (mode is not ("uncommitted" or "scheduled" or "preack"))
             throw new InvalidOperationException("Unknown crash injection mode.");
         var provider = Environment.GetEnvironmentVariable(ChildProvider)
             ?? throw new InvalidOperationException("No child provider.");
@@ -163,7 +165,7 @@ public sealed class AbruptCrashWindowTests
             File.WriteAllText(marker, "flushed-but-not-committed");
             await Task.Delay(Timeout.InfiniteTimeSpan);
         }
-        else
+        else if (mode == "scheduled")
         {
             await using var scope = host.Services.CreateAsyncScope();
             var bus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
@@ -172,6 +174,15 @@ public sealed class AbruptCrashWindowTests
             await bus.ScheduleAsync(new AbaDurabilityProbe(id),
                 TimeSpan.FromSeconds(12));
             File.WriteAllText(marker, "durable-schedule-returned");
+            await Task.Delay(Timeout.InfiniteTimeSpan);
+        }
+        else
+        {
+            // This handler commits the test-only effect separately, then
+            // signals before Wolverine is allowed to ACK the envelope.
+            await using var scope = host.Services.CreateAsyncScope();
+            var bus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
+            await bus.SendAsync(new AbaCrashAckProbe(id));
             await Task.Delay(Timeout.InfiniteTimeSpan);
         }
     }
@@ -210,6 +221,8 @@ public sealed class AbruptCrashWindowTests
         start.Environment[ChildProvider] = provider;
         start.Environment[ChildId] = id.ToString();
         start.Environment[ChildMarker] = marker;
+        if (mode == "preack")
+            start.Environment["ABA_CI_CRASH_ACK_MARKER"] = marker;
         using var child = Process.Start(start) ??
             throw new InvalidOperationException("Could not launch nested .NET crash worker.");
         try
@@ -224,6 +237,8 @@ public sealed class AbruptCrashWindowTests
                 await Task.Delay(250);
             }
             Assert.True(signalled, "Timed out before the real child reached the crash boundary.");
+            if (mode == "preack")
+                Assert.Equal("effect-committed-before-ack", File.ReadAllText(marker));
             // Actual SIGKILL on Linux, not StopAsync or an injected exception.
             child.Kill(entireProcessTree: true);
             await child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(15));
@@ -245,7 +260,9 @@ public sealed class AbruptCrashWindowTests
     [InlineData("SqlServer", "uncommitted")]
     [InlineData("PostgreSql", "scheduled")]
     [InlineData("SqlServer", "scheduled")]
-    public async Task KilledProcessDoesNotCommitUnfinishedWorkOrLoseDurableSchedule(
+    [InlineData("PostgreSql", "preack")]
+    [InlineData("SqlServer", "preack")]
+    public async Task KilledProcessRollsBackRecoversAndDeduplicatesBeforeAck(
         string provider, string mode)
     {
         var connection = ConfiguredConnection(provider);
@@ -268,9 +285,17 @@ public sealed class AbruptCrashWindowTests
             try
             {
                 bool delivered = false;
-                for (var i = 0; i < 180; i++)
+                for (var i = 0; i < (mode == "preack" ? 300 : 180); i++)
                 {
-                    if (await ReceiptCountAsync(provider, connection,
+                    if (mode == "preack")
+                    {
+                        // A fresh attempt proves the previously unacked
+                        // Wolverine envelope was re-delivered after SIGKILL.
+                        var attempts = await ReceiptCountAsync(provider, connection,
+                            "aba-crash-attempt-" + id.ToString("N"), null);
+                        if (attempts >= 2) { delivered = true; break; }
+                    }
+                    else if (await ReceiptCountAsync(provider, connection,
                         "aba-durability-probe", id.ToString("N")) == 1)
                     {
                         delivered = true;
@@ -278,10 +303,12 @@ public sealed class AbruptCrashWindowTests
                     }
                     await Task.Delay(500);
                 }
-                Assert.True(delivered,
-                    provider + ": SIGKILL lost a persisted scheduled message.");
+                Assert.True(delivered, mode == "preack"
+                    ? provider + ": no redelivery occurred after ACK-window SIGKILL."
+                    : provider + ": SIGKILL lost a persisted scheduled message.");
                 Assert.Equal(1, await ReceiptCountAsync(provider, connection,
-                    "aba-durability-probe", id.ToString("N")));
+                    mode == "preack" ? "aba-crash-effect" : "aba-durability-probe",
+                    id.ToString("N")));
             }
             finally
             {
