@@ -81,7 +81,7 @@ def render_section(data):
         "historical Academy Phase 1 demo below. A feature can be implemented technically while",
         "its **production release gates remain open**. Evidence refers to the last reviewed baseline:",
         f"[CI run {baseline['ci_run']}](https://github.com/smael-aftersearch/ABAFramework/actions/runs/{baseline['ci_run']})",
-        f"(commit \`{baseline['commit'][:12]}\`). New commits must pass their own CI before being treated as verified.\n",
+        f"(commit `{baseline['commit'][:12]}`). New commits must pass their own CI before being treated as verified.\n",
         f"**Tracked: {len(entries)}** · Implemented: {counts['implemented']} · Partial: {counts['partial']} · Not implemented: {counts['not_started']}.\n",
         "| Area | Parameter / feature | Status | Delivered scope | Remaining task | Priority |",
         "| --- | --- | --- | --- | --- | --- |",
@@ -101,13 +101,13 @@ def render_section(data):
     ])
     p0 = [x for x in entries if x["priority"] == "P0" and x["status"] != "implemented"]
     for e in p0:
-        lines.append(f"| \`{e['id']}\` | {cell(e['remaining'])} — {cell(e['acceptance'])} | {STATES[e['status']]} |")
+        lines.append(f"| `{e['id']}` | {cell(e['remaining'])} — {cell(e['acceptance'])} | {STATES[e['status']]} |")
     lines.extend([
         "",
         "For exact code paths, tests and the P0/P1/P2 backlog, read",
         "[docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md).",
         "Statuses are **maintainer reviewed**, not inferred by the mere existence of a file.",
-        "Run \`python3 scripts/status_matrix.py --check\` to fail CI on mismatched tables.",
+        "Run `python3 scripts/status_matrix.py --check` to fail CI on mismatched tables.",
     ])
     return "\n".join(lines)
 
@@ -117,9 +117,9 @@ def render_details(data):
     lines = [
         "# ABA API — implementation evidence and remaining work",
         "",
-        "This file is generated from \`docs/implementation-status.json\`.",
+        "This file is generated from `docs/implementation-status.json`.",
         "The README matrix and this backlog must be updated together via",
-        "\`python3 scripts/status_matrix.py --write\`, and independently verified by CI.",
+        "`python3 scripts/status_matrix.py --write`, and independently verified by CI.",
         "Implemented = code plus focused tests and a reviewed baseline; Partial = real",
         "technical work exists but a stated acceptance gate is missing; Not implemented",
         "= no implementation in the domain-neutral template. Business examples in Academy",
@@ -135,7 +135,7 @@ def render_details(data):
     todo = [e for p in PRIORITY for e in entries if e["priority"] == p and e["status"] != "implemented"]
     for e in todo:
         lines.append("| " + " | ".join(cell(x) for x in (
-            f"\`{e['id']}\`", e["owner"], e["priority"], STATES[e["status"]], e["acceptance"]
+            f"`{e['id']}`", e["owner"], e["priority"], STATES[e["status"]], e["acceptance"]
         )) + " |")
     lines.extend([
         "",
@@ -147,9 +147,9 @@ def render_details(data):
     for e in entries:
         if e["status"] == "not_started":
             continue
-        source = ", ".join(f"\`{p}\`" for p in e["evidence"]) or "No source proof"
-        checks = ", ".join(f"\`{p}\`" for p in e["tests"]) or "NOT RUN / no complete test"
-        lines.append(f"| \`{e['id']}\` | {source} | {checks} |")
+        source = ", ".join(f"`{p}`" for p in e["evidence"]) or "No source proof"
+        checks = ", ".join(f"`{p}`" for p in e["tests"]) or "NOT RUN / no complete test"
+        lines.append(f"| `{e['id']}` | {source} | {checks} |")
     lines.extend([
         "",
         "## How to record progress without exaggeration",
@@ -159,9 +159,9 @@ def render_details(data):
         "   tests when the capability requires actual infrastructure.",
         "3. Change the feature's status only when the stated acceptance gate is met;",
         "   record exact source paths, tests, remaining gaps and the reviewed CI baseline.",
-        "4. Run \`python3 scripts/status_matrix.py --write\`, then",
-        "   \`python3 scripts/test_status_matrix.py\` and",
-        "   \`python3 scripts/status_matrix.py --check\`. CI must pass.",
+        "4. Run `python3 scripts/status_matrix.py --write`, then",
+        "   `python3 scripts/test_status_matrix.py` and",
+        "   `python3 scripts/status_matrix.py --check`. CI must pass.",
         "5. Archive historical evidence; do not erase Academy limitations or describe",
         "   a successful technical probe as production proof.",
         "",
