@@ -30,6 +30,9 @@ public static class AbaCachingServices
         else
             throw new InvalidOperationException("Platform:Cache:Provider must be Memory or Redis.");
 
+        // One load gate per host, not per request. Does not claim distributed
+        // Redis locks or authoritative scope/tenant authorization.
+        services.AddSingleton<AbaCacheLoadGate>();
         services.AddScoped<ScopedJsonCache>();
         services.AddScoped<ReadThroughQueryCache>();
         return services;

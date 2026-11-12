@@ -22,8 +22,11 @@ public enum CacheOutagePolicy
 /// </summary>
 public sealed class ReadThroughQueryCache(
     ScopedJsonCache cache,
-    ILogger<ReadThroughQueryCache>? logger = null)
+    ILogger<ReadThroughQueryCache>? logger = null,
+    AbaCacheLoadGate? loadGate = null)
 {
+    private readonly AbaCacheLoadGate _loadGate = loadGate ?? new();
+
     public async Task<T> GetOrLoadAsync<T>(
         string scope,
         string key,
@@ -38,9 +41,12 @@ public sealed class ReadThroughQueryCache(
         if (outagePolicy is not (CacheOutagePolicy.FailClosed or CacheOutagePolicy.UseAuthoritativeSource))
             throw new ArgumentOutOfRangeException(nameof(outagePolicy));
 
-        // Enforce stable tenant/module scoping before invoking the loader.
-        _ = ScopedJsonCache.KeyFor(scope, key);
+        // Each scope/key gets its own in-process gate. Re-check the cache
+        // INSIDE the gate so only one loader fills a healthy shared cache.
+        // The gate is singleton across HTTP request scopes in the generated API.
+        var scopedKey = ScopedJsonCache.KeyFor(scope, key);
         ct.ThrowIfCancellationRequested();
+        using var lease = await _loadGate.EnterAsync(scopedKey, ct);
 
         try
         {
