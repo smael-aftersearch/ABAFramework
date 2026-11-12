@@ -129,6 +129,26 @@ def plan(task: str, files: list[str]) -> dict:
     }
 
 
+def redact_output(content: str) -> str:
+    """Do not persist configured DB/Redis credentials in a verification artifact."""
+    for name in (
+        "ABA_TEST_POSTGRESQL", "ABA_TEST_SQLSERVER", "ABA_TEST_REDIS",
+        "ConnectionStrings__AbaDatabase", "ConnectionStrings__AbaRedis",
+        "Authentication__ClientSecret",
+    ):
+        secret = os.environ.get(name)
+        if secret:
+            content = content.replace(secret, "[REDACTED]")
+    # Also mask common password segments when diagnostics render only fragments.
+    import re
+    content = re.sub(
+        r"(?i)(password|pwd)\\s*=\\s*[^;\\s]+",
+        lambda match: match.group(1) + "=[REDACTED]",
+        content,
+    )
+    return content[-3200:]
+
+
 def run_step(command: list[str], title: str) -> dict:
     try:
         p = subprocess.run(
@@ -140,7 +160,7 @@ def run_step(command: list[str], title: str) -> dict:
             "command": command,
             "status": "PASS" if p.returncode == 0 else "FAIL",
             "exit_code": p.returncode,
-            "output_tail": p.stdout[-3200:],
+            "output_tail": redact_output(p.stdout),
         }
     except subprocess.TimeoutExpired as error:
         return {

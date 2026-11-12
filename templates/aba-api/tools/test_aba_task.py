@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Regression tests for the generated project's portable ABA task workflow."""
 import importlib.util
+import os
 import subprocess
 import sys
 import unittest
@@ -44,6 +45,22 @@ class TaskPlannerTests(unittest.TestCase):
         self.assertIn(f"src/Modules/{name}/_Docs/ownership.yaml",
                       p["read_before_edit"])
         self.assertIn("docs/decisions/", p["read_before_edit"])
+
+    def test_evidence_redacts_connection_strings_and_password_fragments(self):
+        previous = os.environ.get("ABA_TEST_POSTGRESQL")
+        os.environ["ABA_TEST_POSTGRESQL"] = "Host=localhost;Password=DontLeakMe;"
+        try:
+            text = module.redact_output(
+                "Database failed: Host=localhost;Password=DontLeakMe; " +
+                "other Password=SeparateSecret")
+            self.assertNotIn("DontLeakMe", text)
+            self.assertNotIn("SeparateSecret", text)
+            self.assertIn("[REDACTED]", text)
+        finally:
+            if previous is None:
+                os.environ.pop("ABA_TEST_POSTGRESQL", None)
+            else:
+                os.environ["ABA_TEST_POSTGRESQL"] = previous
 
     def test_static_verification_runs_real_governance(self):
         outcome = module.verify("static")

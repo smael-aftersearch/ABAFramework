@@ -34,3 +34,7 @@ The `full` level **fails closed** with `NOT_RUN` if the .NET SDK or any real-ser
 Include: owning bounded context; exact changed files and contract versions; accepted ADRs and metadata updates; PASS/FAIL/NOT_RUN tests (and paths to evidence); migration and rollback risks; remaining security/production limitations. Do not call a generated scaffold or successful smoke test fully production-ready.
 
 This deterministic script assists AI but does not automatically infer a business owner from English task keywords, implement features or configure external IdP/DB credentials. Humans/agents must still derive authorized business decisions from actual requirements.
+
+## Redaction and evidence privacy
+
+Verification output tails redact configured PostgreSQL, SQL Server, Redis and client-secret environment values and common `Password=` fragments before writing JSON. Never copy full environment variables into task descriptions or `--output`; treat CI artifacts as potentially visible to colleagues. The test suite includes a synthetic secret-leak regression.
