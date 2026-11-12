@@ -472,14 +472,21 @@
       "id": "msg-poison-replay",
       "area": "Messaging",
       "feature": "Poison/dead-letter inspection and replay",
-      "status": "not_started",
+      "status": "partial",
       "owner": "Platform / Operations",
       "priority": "P0",
-      "delivered": "Not implemented",
-      "remaining": "Add reviewed dead-letter administration/replay without bypassing authorization",
+      "delivered": "Opt-in audited, role-claim-gated Wolverine dead-letter metadata inspection and exact-ID replay request with positive/negative real-service tests authored; final replay CI still pending",
+      "remaining": "Verify actual poison recovery on both SQL engines, adopt signed operator IdP, tenant-scoped stores, consumer idempotency and safe retry/rate/retention policy",
       "acceptance": "Poison message is quarantined, inspected and safely replayed exactly as intended",
-      "evidence": [],
-      "tests": []
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Platform/Messaging/AbaDeadLetterAdministration.cs",
+        "templates/aba-api/src/Aba.Starter.Platform/Messaging/AbaDurabilityProbe.cs",
+        "templates/aba-api/docs/decisions/ADR-007-wolverine-deadletter-operator.md"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/DeadLetterOperatorGuardTests.cs",
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/DeadLetterOperatorIntegrationTests.cs"
+      ]
     },
     {
       "id": "msg-crash-window",
@@ -615,14 +622,21 @@
       "id": "ops-audit",
       "area": "Observability",
       "feature": "Tamper-evident audit trail",
-      "status": "not_started",
+      "status": "partial",
       "owner": "Security / business owners",
       "priority": "P0",
-      "delivered": "Not implemented",
-      "remaining": "Define context-owned auditable actions with safe retention/PII policy",
+      "delivered": "Opt-in per-tenant HMAC-SHA256 audit chain, externally injected versioned keys, serializable append, integrity/rotation/checkpoint checks and PostgreSQL/SQL Server live tests; final CI pending",
+      "remaining": "Approve owning-context audited actions/actor auth, external immutable head anchors, production key custody and rotation, PII/retention policies and append-only DB permissions",
       "acceptance": "Audit cannot be silently rewritten and records actor, action, tenant, outcome",
-      "evidence": [],
-      "tests": []
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaAuditLedger.cs",
+        "templates/aba-api/src/Aba.Starter.Platform/Persistence/Migrations/202611130001_AuditLedger.cs",
+        "templates/aba-api/docs/decisions/ADR-006-audit-ledger.md"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/AuditLedgerConfigTests.cs",
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AuditLedgerIntegrationTests.cs"
+      ]
     },
     {
       "id": "ops-prod-secrets",
