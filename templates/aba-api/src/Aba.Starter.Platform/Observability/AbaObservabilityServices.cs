@@ -38,7 +38,7 @@ public static class AbaObservabilityServices
             builder.Configuration, builder.Environment.IsDevelopment());
         if (!options.Enabled) return;
 
-        builder.Services.AddOpenTelemetry()
+        builder.AddOpenTelemetry()
             .ConfigureResource(resource => resource.AddService(options.ServiceName))
             .WithTracing(tracing =>
             {

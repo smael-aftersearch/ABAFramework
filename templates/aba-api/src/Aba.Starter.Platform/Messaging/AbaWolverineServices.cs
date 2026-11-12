@@ -40,9 +40,14 @@ public static class AbaWolverineServices
             options.Policies.AutoApplyTransactions();
             // In explicitly opted-in Development tests only, create Wolverine
             // relational envelope resources before processing messages.
-            if (builder.Environment.IsDevelopment()
-                && builder.Configuration.GetValue<bool>("Platform:Messaging:AutoProvisionInDevelopment"))
-                options.Services.AddResourceSetupOnStartup();
+            // No schema DDL at ordinary startup unless a local test explicitly
+            // opts into development provisioning; Production always requires a
+            // reviewed provisioned schema.
+            options.AutoBuildMessageStorageOnStartup =
+                builder.Environment.IsDevelopment()
+                && builder.Configuration.GetValue<bool>("Platform:Messaging:AutoProvisionInDevelopment")
+                    ? AutoCreate.CreateOrUpdate
+                    : AutoCreate.None;
         });
     }
 }
