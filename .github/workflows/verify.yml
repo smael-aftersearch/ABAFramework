@@ -164,3 +164,96 @@ jobs:
           name: aba-nuget-supply-chain-evidence
           path: templates/aba-api/artifacts/supply-chain/
           if-no-files-found: warn
+
+
+  container-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the exact domain-neutral runtime image
+        run: |
+          mkdir -p artifacts/container
+          docker build --pull -t aba-ci-security:local templates/aba-api
+          docker image inspect --format '{{.Id}}' aba-ci-security:local \
+            > artifacts/container/built-image-id.txt
+      - name: Fail on fixable CRITICAL runtime image vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: aba-ci-security:local
+          vuln-type: os,library
+          format: json
+          output: artifacts/container/trivy.json
+          ignore-unfixed: true
+          severity: CRITICAL
+          exit-code: '1'
+      - name: Retain real image vulnerability evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aba-runtime-image-security
+          path: artifacts/container/
+          if-no-files-found: warn
+
+  template-provenance:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs:
+      - governance-and-runtime
+      - integration-relational-and-redis
+      - container-startup
+      - package-template
+      - keycloak-oidc
+      - supply-chain
+      - container-security
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: aba-dotnet-template-nupkg
+          path: artifacts/provenance
+      - name: Record SHA256 digest of tested NuGet template artifact
+        run: |
+          cd artifacts/provenance
+          sha256sum *.nupkg > SHA256SUMS
+          sha256sum --check SHA256SUMS
+      - name: Sign keyless SLSA build provenance with GitHub Actions identity
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-path: artifacts/provenance/*.nupkg
+      - name: Verify signature and reject a modified artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          PACKAGE="$(find artifacts/provenance -maxdepth 1 -name '*.nupkg' -type f -print -quit)"
+          test -n "$PACKAGE"
+          gh attestation verify "$PACKAGE" --repo "$GITHUB_REPOSITORY" \
+            --source-ref refs/heads/main --source-digest "$GITHUB_SHA" \
+            --format json > artifacts/provenance/verified-attestation.json
+          test -s artifacts/provenance/verified-attestation.json
+          mkdir -p artifacts/provenance/tamper-test
+          cp "$PACKAGE" artifacts/provenance/tamper-test/
+          printf 'tampered' >> "artifacts/provenance/tamper-test/$(basename "$PACKAGE")"
+          if gh attestation verify "artifacts/provenance/tamper-test/$(basename "$PACKAGE")" \
+            --repo "$GITHUB_REPOSITORY" --source-digest "$GITHUB_SHA"; then
+            echo "FAIL: tampered artifact was accepted by provenance verification" >&2
+            exit 1
+          fi
+          rm -rf artifacts/provenance/tamper-test
+          echo "PASS: signed build provenance verified and tampered payload denied"
+      - name: Preserve signed release integrity verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aba-template-provenance-verification
+          path: artifacts/provenance/
+          if-no-files-found: error

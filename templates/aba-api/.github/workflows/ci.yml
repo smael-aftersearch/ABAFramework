@@ -58,3 +58,36 @@ jobs:
           name: aba-api-verification
           path: artifacts/verification/
           if-no-files-found: warn
+
+
+  container-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the generated API runtime image
+        run: |
+          mkdir -p artifacts/container
+          docker build --pull -t aba-generated-security:local .
+          docker image inspect --format '{{.Id}}' aba-generated-security:local \
+            > artifacts/container/built-image-id.txt
+      - name: Fail on fixable CRITICAL container vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: aba-generated-security:local
+          vuln-type: os,library
+          format: json
+          output: artifacts/container/trivy.json
+          ignore-unfixed: true
+          severity: CRITICAL
+          exit-code: '1'
+      - name: Preserve runtime image vulnerability evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aba-api-image-security
+          path: artifacts/container/
+          if-no-files-found: warn

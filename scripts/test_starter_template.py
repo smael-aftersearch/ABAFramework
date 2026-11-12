@@ -188,6 +188,22 @@ class GenericTemplateTests(unittest.TestCase):
             self.assertIn("postgres:16-alpine", workflow)
             self.assertIn("ABA_ENABLE_DESTRUCTIVE_CI_DRILLS", workflow)
 
+    def test_release_image_scan_and_source_attestation_have_enforced_gates(self):
+        root = (ROOT / '.github/workflows/verify.yml').read_text()
+        generated = (TEMPLATE / '.github/workflows/ci.yml').read_text()
+        for workflow in (root, generated):
+            self.assertIn('container-security:', workflow)
+            self.assertIn('ed142fd0673e97e23eac54620cfb913e5ce36c25', workflow)
+            self.assertIn('exit-code: ', workflow)
+            self.assertIn('severity: CRITICAL', workflow)
+            self.assertNotIn('continue-on-error: true', workflow)
+        for required in ('template-provenance:', 'artifact-metadata: write',
+                         'attestations: write', 'id-token: write',
+                         '1e69f48acb82d1966a394da916b4c1698aa569d6',
+                         'gh attestation verify', 'tamper-test', 'SHA256SUMS'):
+            self.assertIn(required, root)
+        self.assertIn('needs:', root)
+
     def test_xunit_and_companion_script_exist(self):
         proj = (TEMPLATE / 'tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj').read_text()
         self.assertIn('PackageReference Include="xunit"', proj)
