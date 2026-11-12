@@ -64,3 +64,8 @@ Set `ABA_TEST_POSTGRESQL`, `ABA_TEST_SQLSERVER` and `ABA_TEST_REDIS` and run `ba
 - Wolverine durability is opt-in: enabling it without a relational store **fails fast**, rather than switching to non-durable messaging.
 - Per-context rollback uses reviewed migrations, not `EnsureCreated` or destructive reinitialization.
 - Do not commit real connection strings. Rotate any credentials that accidentally enter repository history.
+
+## Observability: OpenTelemetry
+
+Set `Platform__Observability__Enabled=true` to enable ASP.NET Core and outgoing HTTP traces/metrics. Set `Platform__Observability__ServiceName=MyApi` and optionally `Platform__Observability__OtlpEndpoint=https://collector.example:4317` to export via OTLP. An unsecured HTTP collector is accepted only in local Development. No external collector, credentials, public metrics endpoint or telemetry backend is bundled. Review tracing sampling, PII filters, service identity and collector trust in production.
+

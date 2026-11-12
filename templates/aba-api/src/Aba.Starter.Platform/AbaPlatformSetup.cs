@@ -1,5 +1,6 @@
 using Aba.Starter.Platform.Caching;
 using Aba.Starter.Platform.Messaging;
+using Aba.Starter.Platform.Observability;
 using Aba.Starter.Platform.Persistence;
 using Microsoft.AspNetCore.Builder;
 
@@ -14,5 +15,6 @@ public static class AbaPlatformSetup
         builder.Services.AddAbaPersistence(database);
         builder.Services.AddAbaCaching(builder.Configuration);
         builder.AddAbaWolverine(database);
+        builder.AddAbaObservability();
     }
 }

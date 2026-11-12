@@ -1,4 +1,5 @@
 using Aba.Starter.Platform.Caching;
+using Aba.Starter.Platform.Observability;
 using Aba.Starter.Platform.Persistence;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,6 +12,20 @@ public sealed class AbaPlatformTests
 {
     private static IConfiguration Config(IDictionary<string, string?> values) =>
         new ConfigurationBuilder().AddInMemoryCollection(values).Build();
+
+    [Fact]
+    public void OtlpEndpointMustBeHttpsOutsideDevelopment()
+    {
+        var config = Config(new Dictionary<string, string?>
+        {
+            ["Platform:Observability:Enabled"] = "true",
+            ["Platform:Observability:ServiceName"] = "Example.Api",
+            ["Platform:Observability:OtlpEndpoint"] = "http://telemetry.example/v1/traces"
+        });
+        Assert.Throws<InvalidOperationException>(() =>
+            AbaObservabilityOptions.FromConfiguration(config, isDevelopment: false));
+        Assert.True(AbaObservabilityOptions.FromConfiguration(config, isDevelopment: true).Enabled);
+    }
 
     [Fact]
     public void BlankProjectHasNoDatabase()
