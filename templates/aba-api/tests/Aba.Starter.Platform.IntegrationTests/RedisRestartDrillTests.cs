@@ -102,7 +102,7 @@ public sealed class RedisRestartDrillTests
             "test-tenant", key, TimeSpan.FromSeconds(20),
             _ => Task.FromResult("initial-" + Interlocked.Increment(ref loads)));
         Assert.Equal("initial-1", initial);
-        Assert.Equal("initial-1", await query.GetOrLoadAsync(
+        Assert.Equal("initial-1", await query.GetOrLoadAsync<string>(
             "test-tenant", key, TimeSpan.FromSeconds(20),
             _ => throw new InvalidOperationException("Expected live Redis cache hit.")));
         Assert.Equal(1, loads);
@@ -162,7 +162,7 @@ public sealed class RedisRestartDrillTests
         Assert.Equal("after-restart", await query.GetOrLoadAsync(
             "test-tenant", "restarted-" + key, TimeSpan.FromSeconds(3),
             _ => { Interlocked.Increment(ref fresh); return Task.FromResult("after-restart"); }));
-        Assert.Equal("after-restart", await query.GetOrLoadAsync(
+        Assert.Equal("after-restart", await query.GetOrLoadAsync<string>(
             "test-tenant", "restarted-" + key, TimeSpan.FromSeconds(3),
             _ => throw new InvalidOperationException("Expected a recovered cache hit.")));
         Assert.Equal(1, fresh);
