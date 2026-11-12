@@ -50,3 +50,7 @@ The external integration suite includes `DurabilityRecoveryTests`: with PostgreS
 ## Executable generated-context governance
 
 `python3 tools/new_context.py check` inspects declared ownership, owner-local metadata, all project references and pure Domain/Contracts imports. The root CI script scaffolds two temporary contexts, verifies successful build/xUnit tests, deliberately injects a cross-context Infrastructure import into Domain, deliberately injects EF Core into Domain, and confirms that each illegal change is **rejected**, then restores the fixture before compilation. Static checks are a guardrail, not a substitute for architecture/IL/behavior tests.
+
+## Real dual-engine tenant defense test
+
+`TenantDatabaseBoundaryTests` runs in the **external integration suite** against actual PostgreSQL and Microsoft SQL Server, asserting scope-based read filtering, automatic tenant ownership stamping, blocked `IgnoreQueryFilters` cross-tenant update, rejected forged insert, and rejected anonymous write. It never claims database RLS or defense against raw SQL/`ExecuteUpdate` bypass.

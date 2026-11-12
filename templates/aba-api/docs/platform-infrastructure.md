@@ -81,3 +81,5 @@ In the owning context's Infrastructure project, derive its EF `DbContext` from `
 ## Durable message scheduling across clean host restart
 
 `DurabilityRecoveryTests` schedules an actual durable technical message into a PostgreSQL or SQL Server Wolverine queue, stops the first host **before** its due time, starts a new host on the same database and requires the message to be processed. It is a real restart-and-recovery test; it is not a simulation of an ungraceful process crash at an arbitrary database commit stage.
+
+The CI suite now also verifies `AbaTenantDbContext` using **both real relational engines**, in addition to SQLite. Each engine must suppress reads from a foreign tenant, prevent cross-tenant `SaveChanges` even after `IgnoreQueryFilters`, reject forged tenant inserts and require a validated tenant ID. The test fixture uses the separate technical table `aba_ci_tenant_rows`. Untrusted direct SQL and EF bulk updates remain outside this protection.
