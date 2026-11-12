@@ -155,6 +155,21 @@ class GenericTemplateTests(unittest.TestCase):
             self.assertIn(phrase, root_ci)
             self.assertIn(phrase, template_ci)
 
+    def test_external_integration_project_is_scanned_independently(self):
+        tool = (TEMPLATE / 'tools/supply_chain.py').read_text()
+        tests = (TEMPLATE / 'tools/test_supply_chain.py').read_text()
+        workflows = [
+            (ROOT / '.github/workflows/verify.yml').read_text(),
+            (TEMPLATE / '.github/workflows/ci.yml').read_text()
+        ]
+        self.assertIn('def single_project(', tool)
+        self.assertIn('test_single_integration_project_is_supported', tests)
+        for workflow in workflows:
+            self.assertIn('--project', workflow)
+            self.assertIn('IntegrationTests.csproj', workflow)
+            self.assertIn('integration-audit.json', workflow)
+            self.assertIn('integration.spdx.json', workflow)
+
     def test_xunit_and_companion_script_exist(self):
         proj = (TEMPLATE / 'tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj').read_text()
         self.assertIn('PackageReference Include="xunit"', proj)

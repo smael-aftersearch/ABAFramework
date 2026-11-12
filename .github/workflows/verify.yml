@@ -146,6 +146,16 @@ jobs:
             --root templates/aba-api --solution templates/aba-api/Aba.Starter.slnx \
             --audit-json templates/aba-api/artifacts/supply-chain/audit.json \
             --output templates/aba-api/artifacts/supply-chain/sbom.spdx.json
+      - name: Scan the separate real-service integration test project
+        run: |
+          dotnet restore templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj
+          dotnet package list --project templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj \
+            --include-transitive --vulnerable --format json --output-version 1 --no-restore \
+            > templates/aba-api/artifacts/supply-chain/integration-audit.json
+          python3 templates/aba-api/tools/supply_chain.py --root templates/aba-api \
+            --project templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj \
+            --audit-json templates/aba-api/artifacts/supply-chain/integration-audit.json \
+            --output templates/aba-api/artifacts/supply-chain/integration.spdx.json
       - name: Preserve NuGet audit and SPDX package evidence
         if: always()
         uses: actions/upload-artifact@v4

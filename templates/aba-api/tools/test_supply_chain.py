@@ -43,6 +43,22 @@ class SupplyChainTests(unittest.TestCase):
         self.assertEqual(doc["packages"][0]["name"], "Safe")
         self.assertEqual(doc["packages"][0]["versionInfo"], "1.2.3")
 
+    def test_single_integration_project_is_supported(self):
+        self.audit.write_text(json.dumps(self.payload))
+        verify(self.root, None, self.audit, self.output, project=self.csproj)
+        self.assertEqual(json.loads(self.output.read_text())["packages"][0]["name"], "Safe")
+
+    def test_standalone_project_outside_root_is_rejected(self):
+        self.audit.write_text(json.dumps(self.payload))
+        with self.assertRaisesRegex(SupplyChainError, "Missing/unsafe standalone"):
+            verify(self.root, None, self.audit, self.output,
+                   project=self.root / ".." / "other" / "Hidden.csproj")
+
+    def test_missing_target_is_rejected(self):
+        self.audit.write_text(json.dumps(self.payload))
+        with self.assertRaisesRegex(SupplyChainError, "exactly one"):
+            verify(self.root, None, self.audit, self.output)
+
     def test_direct_vulnerability_is_rejected(self):
         self.payload["projects"][0]["frameworks"][0]["topLevelPackages"] = [{
             "id": "Bad", "vulnerabilities": [{"severity": "High"}],

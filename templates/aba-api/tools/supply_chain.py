@@ -46,6 +46,15 @@ def project_paths(root, slnx):
     return paths
 
 
+def single_project(root, path):
+    # The opt-in integration suite is not in the default solution.
+    # A separate .csproj scan must use the same root/path guard.
+    root, path = root.resolve(), path.resolve()
+    if not path.is_relative_to(root) or not path.is_file() or path.suffix != ".csproj":
+        raise SupplyChainError("Missing/unsafe standalone .csproj")
+    return [path]
+
+
 def packages_from_assets(projects):
     result = {}
     for project in projects:
@@ -163,8 +172,10 @@ def spdx(package_list):
     }
 
 
-def verify(root, solution, audit, output):
-    projects = project_paths(root, solution)
+def verify(root, solution, audit, output, project=None):
+    if (solution is None) == (project is None):
+        raise SupplyChainError("Provide exactly one solution or standalone project")
+    projects = project_paths(root, solution) if solution is not None else single_project(root, project)
     check_audit(load(audit), projects)
     packages = packages_from_assets(projects)
     if not output.resolve().is_relative_to(root.resolve()):
@@ -177,12 +188,15 @@ def verify(root, solution, audit, output):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path("."))
-    parser.add_argument("--solution", type=Path, required=True)
+    target = parser.add_mutually_exclusive_group(required=True)
+    target.add_argument("--solution", type=Path)
+    target.add_argument("--project", type=Path,
+                        help="Scan an additional .csproj outside the default .slnx")
     parser.add_argument("--audit-json", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     try:
-        verify(args.root, args.solution, args.audit_json, args.output)
+        verify(args.root, args.solution, args.audit_json, args.output, project=args.project)
         return 0
     except (SupplyChainError, OSError) as exc:
         print(f"FAIL: supply-chain gate: {exc}", file=sys.stderr)

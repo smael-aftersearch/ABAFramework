@@ -34,6 +34,16 @@ jobs:
           python3 tools/supply_chain.py --root . --solution Aba.Starter.slnx \
             --audit-json artifacts/supply-chain/audit.json \
             --output artifacts/supply-chain/sbom.spdx.json
+      - name: Audit optional real-service test project dependencies separately
+        run: |
+          dotnet restore tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj
+          dotnet package list --project tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj \
+            --include-transitive --vulnerable --format json --output-version 1 --no-restore \
+            > artifacts/supply-chain/integration-audit.json
+          python3 tools/supply_chain.py --root . \
+            --project tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj \
+            --audit-json artifacts/supply-chain/integration-audit.json \
+            --output artifacts/supply-chain/integration.spdx.json
       - name: Upload NuGet vulnerability audit and SPDX evidence
         if: always()
         uses: actions/upload-artifact@v4
