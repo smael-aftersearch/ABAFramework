@@ -155,7 +155,7 @@ public sealed class RedisRestartDrillTests
         }
         Assert.True(recovered, "Redis client failed to reconnect to a real restarted container: " + last);
         Assert.Equal(HealthStatus.Healthy,
-            (await scope.ServiceProvider.GetRequiredService<AbaRedisHealthCheck>()
+            (await ActivatorUtilities.CreateInstance<AbaRedisHealthCheck>(scope.ServiceProvider)
                 .CheckHealthAsync(new HealthCheckContext())).Status);
 
         var fresh = 0;
