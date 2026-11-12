@@ -12,6 +12,34 @@ public sealed record AbaDatabaseOptions(AbaDatabaseProvider Provider, string? Co
 {
     public bool Enabled => Provider != AbaDatabaseProvider.None;
 
+    /// <summary>
+    /// Production transport guard: do not allow plaintext or server-certificate
+    /// bypasses. Validated before the API starts listening, not an arbitrary
+    /// attempt to rewrite customer-managed connection strings.
+    /// </summary>
+    public void ValidateTransportSecurity(bool isDevelopment)
+    {
+        if (isDevelopment || !Enabled)
+            return;
+
+        if (Provider == AbaDatabaseProvider.PostgreSql)
+        {
+            var connection = new Npgsql.NpgsqlConnectionStringBuilder(ConnectionString);
+            if (connection.SslMode != Npgsql.SslMode.VerifyFull)
+                throw new InvalidOperationException(
+                    "Production PostgreSQL requires SSL Mode=VerifyFull and a trusted server certificate.");
+        }
+        else if (Provider == AbaDatabaseProvider.SqlServer)
+        {
+            var connection = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(ConnectionString);
+            var encryption = connection.Encrypt.ToString();
+            if (connection.TrustServerCertificate
+                || encryption is not ("True" or "Mandatory" or "Strict"))
+                throw new InvalidOperationException(
+                    "Production SQL Server requires Encrypt=True or Strict and TrustServerCertificate=False.");
+        }
+    }
+
     public static AbaDatabaseOptions FromConfiguration(IConfiguration config)
     {
         var name = config["Platform:Database:Provider"];

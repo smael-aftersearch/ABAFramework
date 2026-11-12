@@ -12,6 +12,7 @@ public static class AbaPlatformSetup
     public static void AddAbaPlatform(this WebApplicationBuilder builder)
     {
         var database = AbaDatabaseOptions.FromConfiguration(builder.Configuration);
+        database.ValidateTransportSecurity(builder.Environment.IsDevelopment());
         builder.Services.AddAbaPersistence(database);
         builder.Services.AddAbaCaching(builder.Configuration);
         builder.AddAbaWolverine(database);

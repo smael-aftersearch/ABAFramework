@@ -80,3 +80,7 @@ The generator supports `--with-db` to add an empty owner-specific Infrastructure
 ## Redis driver failure with actual network outage
 
 `ActualRedisClientCanBypassUnreachableServerForAuthorizedQueriesOnly` uses the real `StackExchangeRedisCache` adapter pointed at an intentionally unreachable loopback TCP port. With explicit `UseAuthoritativeSource` a non-authoritative read-through query must call its source exactly once. The identical real Redis failure in default `FailClosed` must propagate and **must not invoke the source**. The suite does not yet prove recovery after a previously connected live Redis service restarts.
+
+## Database transport security baseline
+
+`AbaPlatformTests.ProductionDatabaseRequiresVerifiedEncryptedTransport` checks fail-closed behavior for insecure PostgreSQL and SQL Server connections, including encrypted-without-identity-verification cases, and accepts PostgreSQL `SSL Mode=VerifyFull` or SQL Server `Encrypt=True/Strict;TrustServerCertificate=False`. Development-only self-signed local integration services remain supported. This validates startup configuration rather than real production certificate deployment; TLS/mTLS, CA rotation, DNS and secure secrets still need ops integration tests.

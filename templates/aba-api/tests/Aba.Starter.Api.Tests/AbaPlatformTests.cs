@@ -119,6 +119,35 @@ public sealed class AbaPlatformTests
             AbaDatabaseOptions.FromConfiguration(Config(new Dictionary<string, string?>
                 { ["Platform:Database:Provider"] = "PostgreSql" })));
 
+    [Theory]
+    [InlineData("PostgreSql", "Host=localhost;Database=aba;Username=aba;Password=test", false)]
+    [InlineData("PostgreSql", "Host=localhost;Database=aba;Username=aba;Password=test;SSL Mode=Require", false)]
+    [InlineData("PostgreSql", "Host=localhost;Database=aba;Username=aba;Password=test;SSL Mode=VerifyCA", false)]
+    [InlineData("PostgreSql", "Host=localhost;Database=aba;Username=aba;Password=test;SSL Mode=VerifyFull", true)]
+    [InlineData("SqlServer", "Server=localhost;Database=aba;User ID=sa;Password=Test!123;Encrypt=False", false)]
+    [InlineData("SqlServer", "Server=localhost;Database=aba;User ID=sa;Password=Test!123;Encrypt=True;TrustServerCertificate=True", false)]
+    [InlineData("SqlServer", "Server=localhost;Database=aba;User ID=sa;Password=Test!123;Encrypt=True;TrustServerCertificate=False", true)]
+    [InlineData("SqlServer", "Server=localhost;Database=aba;User ID=sa;Password=Test!123;Encrypt=Strict", true)]
+    public void ProductionDatabaseRequiresVerifiedEncryptedTransport(
+        string provider, string connection, bool accepted)
+    {
+        var settings = AbaDatabaseOptions.FromConfiguration(Config(
+            new Dictionary<string, string?>
+            {
+                ["Platform:Database:Provider"] = provider,
+                ["ConnectionStrings:AbaDatabase"] = connection
+            }));
+        if (accepted)
+            settings.ValidateTransportSecurity(isDevelopment: false);
+        else
+            Assert.Throws<InvalidOperationException>(() =>
+                settings.ValidateTransportSecurity(isDevelopment: false));
+
+        // Disposable local/test database servers may use self-signed certs,
+        // but only when host environment is Development.
+        settings.ValidateTransportSecurity(isDevelopment: true);
+    }
+
     [Fact]
     public void RedisCannotBeEnabledWithoutConnection() =>
         Assert.Throws<InvalidOperationException>(() =>
