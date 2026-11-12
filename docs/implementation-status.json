@@ -217,27 +217,37 @@
       "id": "auth-sql-rls",
       "area": "Security",
       "feature": "Database-enforced Row-Level Security",
-      "status": "not_started",
+      "status": "partial",
       "owner": "Owning business context / DBA",
       "priority": "P0",
-      "delivered": "Not implemented",
-      "remaining": "Plan and verify provider-specific RLS for both databases",
+      "delivered": "Opt-in PostgreSQL forced RLS and SQL Server FILTER/BLOCK SQL policy generators, transaction-bound tenant scope and real provider negative tests; latest CI verification pending",
+      "remaining": "Apply owner-specific RLS migrations and least-privilege roles, verify membership authorization and privileged/session spoof bypass cases",
       "acceptance": "Direct SQL and EF ExecuteUpdate cannot modify foreign tenant records",
-      "evidence": [],
-      "tests": []
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaTenantRlsPolicies.cs",
+        "templates/aba-api/docs/decisions/ADR-005-tenant-row-security.md"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/TenantRlsPolicyTests.cs",
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/RowLevelSecurityTests.cs"
+      ]
     },
     {
       "id": "auth-raw-sql",
       "area": "Security",
       "feature": "Bulk/raw SQL tenant authorization",
-      "status": "not_started",
+      "status": "partial",
       "owner": "Owning business context / Security",
       "priority": "P0",
-      "delivered": "Not implemented",
-      "remaining": "Add trusted tenant-bound access policies beyond EF tracking",
+      "delivered": "Trusted, parameterized tenant-to-transaction binding with raw SQL and EF ExecuteUpdate/Delete denial tests; new CI verification pending",
+      "remaining": "Block SQL-injection tenant session spoofing, adopt real context-aware raw SQL authorization and least-privileged production accounts",
       "acceptance": "Cross-tenant raw SQL and bulk mutation are denied",
-      "evidence": [],
-      "tests": []
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaTenantRlsPolicies.cs"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/RowLevelSecurityTests.cs"
+      ]
     },
     {
       "id": "db-transport-tls",
@@ -796,13 +806,14 @@
       "status": "partial",
       "owner": "Release engineering",
       "priority": "P0",
-      "delivered": "CI-verified fail-closed NuGet advisory and SPDX 2.3 scans for default (161 packages) and external integration project (104 packages), with 16 negative/positive tests",
-      "remaining": "Pin and scan OCI image digests; sign/verify release artifacts, attest provenance and approve publication controls",
+      "delivered": "NuGet audited/SPDX project graphs, runtime fixable-CRITICAL Trivy scanner and GitHub OIDC/Sigstore template provenance verification wired in CI; new CI status pending",
+      "remaining": "Prove signed provenance verification, pin base-image digests, approve severity policy and sign actual published OCI/NuGet releases",
       "acceptance": "Release pipeline rejects vulnerable/untrusted dependencies and verifies provenance",
       "evidence": [
         "templates/aba-api/tools/supply_chain.py",
         ".github/workflows/verify.yml",
-        "templates/aba-api/.github/workflows/ci.yml"
+        "templates/aba-api/.github/workflows/ci.yml",
+        "docs/release-integrity.md"
       ],
       "tests": [
         "templates/aba-api/tools/test_supply_chain.py",

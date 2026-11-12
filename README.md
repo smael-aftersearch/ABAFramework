@@ -95,7 +95,7 @@ its **production release gates remain open**. Evidence refers to the last review
 [CI run 43313417455](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43313417455)
 (commit `3e8f18552d9b`). New commits must pass their own CI before being treated as verified.
 
-**Tracked: 54** · Implemented: 31 · Partial: 4 · Not implemented: 19.
+**Tracked: 54** · Implemented: 31 · Partial: 6 · Not implemented: 17.
 
 | Area | Parameter / feature | Status | Delivered scope | Remaining task | Priority |
 | --- | --- | --- | --- | --- | --- |
@@ -111,8 +111,8 @@ its **production release gates remain open**. Evidence refers to the last review
 | Security | Trusted tenant claim required when enabled | **Implemented** | JWT tenant claim fallback/default authorization; ignores raw tenant header | Prove organization membership in actual IdP | P0 |
 | Security | Tenant membership / RBAC / ABAC | **Not implemented** | Not implemented | Define owning membership model, roles and permissions | P0 |
 | Security | EF tenant row query and SaveChanges guards | **Implemented** | Tenant-scoped EF filtering and foreign-row write rejection | Raw SQL, bulk updates and SQL-level RLS remain open | P0 |
-| Security | Database-enforced Row-Level Security | **Not implemented** | Not implemented | Plan and verify provider-specific RLS for both databases | P0 |
-| Security | Bulk/raw SQL tenant authorization | **Not implemented** | Not implemented | Add trusted tenant-bound access policies beyond EF tracking | P0 |
+| Security | Database-enforced Row-Level Security | **Partial** | Opt-in PostgreSQL forced RLS and SQL Server FILTER/BLOCK SQL policy generators, transaction-bound tenant scope and real provider negative tests; latest CI verification pending | Apply owner-specific RLS migrations and least-privilege roles, verify membership authorization and privileged/session spoof bypass cases | P0 |
+| Security | Bulk/raw SQL tenant authorization | **Partial** | Trusted, parameterized tenant-to-transaction binding with raw SQL and EF ExecuteUpdate/Delete denial tests; new CI verification pending | Block SQL-injection tenant session spoofing, adopt real context-aware raw SQL authorization and least-privileged production accounts | P0 |
 | Persistence | Production SQL TLS and certificate identity | **Implemented** | Production startup rejects PostgreSQL without VerifyFull and SQL Server without verified encryption; real container negative tests passed | Configure real certificate authority/trust chain and rotation in target deployment | P0 |
 | Persistence | EF Core 10 PostgreSQL provider | **Implemented** | Runtime Npgsql provider selected by config | Context-owned schema migrations require real domains | P0 |
 | Persistence | EF Core 10 Microsoft SQL Server provider | **Implemented** | Runtime EF SqlServer provider selected by config | Context-owned schema migrations require real domains | P0 |
@@ -147,7 +147,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | Testing | Real PostgreSQL/SQL Server/Redis/Wolverine CI | **Implemented** | 16 executable real-service tests across both SQL engines | Crash, high-load and external broker remain release gates | P0 |
 | Testing | CI bundled into each generated API | **Implemented** | Push/PR build gate and manually triggered real-service workflow | Generated-project pipelines need repository policy/hardening to be adopted | P1 |
 | Deployment | Non-root OCI image and local Compose | **Implemented** | Multi-stage .NET 10 Dockerfile, localhost-only Development Compose | Production image signing, secrets/TLS/hosting still open | P1 |
-| Deployment | SBOM, vulnerability scans and signed releases | **Partial** | CI-verified fail-closed NuGet advisory and SPDX 2.3 scans for default (161 packages) and external integration project (104 packages), with 16 negative/positive tests | Pin and scan OCI image digests; sign/verify release artifacts, attest provenance and approve publication controls | P0 |
+| Deployment | SBOM, vulnerability scans and signed releases | **Partial** | NuGet audited/SPDX project graphs, runtime fixable-CRITICAL Trivy scanner and GitHub OIDC/Sigstore template provenance verification wired in CI; new CI status pending | Prove signed provenance verification, pin base-image digests, approve severity policy and sign actual published OCI/NuGet releases | P0 |
 | Deployment | Production deployment with TLS, identity and rollback | **Not implemented** | Not implemented | Choose target hosting, configure DNS/TLS/secrets and deployment rollback | P0 |
 | Operations | Latency/throughput/load and failover baseline | **Not implemented** | Not implemented | Set SLO and run load/chaos tests across two provider deployments | P1 |
 | Business | Owner-defined versioned cross-context contracts | **Partial** | Context generator creates Contracts project; no real product Contracts | Specify real public V1 schemas, consumers and compatibility evolution | P0 |
@@ -159,8 +159,8 @@ its **production release gates remain open**. Evidence refers to the last review
 | Task ID | Task / acceptance gate | Current state |
 | --- | --- | --- |
 | `auth-membership` | Define owning membership model, roles and permissions — Unauthorized member and cross-organization privilege escalation tests | Not implemented |
-| `auth-sql-rls` | Plan and verify provider-specific RLS for both databases — Direct SQL and EF ExecuteUpdate cannot modify foreign tenant records | Not implemented |
-| `auth-raw-sql` | Add trusted tenant-bound access policies beyond EF tracking — Cross-tenant raw SQL and bulk mutation are denied | Not implemented |
+| `auth-sql-rls` | Apply owner-specific RLS migrations and least-privilege roles, verify membership authorization and privileged/session spoof bypass cases — Direct SQL and EF ExecuteUpdate cannot modify foreign tenant records | Partial |
+| `auth-raw-sql` | Block SQL-injection tenant session spoofing, adopt real context-aware raw SQL authorization and least-privileged production accounts — Cross-tenant raw SQL and bulk mutation are denied | Partial |
 | `db-business-migrations` | Implement real owner-specific models and migrations after requirements — Both SQL engines perform context migration without shared business tables | Not implemented |
 | `db-backup-restore` | Prove business-schema and point-in-time recovery, migration rollback, offsite encrypted backups, RTO/RPO and operator restore rehearsal — Recover both SQL engines and confirm data integrity after test failure | Partial |
 | `msg-poison-replay` | Add reviewed dead-letter administration/replay without bypassing authorization — Poison message is quarantined, inspected and safely replayed exactly as intended | Not implemented |
@@ -168,7 +168,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | `msg-domain-consumers` | Implement owner-approved domain contracts, Inbox and cross-context handlers — Consumer cannot mutate another context's tables; duplicate events are safe | Not implemented |
 | `ops-audit` | Define context-owned auditable actions with safe retention/PII policy — Audit cannot be silently rewritten and records actor, action, tenant, outcome | Not implemented |
 | `ops-prod-secrets` | Add approved secret store, rotation and least-privilege deployment setup — No plaintext production secret in repo/container/CI logs | Not implemented |
-| `dev-release-sbom` | Pin and scan OCI image digests; sign/verify release artifacts, attest provenance and approve publication controls — Release pipeline rejects vulnerable/untrusted dependencies and verifies provenance | Partial |
+| `dev-release-sbom` | Prove signed provenance verification, pin base-image digests, approve severity policy and sign actual published OCI/NuGet releases — Release pipeline rejects vulnerable/untrusted dependencies and verifies provenance | Partial |
 | `dev-prod-deploy` | Choose target hosting, configure DNS/TLS/secrets and deployment rollback — Production smoke, zero-downtime deploy and rollback drill pass | Not implemented |
 | `biz-contracts` | Specify real public V1 schemas, consumers and compatibility evolution — V1 consumers stay compatible; private implementation edges rejected | Partial |
 | `biz-contract-tests` | Introduce consumer-driven tests for real event/HTTP contracts — A breaking V1 change fails CI and requires an explicit V2 | Not implemented |
