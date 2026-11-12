@@ -2,7 +2,7 @@
 
 A **real source-code starting point** for an ABA-aligned C#/.NET 10 modular monolith, implementing a complete **paid enrollment vertical slice** across five bounded contexts. This is a **development-only preview** with intentionally limited infrastructure, not a finished production framework.
 
-**Status (2026-11-12):** Repository created. Python architecture governance and negative tests passed in the authoring environment. **C# build, C# smoke suite, and HTTP runtime have NOT been executed here** because the .NET SDK/Docker are not installed and external network DNS is unavailable. Run the commands below on a computer with .NET 10 to validate and iterate.
+**Status (2026-11-12):** The Phase-1 starter is committed on `main`. [GitHub Actions CI](https://github.com/smael-aftersearch/ABAFramework/actions) has verified .NET 10 restore, Release build, Academy console smoke, and architecture/AI governance. The original authoring environment lacked the .NET SDK; CI is the evidence for runtime compilation. **This is a local-development demo, not a public production deployment.**
 
 ## Implemented versus not yet implemented
 
@@ -61,9 +61,26 @@ python3 scripts/task_protocol.py verify --profile static --output artifacts/veri
 python3 scripts/task_protocol.py verify --profile all --output artifacts/verification/full.json
 ```
 
-The smoke suite is a dependency-free console program, not an xUnit/NUnit project. It covers the real cross-context flow, local restart persistence, event redelivery/idempotency, full capacity/waitlist behavior, and accounting invariants. It is **authored but not yet runtime-verified** in this environment.
+The smoke suite is a dependency-free console program, not an xUnit/NUnit project. It covers the real cross-context flow, local restart persistence, event redelivery/idempotency, full capacity/waitlist behavior, and accounting invariants. Its C# executable smoke suite is verified by the successful GitHub Actions run; it was not executed in the original authoring environment.
 
 ## Start the development API
+
+Clone the repository and install the .NET 10 SDK, then **run one command** from the repository root:
+
+```bash
+bash scripts/run-local.sh
+```
+
+Open the local endpoints at `http://127.0.0.1:5080/health/live` and `http://127.0.0.1:5080/openapi/v1.json`. Stop the server with `Ctrl+C`.
+
+To run an actual loopback HTTP startup check and end-to-end demo after building, use:
+
+```bash
+dotnet build ABA.Net10.Phase1.slnx -c Release
+bash scripts/verify-http.sh
+```
+
+Alternatively, start manually:
 
 ```bash
 ASPNETCORE_ENVIRONMENT=Development \

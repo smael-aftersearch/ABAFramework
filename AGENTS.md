@@ -22,6 +22,6 @@ For each material request, run `python3 scripts/task_protocol.py plan --task "<r
 
 ## Before finishing a material task
 
-Run `python3 scripts/test_task_protocol.py`, `python3 scripts/task_protocol.py verify --profile static` and relevant happy-path/negative tests. The verifier executes AI readiness, architecture governance, their negative tests and the C# structural scan; use `--profile all` for .NET restore/build/smoke. Use `bash scripts/verify-all.sh` for the complete stack when .NET 10 is available. Report command results precisely; missing SDK means .NET build/runtime remains unverified.
+Run `python3 scripts/test_task_protocol.py`, `python3 scripts/task_protocol.py verify --profile static` and relevant happy-path/negative tests. The verifier executes AI readiness, architecture governance, their negative tests and the C# structural scan; use `--profile all` for .NET restore/build/smoke. Use `bash scripts/verify-all.sh` for the complete stack when .NET 10 is available. For HTTP/API/host changes, build Release and run `bash scripts/verify-http.sh` to prove the loopback server starts and the API demo completes; never treat that local test as approval for public deployment. Report command results precisely; missing SDK means .NET build/runtime remains unverified.
 
 Finish with an **Architecture impact + Test evidence** report: owner, contracts, dependencies, updated docs, acceptance cases, test paths, exact commands with PASS/FAIL/NOT RUN, and remaining risks. Use `.github/pull_request_template.md`.

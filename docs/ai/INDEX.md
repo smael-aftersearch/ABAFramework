@@ -42,7 +42,7 @@ For a short Persian operator guide, see `docs/ai/USAGE-FA.md`. Read `docs/ai/CHA
 
 ## Implementation truth and confidence
 
-The current Phase-1 starter has local file Outbox/Inbox and in-memory caching, not PostgreSQL/Wolverine/Redis. OAuth/OIDC and production tenant isolation are not implemented. The .NET build was not run in the original authoring environment. **Do not turn planned architecture into a statement of delivered behavior**. See `VERIFICATION-REPORT.md`.
+The current Phase-1 starter has local file Outbox/Inbox and in-memory caching, not PostgreSQL/Wolverine/Redis. OAuth/OIDC and production tenant isolation are not implemented. The original authoring environment lacked .NET, but GitHub Actions verified restore, Release build and Academy console smoke. Follow the current CI run for HTTP startup results. **Do not turn planned architecture into a statement of delivered behavior**. See `VERIFICATION-REPORT.md`.
 
 ## Example cross-context rule
 

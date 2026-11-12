@@ -20,6 +20,8 @@ jobs:
           python3 scripts/task_protocol.py verify --profile all \
             --output artifacts/verification/ci.json \
             --markdown artifacts/verification/ci.md
+      - name: Prove development HTTP host starts and completes API demo
+        run: bash scripts/verify-http.sh
       - name: Upload QA evidence (including failed/incomplete runs)
         if: always()
         uses: actions/upload-artifact@v4

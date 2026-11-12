@@ -18,8 +18,8 @@ The ABA book's Chapter 19 (Executable Governance), Chapter 20 (Architecture Test
 | `scripts/ai_check.py` and `scripts/test_ai_check.py` | AI-documentation validator and tests | Valid skill/knowledge map/metadata; deliberately broken files rejected | Executed, passed |
 | `scripts/task_protocol.py` and `scripts/test_task_protocol.py` | Python test-impact planner, fixed-command QA runner and negative regression tests | Candidate owner/test recommendations and real execution evidence | Implemented in this update; Python tests executed |
 | `scripts/static_review.py` | Basic structural scan | C# brace/solution shape and metadata (not compilation) | Executed, passed |
-| `.github/workflows/verify.yml` | CI definition | Governance + source build + console smoke | CI run not verified here |
-| `scripts/verify-all.sh` | Local verification entrypoint | Above checks + `dotnet restore`, `dotnet build`, `dotnet run` smoke | Full execution blocked without .NET 10 SDK |
+| `.github/workflows/verify.yml` | CI definition | Governance + source build + console smoke; HTTP startup smoke added after initial green CI | GitHub Actions initial build/smoke success verified; HTTP test depends on subsequent CI results |
+| `scripts/verify-all.sh` | Local verification entrypoint | Above checks + `dotnet restore`, `dotnet build`, `dotnet run` smoke | Original authoring environment blocked; GitHub Actions verified .NET restore/build/smoke |
 
 There are **no** xUnit/NUnit projects, real PostgreSQL/Redis/Wolverine integration tests, API authorization tests, contract snapshot tests, formal code-coverage report, load tests, or end-to-end Docker tests in Phase 1. Do not claim these exist.
 
@@ -89,6 +89,8 @@ python3 scripts/task_protocol.py plan --task "add refund event"
 python3 scripts/task_protocol.py verify --profile static --output artifacts/verification/static.json
 python3 scripts/task_protocol.py verify --profile all --output artifacts/verification/full.json
 bash scripts/verify-all.sh
+# After a Release build, verify actual loopback HTTP startup and API demo:
+bash scripts/verify-http.sh
 ```
 
 With .NET 10 SDK, `verify-all.sh` delegates to the QA evidence runner; with .NET 10, it also runs:
