@@ -3,6 +3,7 @@ using Aba.Starter.Platform.Messaging;
 using Aba.Starter.Platform.Observability;
 using Aba.Starter.Platform.Persistence;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Hosting;
 
 namespace Aba.Starter.Platform;
 
