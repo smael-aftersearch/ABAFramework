@@ -22,7 +22,7 @@ cleanup() {
 }
 trap cleanup EXIT
 dotnet new install "$ROOT/templates/aba-api" >/dev/null
-dotnet new aba-api -n Pilot.QuickStart -o "$TEMP/quickstart" --no-restore
+dotnet new aba-api -n Pilot.QuickStart -o "$TEMP/quickstart"
 OUTPUT="$TEMP/quickstart"
 SOLUTION="$OUTPUT/Pilot.QuickStart.slnx"
 test -f "$SOLUTION"
