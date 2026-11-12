@@ -239,7 +239,7 @@ def verify(level: str) -> dict:
         proj = projects[0].relative_to(ROOT).as_posix()
         for command, title in (
             (["dotnet", "restore", proj], "Restore external integration project"),
-            (["dotnet", "test", proj, "-c", "Release", "--filter", "Category!=RecoveryDrill&Category!=CrashDrill"],
+            (["dotnet", "test", proj, "-c", "Release", "--filter", "Category!=RecoveryDrill&Category!=CrashDrill&Category!=RedisRestartDrill"],
              "Run real PostgreSQL, SQL Server, Redis and messaging tests"),
         ):
             if not execute(command, title):

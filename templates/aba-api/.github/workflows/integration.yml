@@ -7,6 +7,35 @@ permissions:
   contents: read
 
 jobs:
+  redis-restart:
+    # Manually dispatched alongside the other integration cases; only the
+    # disposable CI-owned Redis service will be stopped and restarted.
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Validate actual Redis shutdown, fail-closed fallback and recovery
+        env:
+          CI: "true"
+          ABA_ENABLE_REDIS_RESTART_DRILL: "yes"
+          ABA_TEST_REDIS: "localhost:6379,abortConnect=false"
+          ABA_TEST_REDIS_CONTAINER_ID: ${{ job.services.redis.id }}
+        run: |
+          dotnet test tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj \
+            -c Release --filter 'Category=RedisRestartDrill' \
+            --logger 'console;verbosity=normal'
+
   integration:
     runs-on: ubuntu-latest
     timeout-minutes: 25

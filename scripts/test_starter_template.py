@@ -262,6 +262,23 @@ class GenericTemplateTests(unittest.TestCase):
         self.assertIn("Category=CrashDrill", workflow)
         self.assertIn("Category=CrashDrill", script)
 
+    def test_real_redis_restart_is_isolated_and_fail_closed(self):
+        source = (TEMPLATE / 'tests/Aba.Starter.Platform.IntegrationTests/RedisRestartDrillTests.cs').read_text()
+        root_ci = (ROOT / '.github/workflows/verify.yml').read_text()
+        generated_ci = (TEMPLATE / '.github/workflows/integration.yml').read_text()
+        script = (ROOT / 'scripts/verify-platform-services.sh').read_text()
+        task = (TEMPLATE / 'tools/aba_task.py').read_text()
+        for marker in ('RequireCiService', 'DockerAsync("stop"', 'DockerAsync("start"',
+                       'ABA_ENABLE_REDIS_RESTART_DRILL', 'ABA_TEST_REDIS_CONTAINER_ID',
+                       'CacheOutagePolicy.FailClosed', 'UseAuthoritativeSource'):
+            self.assertIn(marker, source)
+        for workflow in (root_ci, generated_ci):
+            self.assertIn('  redis-restart:', workflow)
+            self.assertIn('job.services.redis.id', workflow)
+            self.assertIn("Category=RedisRestartDrill", workflow)
+        for value in (script, task):
+            self.assertIn('Category!=CrashDrill&Category!=RedisRestartDrill', value)
+
     def test_xunit_and_companion_script_exist(self):
         proj = (TEMPLATE / 'tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj').read_text()
         self.assertIn('PackageReference Include="xunit"', proj)
