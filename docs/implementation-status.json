@@ -1,0 +1,863 @@
+{
+  "schema_version": 1,
+  "baseline": {
+    "ci_run": 43302521502,
+    "commit": "b170e1c7858c90a5ab606d7253d87a315ee9a96d",
+    "note": "Verified generic v0.3 baseline; later source changes must pass their own CI."
+  },
+  "features": [
+    {
+      "id": "api-host",
+      "area": "API",
+      "feature": "Domain-neutral .NET 10 HTTP API",
+      "status": "implemented",
+      "owner": "Host",
+      "priority": "P0",
+      "delivered": "Versioned Minimal API with composition root",
+      "remaining": "No generic framework work outstanding",
+      "acceptance": "Generate, build and launch a fresh named API",
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Api/Program.cs"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/ApiSmokeTests.cs",
+        "scripts/verify-starter.sh"
+      ]
+    },
+    {
+      "id": "api-openapi",
+      "area": "API",
+      "feature": "OpenAPI plus interactive Scalar",
+      "status": "implemented",
+      "owner": "Host",
+      "priority": "P1",
+      "delivered": "Generated OpenAPI and Development-only Scalar UI",
+      "remaining": "Production API docs need a reviewed access policy",
+      "acceptance": "Generated spec and Scalar return valid HTTP",
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Api/Program.cs"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/ApiSmokeTests.cs",
+        "scripts/verify-starter.sh"
+      ]
+    },
+    {
+      "id": "api-problems",
+      "area": "API",
+      "feature": "Problem Details and HTTP errors",
+      "status": "implemented",
+      "owner": "Host",
+      "priority": "P1",
+      "delivered": "ASP.NET ProblemDetails and exception handler",
+      "remaining": "Per-context business error taxonomy not yet specified",
+      "acceptance": "Invalid requests return stable nonsecret error envelopes",
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Api/Program.cs"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/ApiSmokeTests.cs"
+      ]
+    },
+    {
+      "id": "api-correlation",
+      "area": "API",
+      "feature": "Request correlation IDs",
+      "status": "implemented",
+      "owner": "Host",
+      "priority": "P1",
+      "delivered": "Validated X-Correlation-ID response header",
+      "remaining": "Correlate logs, traces and message envelopes across services",
+      "acceptance": "Reject malformed input and preserve valid identifiers",
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Api/Program.cs"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/ApiSmokeTests.cs"
+      ]
+    },
+    {
+      "id": "api-health",
+      "area": "API",
+      "feature": "Liveness and readiness",
+      "status": "implemented",
+      "owner": "Platform + Host",
+      "priority": "P0",
+      "delivered": "Separate health/live and health/ready with dependency tags",
+      "remaining": "Prove health behavior during dependency outage and at scale",
+      "acceptance": "Live does not depend on DB; ready detects configured dependencies",
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Api/Program.cs",
+        "templates/aba-api/src/Aba.Starter.Platform/AbaPlatformSetup.cs"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/ApiSmokeTests.cs",
+        "scripts/verify-container-starter.sh"
+      ]
+    },
+    {
+      "id": "api-rate-limits",
+      "area": "API",
+      "feature": "Authenticated per-identity rate limits",
+      "status": "implemented",
+      "owner": "Host",
+      "priority": "P1",
+      "delivered": "JWT subject + tenant partition; anonymous TCP peer; Health bypass",
+      "remaining": "Multi-node shared quotas require a gateway",
+      "acceptance": "429 under quota pressure; untrusted headers cannot alter identity",
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Api/Platform/AbaRateLimitOptions.cs"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/RateLimitTests.cs"
+      ]
+    },
+    {
+      "id": "api-shared-limits",
+      "area": "API",
+      "feature": "Distributed multi-instance rate limits",
+      "status": "not_started",
+      "owner": "Operations",
+      "priority": "P1",
+      "delivered": "Not implemented",
+      "remaining": "Add shared gateway/quota store with trusted proxy policy",
+      "acceptance": "Verify one limit across two replicas under concurrent load",
+      "evidence": [],
+      "tests": []
+    },
+    {
+      "id": "auth-jwt",
+      "area": "Security",
+      "feature": "OIDC/JWT signature, issuer and audience",
+      "status": "implemented",
+      "owner": "Host / Identity Provider",
+      "priority": "P0",
+      "delivered": "ASP.NET JWT bearer validation and fail-closed production OIDC config",
+      "remaining": "External real-user IdP configuration and security operations remain",
+      "acceptance": "Invalid signature, issuer, audience and expiry are rejected",
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Api/Program.cs",
+        "templates/aba-api/src/Aba.Starter.Api/Platform/StartupSecurityGuard.cs"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/SignedJwtAuthenticationTests.cs",
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/SecurityGuardTests.cs"
+      ]
+    },
+    {
+      "id": "auth-keycloak",
+      "area": "Security",
+      "feature": "Real Keycloak OIDC/JWKS test",
+      "status": "implemented",
+      "owner": "Security / Test Harness",
+      "priority": "P0",
+      "delivered": "Ephemeral Keycloak CI verifies signed 204, missing/malformed 401, tenant 403",
+      "remaining": "Real IdP key rotation and organization policy not validated",
+      "acceptance": "Pass real Keycloak issuance, JWKS discovery and negative cases",
+      "evidence": [
+        "scripts/verify-keycloak-oidc.sh",
+        "infra/keycloak/aba-ci-realm.json"
+      ],
+      "tests": [
+        "scripts/verify-keycloak-oidc.sh"
+      ]
+    },
+    {
+      "id": "auth-tenant-claim",
+      "area": "Security",
+      "feature": "Trusted tenant claim required when enabled",
+      "status": "implemented",
+      "owner": "Host / Security",
+      "priority": "P0",
+      "delivered": "JWT tenant claim fallback/default authorization; ignores raw tenant header",
+      "remaining": "Prove organization membership in actual IdP",
+      "acceptance": "Authenticated user with valid tenant succeeds; missing tenant fails",
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Platform/Security/AbaTenantClaims.cs"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/AbaPlatformTests.cs",
+        "scripts/verify-keycloak-oidc.sh"
+      ]
+    },
+    {
+      "id": "auth-membership",
+      "area": "Security",
+      "feature": "Tenant membership / RBAC / ABAC",
+      "status": "not_started",
+      "owner": "Identity (business owner TBD)",
+      "priority": "P0",
+      "delivered": "Not implemented",
+      "remaining": "Define owning membership model, roles and permissions",
+      "acceptance": "Unauthorized member and cross-organization privilege escalation tests",
+      "evidence": [],
+      "tests": []
+    },
+    {
+      "id": "auth-tenant-ef",
+      "area": "Security",
+      "feature": "EF tenant row query and SaveChanges guards",
+      "status": "implemented",
+      "owner": "Platform (opt-in per context)",
+      "priority": "P0",
+      "delivered": "Tenant-scoped EF filtering and foreign-row write rejection",
+      "remaining": "Raw SQL, bulk updates and SQL-level RLS remain open",
+      "acceptance": "PostgreSQL and SQL Server deny forged insert and cross-tenant update",
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaTenantDbContext.cs"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/TenantDatabaseBoundaryTests.cs",
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/TenantPersistenceTests.cs"
+      ]
+    },
+    {
+      "id": "auth-sql-rls",
+      "area": "Security",
+      "feature": "Database-enforced Row-Level Security",
+      "status": "not_started",
+      "owner": "Owning business context / DBA",
+      "priority": "P0",
+      "delivered": "Not implemented",
+      "remaining": "Plan and verify provider-specific RLS for both databases",
+      "acceptance": "Direct SQL and EF ExecuteUpdate cannot modify foreign tenant records",
+      "evidence": [],
+      "tests": []
+    },
+    {
+      "id": "auth-raw-sql",
+      "area": "Security",
+      "feature": "Bulk/raw SQL tenant authorization",
+      "status": "not_started",
+      "owner": "Owning business context / Security",
+      "priority": "P0",
+      "delivered": "Not implemented",
+      "remaining": "Add trusted tenant-bound access policies beyond EF tracking",
+      "acceptance": "Cross-tenant raw SQL and bulk mutation are denied",
+      "evidence": [],
+      "tests": []
+    },
+    {
+      "id": "db-transport-tls",
+      "area": "Persistence",
+      "feature": "Production SQL TLS and certificate identity",
+      "status": "partial",
+      "owner": "Platform / Operations",
+      "priority": "P0",
+      "delivered": "Startup guard authored for PostgreSQL VerifyFull and SQL Server encryption; new CI not yet reviewed",
+      "remaining": "Verify compile/negative tests, production cert trust and deployment integration",
+      "acceptance": "Non-Development refuses insecure or unverified SQL connection strings",
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaDatabaseOptions.cs",
+        "templates/aba-api/src/Aba.Starter.Platform/AbaPlatformSetup.cs"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/AbaPlatformTests.cs"
+      ]
+    },
+    {
+      "id": "db-postgres",
+      "area": "Persistence",
+      "feature": "EF Core 10 PostgreSQL provider",
+      "status": "implemented",
+      "owner": "Platform",
+      "priority": "P0",
+      "delivered": "Runtime Npgsql provider selected by config",
+      "remaining": "Context-owned schema migrations require real domains",
+      "acceptance": "Create provider DbContext and apply technical migrations on PostgreSQL",
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaPersistenceServices.cs"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs"
+      ]
+    },
+    {
+      "id": "db-sqlserver",
+      "area": "Persistence",
+      "feature": "EF Core 10 Microsoft SQL Server provider",
+      "status": "implemented",
+      "owner": "Platform",
+      "priority": "P0",
+      "delivered": "Runtime EF SqlServer provider selected by config",
+      "remaining": "Context-owned schema migrations require real domains",
+      "acceptance": "Create provider DbContext and apply technical migrations on SQL Server",
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaPersistenceServices.cs"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs"
+      ]
+    },
+    {
+      "id": "db-technical-migrations",
+      "area": "Persistence",
+      "feature": "EF technical idempotency migration",
+      "status": "implemented",
+      "owner": "Platform",
+      "priority": "P0",
+      "delivered": "Provider-neutral checked-in EF technical migration",
+      "remaining": "Production migration rollback/backup remains unverified",
+      "acceptance": "Migration and unique key constraint work on both SQL engines",
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Platform/Persistence/Migrations/202611120001_InitialTechnicalStore.cs"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs"
+      ]
+    },
+    {
+      "id": "db-context-scaffold",
+      "area": "Persistence",
+      "feature": "Optional per-context EF Core scaffold",
+      "status": "implemented",
+      "owner": "Developer tools",
+      "priority": "P1",
+      "delivered": "--with-db creates empty context-owned DbContext for both SQL engines",
+      "remaining": "No business entities, actual migrations or policies are invented",
+      "acceptance": "Fresh generated context compiles and provider registration tests pass",
+      "evidence": [
+        "templates/aba-api/tools/new_context.py"
+      ],
+      "tests": [
+        "scripts/verify-starter.sh"
+      ]
+    },
+    {
+      "id": "db-business-migrations",
+      "area": "Persistence",
+      "feature": "Business context schema and migrations",
+      "status": "not_started",
+      "owner": "Actual context owner (TBD)",
+      "priority": "P0",
+      "delivered": "Not implemented",
+      "remaining": "Implement real owner-specific models and migrations after requirements",
+      "acceptance": "Both SQL engines perform context migration without shared business tables",
+      "evidence": [],
+      "tests": []
+    },
+    {
+      "id": "db-concurrency",
+      "area": "Persistence",
+      "feature": "Business optimistic concurrency handling",
+      "status": "not_started",
+      "owner": "Actual context owner (TBD)",
+      "priority": "P1",
+      "delivered": "Not implemented",
+      "remaining": "Implement rowversion/concurrency tokens and conflict semantics per context",
+      "acceptance": "Two updates cannot silently overwrite the same business aggregate",
+      "evidence": [],
+      "tests": []
+    },
+    {
+      "id": "db-backup-restore",
+      "area": "Persistence",
+      "feature": "Backup, recovery, rollback and restore drill",
+      "status": "not_started",
+      "owner": "Operations / DBA",
+      "priority": "P0",
+      "delivered": "Not implemented",
+      "remaining": "Build reversible migration and recoverable backup/restore runbooks",
+      "acceptance": "Recover both SQL engines and confirm data integrity after test failure",
+      "evidence": [],
+      "tests": []
+    },
+    {
+      "id": "idem-atomic",
+      "area": "Reliability",
+      "feature": "Transactional idempotency receipt and work",
+      "status": "implemented",
+      "owner": "Platform",
+      "priority": "P0",
+      "delivered": "Same-DbContext work and receipt commit/rollback together",
+      "remaining": "External provider side effects still require dedicated idempotency",
+      "acceptance": "Fault rolls back receipt+work on both databases",
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaPersistenceServices.cs"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs"
+      ]
+    },
+    {
+      "id": "idem-concurrent",
+      "area": "Reliability",
+      "feature": "Concurrent duplicate request suppression",
+      "status": "implemented",
+      "owner": "Platform",
+      "priority": "P0",
+      "delivered": "Four concurrent callers; only one same-key transaction commits",
+      "remaining": "Cross-service external payment retries need real owning context",
+      "acceptance": "One transaction wins on PostgreSQL and SQL Server",
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaPersistenceServices.cs"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs"
+      ]
+    },
+    {
+      "id": "msg-wolverine",
+      "area": "Messaging",
+      "feature": "Wolverine 6 durable local queues",
+      "status": "implemented",
+      "owner": "Platform",
+      "priority": "P0",
+      "delivered": "Durable relational messaging with either SQL engine",
+      "remaining": "External broker delivery not yet wired",
+      "acceptance": "Technical handler processes durable message in both providers",
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Platform/Messaging/AbaWolverineServices.cs"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs"
+      ]
+    },
+    {
+      "id": "msg-ef-outbox",
+      "area": "Messaging",
+      "feature": "EF Core/Wolverine technical transactional Outbox",
+      "status": "implemented",
+      "owner": "Platform",
+      "priority": "P0",
+      "delivered": "Technical state+outgoing message atomic under precommit fault",
+      "remaining": "Real business consumers and crash windows remain open",
+      "acceptance": "State and message commit together or both roll back on two DB engines",
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Platform/Messaging/AbaDurabilityProbe.cs"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs"
+      ]
+    },
+    {
+      "id": "msg-restart",
+      "area": "Messaging",
+      "feature": "Durable scheduled message across clean restart",
+      "status": "implemented",
+      "owner": "Platform",
+      "priority": "P1",
+      "delivered": "Persisted scheduled Wolverine message recovers after host restart",
+      "remaining": "Abrupt crash and poison replay remain unverified",
+      "acceptance": "Second host delivers message persisted by first host",
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Platform/Messaging/AbaWolverineServices.cs"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/DurabilityRecoveryTests.cs"
+      ]
+    },
+    {
+      "id": "msg-poison-replay",
+      "area": "Messaging",
+      "feature": "Poison/dead-letter inspection and replay",
+      "status": "not_started",
+      "owner": "Platform / Operations",
+      "priority": "P0",
+      "delivered": "Not implemented",
+      "remaining": "Add reviewed dead-letter administration/replay without bypassing authorization",
+      "acceptance": "Poison message is quarantined, inspected and safely replayed exactly as intended",
+      "evidence": [],
+      "tests": []
+    },
+    {
+      "id": "msg-crash-window",
+      "area": "Messaging",
+      "feature": "Crash-kill Outbox recovery and duplicate delivery",
+      "status": "not_started",
+      "owner": "Platform / Operations",
+      "priority": "P0",
+      "delivered": "Not implemented",
+      "remaining": "Test kill at commit/publish/ack boundary and recovery on both SQL engines",
+      "acceptance": "No message loss across abrupt process death and controlled duplicate deliveries",
+      "evidence": [],
+      "tests": []
+    },
+    {
+      "id": "msg-broker",
+      "area": "Messaging",
+      "feature": "Optional external RabbitMQ/Kafka transport",
+      "status": "not_started",
+      "owner": "Platform",
+      "priority": "P1",
+      "delivered": "Not implemented",
+      "remaining": "Add a versioned optional broker adapter when actual demand exists",
+      "acceptance": "Broker outage, retry and duplicate-delivery integration scenarios pass",
+      "evidence": [],
+      "tests": []
+    },
+    {
+      "id": "msg-domain-consumers",
+      "area": "Messaging",
+      "feature": "Real context-owned events and consumers",
+      "status": "not_started",
+      "owner": "Business owners (TBD)",
+      "priority": "P0",
+      "delivered": "Not implemented",
+      "remaining": "Implement owner-approved domain contracts, Inbox and cross-context handlers",
+      "acceptance": "Consumer cannot mutate another context's tables; duplicate events are safe",
+      "evidence": [],
+      "tests": []
+    },
+    {
+      "id": "cache-redis",
+      "area": "Caching",
+      "feature": "Redis distributed cache with TTL and scopes",
+      "status": "implemented",
+      "owner": "Platform",
+      "priority": "P1",
+      "delivered": "StackExchangeRedis adapter with scoped JSON TTL/invalidation",
+      "remaining": "Distributed invalidation and PII audit remain open",
+      "acceptance": "Redis integration test proves read/write/remove and scoped isolation",
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Platform/Caching/AbaCachingServices.cs"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs"
+      ]
+    },
+    {
+      "id": "cache-outage",
+      "area": "Caching",
+      "feature": "Read-through fallback when Redis unavailable",
+      "status": "implemented",
+      "owner": "Platform",
+      "priority": "P1",
+      "delivered": "Default fail-closed; explicit fresh authoritative query fallback",
+      "remaining": "Cluster reconnect, authorized workloads and load behavior unverified",
+      "acceptance": "Real Redis-client failure preserves strict and opted-in semantics",
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Platform/Caching/ReadThroughQueryCache.cs"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/ReadThroughCacheTests.cs",
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs"
+      ]
+    },
+    {
+      "id": "cache-multinode",
+      "area": "Caching",
+      "feature": "Cross-instance invalidation and tenant permissions",
+      "status": "not_started",
+      "owner": "Platform + business owners",
+      "priority": "P1",
+      "delivered": "Not implemented",
+      "remaining": "Add versioned invalidation events with authorized namespace boundaries",
+      "acceptance": "Two API replicas observe invalidations without cross-tenant leakage",
+      "evidence": [],
+      "tests": []
+    },
+    {
+      "id": "cache-stampede",
+      "area": "Caching",
+      "feature": "Cache stampede and Redis restart resilience",
+      "status": "not_started",
+      "owner": "Platform / Operations",
+      "priority": "P1",
+      "delivered": "Not implemented",
+      "remaining": "Test reconnect after real Redis restart, TTL races and concurrent miss budget",
+      "acceptance": "No excessive authoritative DB load during simultaneous cache misses",
+      "evidence": [],
+      "tests": []
+    },
+    {
+      "id": "otel-instrument",
+      "area": "Observability",
+      "feature": "OpenTelemetry ASP.NET/HTTP traces and metrics",
+      "status": "partial",
+      "owner": "Platform",
+      "priority": "P1",
+      "delivered": "Optional tracing/metrics instrumentation and OTLP exporter wiring",
+      "remaining": "Prove export to a real collector and enforce PII/sampling policy",
+      "acceptance": "Collector receives correlated spans/metrics without secrets",
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Platform/Observability/AbaObservabilityServices.cs"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/AbaPlatformTests.cs"
+      ]
+    },
+    {
+      "id": "otel-collector",
+      "area": "Observability",
+      "feature": "Collector pipeline and export integration test",
+      "status": "not_started",
+      "owner": "Platform / Operations",
+      "priority": "P1",
+      "delivered": "Not implemented",
+      "remaining": "Add isolated OTLP receiver/collector to CI and verify trace/metric export",
+      "acceptance": "Collector observes test request traces and identifies service correctly",
+      "evidence": [],
+      "tests": []
+    },
+    {
+      "id": "ops-audit",
+      "area": "Observability",
+      "feature": "Tamper-evident audit trail",
+      "status": "not_started",
+      "owner": "Security / business owners",
+      "priority": "P0",
+      "delivered": "Not implemented",
+      "remaining": "Define context-owned auditable actions with safe retention/PII policy",
+      "acceptance": "Audit cannot be silently rewritten and records actor, action, tenant, outcome",
+      "evidence": [],
+      "tests": []
+    },
+    {
+      "id": "ops-prod-secrets",
+      "area": "Operations",
+      "feature": "Production secrets, key rotation and policy",
+      "status": "not_started",
+      "owner": "Operations / Security",
+      "priority": "P0",
+      "delivered": "Not implemented",
+      "remaining": "Add approved secret store, rotation and least-privilege deployment setup",
+      "acceptance": "No plaintext production secret in repo/container/CI logs",
+      "evidence": [],
+      "tests": []
+    },
+    {
+      "id": "dev-dotnetnew",
+      "area": "Developer",
+      "feature": "Installable versioned NuGet API template",
+      "status": "implemented",
+      "owner": "Developer tools",
+      "priority": "P1",
+      "delivered": "v0.3.0-preview.1 NuGet template artifact installs successfully",
+      "remaining": "NuGet.org publishing and signed release not done",
+      "acceptance": "Fresh project builds and tests from actual packed nupkg",
+      "evidence": [
+        "packaging/ABAFramework.GenericApi.Template.csproj"
+      ],
+      "tests": [
+        "scripts/pack-template.sh"
+      ]
+    },
+    {
+      "id": "dev-contexts",
+      "area": "Developer",
+      "feature": "Domain/Application/Contracts/Infrastructure generator",
+      "status": "implemented",
+      "owner": "Developer tools",
+      "priority": "P1",
+      "delivered": "Scaffold real named contexts with ownership docs; no fictional entities",
+      "remaining": "Complete real domain behavior remains owner-dependent",
+      "acceptance": "Scaffold plus isolated xUnit tests compile; invalid context rejected",
+      "evidence": [
+        "templates/aba-api/tools/new_context.py"
+      ],
+      "tests": [
+        "scripts/verify-starter.sh"
+      ]
+    },
+    {
+      "id": "dev-architecture",
+      "area": "Governance",
+      "feature": "ABA ownership and forbidden-edge checks",
+      "status": "implemented",
+      "owner": "Governance",
+      "priority": "P0",
+      "delivered": "Repo and generated-project architecture checks with negative cases",
+      "remaining": "Semantic/IL enforcement still requires human architecture review",
+      "acceptance": "Forbidden imports, missing ownership and duplicate contexts fail",
+      "evidence": [
+        "scripts/governance.py",
+        "templates/aba-api/tools/new_context.py"
+      ],
+      "tests": [
+        "scripts/test_governance.py",
+        "scripts/verify-starter.sh"
+      ]
+    },
+    {
+      "id": "dev-agent",
+      "area": "Governance",
+      "feature": "Portable agent Skill, task plan and verification",
+      "status": "implemented",
+      "owner": "Agent tooling",
+      "priority": "P1",
+      "delivered": "AGENTS, Skill, task-aware reader, PASS/FAIL/NOT_RUN evidence",
+      "remaining": "AI agent adoption varies by platform; semantic review still manual",
+      "acceptance": "Unknown owner and missing service checks fail closed",
+      "evidence": [
+        "templates/aba-api/tools/aba_task.py",
+        "templates/aba-api/.agents/skills/aba-engineering/SKILL.md"
+      ],
+      "tests": [
+        "templates/aba-api/tools/test_aba_task.py",
+        "scripts/verify-starter.sh"
+      ]
+    },
+    {
+      "id": "dev-status-matrix",
+      "area": "Governance",
+      "feature": "Machine-readable feature status and remaining tasks",
+      "status": "partial",
+      "owner": "Governance",
+      "priority": "P1",
+      "delivered": "JSON catalog/renderer and negative tests authored; first CI pending",
+      "remaining": "Publish synchronized README+backlog tables and enforce CI drift check",
+      "acceptance": "Every row has owner, status, task, acceptance, source/test evidence",
+      "evidence": [
+        "scripts/status_matrix.py",
+        "scripts/test_status_matrix.py"
+      ],
+      "tests": [
+        "scripts/test_status_matrix.py"
+      ]
+    },
+    {
+      "id": "dev-xunit",
+      "area": "Testing",
+      "feature": "Default xUnit HTTP/authorization/EF tests",
+      "status": "implemented",
+      "owner": "Test suite",
+      "priority": "P0",
+      "delivered": "60+ API xUnit checks in fresh generated solution",
+      "remaining": "Business invariants and load testing need real domains",
+      "acceptance": "Build and pass default project test suite",
+      "evidence": [
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj"
+      ],
+      "tests": [
+        "scripts/verify-starter.sh"
+      ]
+    },
+    {
+      "id": "dev-services-ci",
+      "area": "Testing",
+      "feature": "Real PostgreSQL/SQL Server/Redis/Wolverine CI",
+      "status": "implemented",
+      "owner": "Test suite",
+      "priority": "P0",
+      "delivered": "16 executable real-service tests across both SQL engines",
+      "remaining": "Crash, high-load and external broker remain release gates",
+      "acceptance": "Integration suite fails if connections are missing",
+      "evidence": [
+        "scripts/verify-platform-services.sh"
+      ],
+      "tests": [
+        "scripts/verify-platform-services.sh"
+      ]
+    },
+    {
+      "id": "dev-generated-ci",
+      "area": "Testing",
+      "feature": "CI bundled into each generated API",
+      "status": "implemented",
+      "owner": "Developer tools",
+      "priority": "P1",
+      "delivered": "Push/PR build gate and manually triggered real-service workflow",
+      "remaining": "Generated-project pipelines need repository policy/hardening to be adopted",
+      "acceptance": "Both workflow YAML files are in the installable nupkg",
+      "evidence": [
+        "templates/aba-api/.github/workflows/ci.yml",
+        "templates/aba-api/.github/workflows/integration.yml"
+      ],
+      "tests": [
+        "scripts/test_starter_template.py",
+        "scripts/pack-template.sh"
+      ]
+    },
+    {
+      "id": "dev-container",
+      "area": "Deployment",
+      "feature": "Non-root OCI image and local Compose",
+      "status": "implemented",
+      "owner": "Platform / Operations",
+      "priority": "P1",
+      "delivered": "Multi-stage .NET 10 Dockerfile, localhost-only Development Compose",
+      "remaining": "Production image signing, secrets/TLS/hosting still open",
+      "acceptance": "Container runs as non-root, serves Health/Scalar/OpenAPI",
+      "evidence": [
+        "templates/aba-api/Dockerfile",
+        "templates/aba-api/compose.yaml"
+      ],
+      "tests": [
+        "scripts/verify-container-starter.sh"
+      ]
+    },
+    {
+      "id": "dev-release-sbom",
+      "area": "Deployment",
+      "feature": "SBOM, vulnerability scans and signed releases",
+      "status": "not_started",
+      "owner": "Release engineering",
+      "priority": "P0",
+      "delivered": "Not implemented",
+      "remaining": "Add pinned image digests, dependency audits, SBOM and artifact attestations",
+      "acceptance": "Release pipeline rejects vulnerable/untrusted dependencies and verifies provenance",
+      "evidence": [],
+      "tests": []
+    },
+    {
+      "id": "dev-prod-deploy",
+      "area": "Deployment",
+      "feature": "Production deployment with TLS, identity and rollback",
+      "status": "not_started",
+      "owner": "Operations / Security",
+      "priority": "P0",
+      "delivered": "Not implemented",
+      "remaining": "Choose target hosting, configure DNS/TLS/secrets and deployment rollback",
+      "acceptance": "Production smoke, zero-downtime deploy and rollback drill pass",
+      "evidence": [],
+      "tests": []
+    },
+    {
+      "id": "ops-load",
+      "area": "Operations",
+      "feature": "Latency/throughput/load and failover baseline",
+      "status": "not_started",
+      "owner": "Operations / Performance",
+      "priority": "P1",
+      "delivered": "Not implemented",
+      "remaining": "Set SLO and run load/chaos tests across two provider deployments",
+      "acceptance": "SLO and recovery objectives measurable under load",
+      "evidence": [],
+      "tests": []
+    },
+    {
+      "id": "biz-contracts",
+      "area": "Business",
+      "feature": "Owner-defined versioned cross-context contracts",
+      "status": "partial",
+      "owner": "Business owners (TBD)",
+      "priority": "P0",
+      "delivered": "Context generator creates Contracts project; no real product Contracts",
+      "remaining": "Specify real public V1 schemas, consumers and compatibility evolution",
+      "acceptance": "V1 consumers stay compatible; private implementation edges rejected",
+      "evidence": [
+        "templates/aba-api/tools/new_context.py"
+      ],
+      "tests": [
+        "scripts/verify-starter.sh"
+      ]
+    },
+    {
+      "id": "biz-contract-tests",
+      "area": "Business",
+      "feature": "Consumer-driven contract compatibility tests",
+      "status": "not_started",
+      "owner": "Business owners (TBD)",
+      "priority": "P0",
+      "delivered": "Not implemented",
+      "remaining": "Introduce consumer-driven tests for real event/HTTP contracts",
+      "acceptance": "A breaking V1 change fails CI and requires an explicit V2",
+      "evidence": [],
+      "tests": []
+    },
+    {
+      "id": "biz-endpoints",
+      "area": "Business",
+      "feature": "Actual product CRUD/workflows and invariants",
+      "status": "not_started",
+      "owner": "Actual business owner (TBD)",
+      "priority": "P0",
+      "delivered": "Not implemented",
+      "remaining": "Implement real domain entities/endpoints only from approved requirements",
+      "acceptance": "Owner-specific happy/negative/invariant and provider integration tests pass",
+      "evidence": [],
+      "tests": []
+    }
+  ]
+}
