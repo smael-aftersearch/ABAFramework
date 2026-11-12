@@ -1,0 +1,38 @@
+# ADR-007 — Permission-gated Wolverine dead-letter operator
+
+**Status:** Opt-in single-tenant technical reference, not Production DLQ authorization.
+
+Wolverine durable local queues already persist rejected envelopes into
+the database-backed dead-letter store. The Platform introduces
+\`AbaDeadLetterAdministration\`, a **service-only** inspection and
+exact-envelope replay API; no HTTP administrative endpoint, default
+operator account, or automatic replay is registered.
+
+The operator is disabled unless **all** are configured: a relational
+database, durable messaging, tamper-evident audit ledger and explicit
+\`Platform:Messaging:DeadLetterOperatorEnabled=true\`. Multi-tenant
+operation is rejected until an Identity owner implements tenant-aware
+message-store permissions and tests them.
+
+Only an authenticated principal with an exact
+\`aba_permission=deadletters:inspect\` or
+\`aba_permission=deadletters:replay\` claim, opaque valid \`sub\`, a
+change-ticket ID and an explicit envelope UUID can use the service.
+Inspection returns only ID, message type, exception type and replay
+state, without message body or exception text.
+
+Replay checks the envelope still has the operator-reviewed
+message/exception type and is not already replayable, stores a signed
+HMAC request record **before** calling Wolverine's
+\`IDeadLetters.ReplayAsync\` for that exact envelope ID, and audits
+the outcome. This merely marks a message for later inbox recovery by
+Wolverine's durability agent. Processing might fail again, and the
+business consumer remains responsible for idempotency and compensation.
+There is no bulk replay, automatic discard or permission escalation.
+
+The synthetic internal \`AbaPoisonProbe\` lets PostgreSQL/SQL Server
+tests cause a deterministic error, inspect the quarantine entry, verify
+denied anonymous/mismatched requests, repair a dependency and explicitly
+replay. Test-only claims are not proof of a real IdP operator role:
+Production requires signed permission issuer, human two-person change
+approval, rate controls, tenant isolation, retention and monitoring.
