@@ -405,6 +405,50 @@ public sealed class AbaExternalInfrastructureTests
     }
 
     [Fact]
+    public async Task LiveRedisCollapsesConcurrentMissesAcrossRequestScopes()
+    {
+        var connection = Environment.GetEnvironmentVariable("ABA_TEST_REDIS");
+        Assert.False(string.IsNullOrWhiteSpace(connection));
+        var config = new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?>
+            {
+                ["Platform:Cache:Provider"] = "Redis",
+                ["ConnectionStrings:AbaRedis"] = connection
+            }).Build();
+        var registrations = new ServiceCollection().AddLogging();
+        registrations.AddAbaCaching(config);
+        await using var provider = registrations.BuildServiceProvider();
+        var gate = provider.GetRequiredService<AbaCacheLoadGate>();
+        var tenantScope = "ci-redis-live-" + Guid.NewGuid().ToString("N");
+        var key = Guid.NewGuid().ToString("N");
+        var entered = new TaskCompletionSource<bool>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var finish = new TaskCompletionSource<string>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var loads = 0;
+        var callers = Enumerable.Range(0, 12).Select(_ => Task.Run(async () =>
+        {
+            await using var scope = provider.CreateAsyncScope();
+            return await scope.ServiceProvider.GetRequiredService<ReadThroughQueryCache>()
+                .GetOrLoadAsync(tenantScope, key, TimeSpan.FromSeconds(20),
+                    async ct =>
+                    {
+                        Interlocked.Increment(ref loads);
+                        entered.TrySetResult(true);
+                        return await finish.Task.WaitAsync(ct);
+                    });
+        })).ToArray();
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await Task.Delay(120);
+        Assert.Equal(1, Volatile.Read(ref loads));
+        finish.TrySetResult("only-one-real-redis-load");
+        Assert.All(await Task.WhenAll(callers).WaitAsync(TimeSpan.FromSeconds(15)),
+            value => Assert.Equal("only-one-real-redis-load", value));
+        Assert.Equal(1, loads);
+        Assert.Equal(0, gate.ActiveKeys);
+    }
+
+    [Fact]
     public async Task RealRedisProvidesScopedRoundTripAndInvalidation()
     {
         var connection = Environment.GetEnvironmentVariable("ABA_TEST_REDIS");
