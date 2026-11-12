@@ -99,6 +99,30 @@ public sealed class RowLevelSecurityTests
     private static async Task SqlServerRealPolicyAsync(string settings)
     {
         var config = new SqlConnectionStringBuilder(settings) { Pooling = false };
+        // This independent fixture may run before another integration test
+        // has migrated/created aba_ci. Ensure its disposable CI prerequisite
+        // exists without relying on xUnit test ordering.
+        if (string.Equals(config.InitialCatalog, "aba_ci", StringComparison.OrdinalIgnoreCase))
+        {
+            var masterConfig = new SqlConnectionStringBuilder(config.ConnectionString)
+            {
+                InitialCatalog = "master"
+            };
+            await using var master = new SqlConnection(masterConfig.ConnectionString);
+            for (var attempt = 0; ; attempt++)
+            {
+                try
+                {
+                    await master.OpenAsync();
+                    break;
+                }
+                catch (SqlException) when (attempt < 29)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(2));
+                }
+            }
+            await ExecAsync(master, "IF DB_ID(N'aba_ci') IS NULL CREATE DATABASE [aba_ci]");
+        }
         await using var admin = new SqlConnection(config.ConnectionString);
         await admin.OpenAsync();
         try
