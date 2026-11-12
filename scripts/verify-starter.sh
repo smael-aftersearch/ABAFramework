@@ -58,10 +58,10 @@ curl -fsS "$URL/scalar" > "$TEMP/scalar.html"
 python3 - "$TEMP/health.json" "$TEMP/openapi.json" "$TEMP/scalar.html" <<'PY'
 import json, sys
 from pathlib import Path
-health = json.loads(Path(sys.argv[1]).read_text())
+health = Path(sys.argv[1]).read_text().strip().lower()
 spec = json.loads(Path(sys.argv[2]).read_text())
 html = Path(sys.argv[3]).read_text()
-assert health.get('status') in ('Healthy', 'healthy', 'live', None) or health, 'health missing'
+assert health in ('healthy', 'live'), f'unexpected health response: {health!r}'
 assert '/api/v1/system/status' in spec.get('paths', {}), 'generated API not in OpenAPI'
 assert len(html) > 50, 'interactive docs missing'
 print('PASS: generated HTTP starter health, dynamic OpenAPI and interactive Scalar route')

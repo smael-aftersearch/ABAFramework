@@ -14,9 +14,9 @@ for path in root.rglob('*.cs'):
     source = path.read_text(encoding='utf-8')
     # Strip comments and ordinary/interpolated strings before balancing delimiters.
     source = re.sub(r'/\*.*?\*/', '', source, flags=re.S)
-    source = re.sub(r'//[^\n]*', '', source)
     source = re.sub(r'@"(?:[^"]|"")*"', '""', source)
     source = re.sub(r'\$?"(?:\\.|[^"\\])*"', '""', source)
+    source = re.sub(r'//[^\n]*', '', source)
     stack = []
     for position, char in enumerate(source):
         if char in '({[':
