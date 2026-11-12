@@ -1,0 +1,23 @@
+{
+  "context": "Payments",
+  "owned_capabilities": [
+    "Simulated payment execution",
+    "Payment idempotency"
+  ],
+  "publishes": [
+    "PaymentCapturedV1"
+  ],
+  "consumes": [],
+  "allowed_dependencies": [
+    "Aba.Foundation",
+    "Aba.LocalMessaging",
+    "Academy.Payments.Contracts",
+    "Academy.Enrollment.Contracts"
+  ],
+  "forbidden_dependencies": [
+    "Academy.Identity",
+    "Academy.Enrollment",
+    "Academy.Accounting",
+    "Academy.Reporting"
+  ]
+}

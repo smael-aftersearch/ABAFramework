@@ -1,0 +1,270 @@
+{
+  "schema_version": 1,
+  "always": [
+    "AGENTS.md",
+    "docs/ai/INDEX.md",
+    "docs/ai/CHANGE-PROTOCOL.md",
+    ".agents/skills/aba-engineering/SKILL.md",
+    "docs/testing/TEST-STRATEGY.md",
+    "scripts/task_protocol.py",
+    ".agents/skills/aba-engineering/references/testing-and-evidence.md"
+  ],
+  "contexts": {
+    "Identity": {
+      "keywords": [
+        "identity",
+        "user",
+        "login",
+        "membership",
+        "permission",
+        "role",
+        "کاربر",
+        "هویت",
+        "عضویت",
+        "دسترسی"
+      ],
+      "docs": [
+        "samples/Academy/Identity/_Docs/ownership.yaml",
+        "samples/Academy/Identity/_Docs/context-map.yaml",
+        "samples/Academy/Identity/_Docs/ai-rules.yaml",
+        "samples/Academy/Identity/_Docs/decisions.md",
+        "samples/Academy/Identity/_Docs/evolution.md"
+      ]
+    },
+    "Enrollment": {
+      "keywords": [
+        "enrollment",
+        "course",
+        "capacity",
+        "waitlist",
+        "registration",
+        "ثبت‌نام",
+        "ثبت نام",
+        "دوره",
+        "ظرفیت",
+        "لیست انتظار"
+      ],
+      "docs": [
+        "samples/Academy/Enrollment/_Docs/ownership.yaml",
+        "samples/Academy/Enrollment/_Docs/context-map.yaml",
+        "samples/Academy/Enrollment/_Docs/ai-rules.yaml",
+        "samples/Academy/Enrollment/_Docs/decisions.md",
+        "samples/Academy/Enrollment/_Docs/evolution.md"
+      ]
+    },
+    "Payments": {
+      "keywords": [
+        "payment",
+        "refund",
+        "capture",
+        "checkout",
+        "provider",
+        "پرداخت",
+        "استرداد",
+        "بازپرداخت",
+        "درگاه"
+      ],
+      "docs": [
+        "samples/Academy/Payments/_Docs/ownership.yaml",
+        "samples/Academy/Payments/_Docs/context-map.yaml",
+        "samples/Academy/Payments/_Docs/ai-rules.yaml",
+        "samples/Academy/Payments/_Docs/decisions.md",
+        "samples/Academy/Payments/_Docs/evolution.md"
+      ]
+    },
+    "Accounting": {
+      "keywords": [
+        "accounting",
+        "journal",
+        "ledger",
+        "financial",
+        "balance",
+        "حسابداری",
+        "سند حسابداری",
+        "دفتر کل",
+        "مالی"
+      ],
+      "docs": [
+        "samples/Academy/Accounting/_Docs/ownership.yaml",
+        "samples/Academy/Accounting/_Docs/context-map.yaml",
+        "samples/Academy/Accounting/_Docs/ai-rules.yaml",
+        "samples/Academy/Accounting/_Docs/decisions.md",
+        "samples/Academy/Accounting/_Docs/evolution.md"
+      ]
+    },
+    "Reporting": {
+      "keywords": [
+        "report",
+        "projection",
+        "dashboard",
+        "analytics",
+        "گزارش",
+        "داشبورد",
+        "تحلیل"
+      ],
+      "docs": [
+        "samples/Academy/Reporting/_Docs/ownership.yaml",
+        "samples/Academy/Reporting/_Docs/context-map.yaml",
+        "samples/Academy/Reporting/_Docs/ai-rules.yaml",
+        "samples/Academy/Reporting/_Docs/decisions.md",
+        "samples/Academy/Reporting/_Docs/evolution.md"
+      ]
+    }
+  },
+  "topics": {
+    "contracts": {
+      "keywords": [
+        "contract",
+        "event",
+        "version",
+        "compatibility",
+        "schema",
+        "قرارداد",
+        "رویداد",
+        "نسخه"
+      ],
+      "docs": [
+        "contract-catalog.yaml",
+        "docs/architecture.md"
+      ]
+    },
+    "messaging": {
+      "keywords": [
+        "messaging",
+        "outbox",
+        "inbox",
+        "wolverine",
+        "retry",
+        "idempotency",
+        "broker",
+        "پیام",
+        "صف",
+        "تکراری"
+      ],
+      "docs": [
+        "docs/architecture.md",
+        "docs/decisions/ADR-002-local-messaging-for-bootstrap.md",
+        "docs/NEXT-MILESTONES.md"
+      ]
+    },
+    "security": {
+      "keywords": [
+        "security",
+        "oauth",
+        "oidc",
+        "jwt",
+        "auth",
+        "tenant",
+        "token",
+        "امنیت",
+        "احراز هویت",
+        "توکن"
+      ],
+      "docs": [
+        "docs/security.md",
+        "docs/KNOWN-LIMITATIONS.md"
+      ]
+    },
+    "persistence": {
+      "keywords": [
+        "postgres",
+        "database",
+        "ef core",
+        "migration",
+        "transaction",
+        "persistence",
+        "دیتابیس",
+        "پایگاه داده",
+        "تراکنش",
+        "مایگریشن"
+      ],
+      "docs": [
+        "docs/architecture.md",
+        "docs/NEXT-MILESTONES.md"
+      ]
+    },
+    "caching": {
+      "keywords": [
+        "redis",
+        "cache",
+        "caching",
+        "ttl",
+        "invalidate",
+        "کش",
+        "ردیس"
+      ],
+      "docs": [
+        "docs/architecture.md",
+        "docs/NEXT-MILESTONES.md"
+      ]
+    },
+    "api": {
+      "keywords": [
+        "api",
+        "endpoint",
+        "http",
+        "openapi",
+        "swagger",
+        "rest",
+        "مسیر",
+        "وب سرویس"
+      ],
+      "docs": [
+        "samples/Academy/Host/openapi-v1.json",
+        "README.md",
+        "docs/security.md"
+      ]
+    },
+    "architecture": {
+      "keywords": [
+        "aba",
+        "architecture",
+        "ddd",
+        "bounded context",
+        "governance",
+        "skill",
+        "ai agent",
+        "معماری",
+        "فریم ورک",
+        "مهارت",
+        "ایجنت",
+        "مستندات"
+      ],
+      "docs": [
+        "docs/ABA-COMPLIANCE-MATRIX.md",
+        "docs/ai/DOC-UPDATE-RULES.md",
+        "docs/ai/USAGE-FA.md",
+        "docs/reference/ABA_Adaptive_Business_Architecture_English_Edition.pdf"
+      ]
+    },
+    "testing": {
+      "keywords": [
+        "test",
+        "testing",
+        "unit test",
+        "integration test",
+        "xunit",
+        "smoke",
+        "coverage",
+        "quality",
+        "qa",
+        "ci",
+        "pipeline",
+        "تست",
+        "آزمون",
+        "کیفیت",
+        "پوشش تست"
+      ],
+      "docs": [
+        "docs/testing/TEST-STRATEGY.md",
+        "tests/README.md",
+        ".github/workflows/verify.yml",
+        "scripts/verify-all.sh",
+        "VERIFICATION-REPORT.md",
+        "scripts/task_protocol.py",
+        "scripts/test_task_protocol.py",
+        ".agents/skills/aba-engineering/references/testing-and-evidence.md"
+      ]
+    }
+  }
+}

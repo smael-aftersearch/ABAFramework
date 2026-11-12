@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../Aba.Foundation/Aba.Foundation.csproj" />
+  </ItemGroup>
+</Project>

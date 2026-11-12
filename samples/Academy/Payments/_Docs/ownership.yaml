@@ -1,0 +1,35 @@
+{
+  "context": "Payments",
+  "data_ownership": {
+    "Payment": {
+      "owner": "Payments"
+    }
+  },
+  "rule_ownership": {
+    "PaymentIdempotency": {
+      "owner": "Payments"
+    },
+    "SimulatedPaymentCapture": {
+      "owner": "Payments"
+    }
+  },
+  "decision_ownership": {
+    "CapturePayment": {
+      "owner": "Payments"
+    }
+  },
+  "contract_ownership": {
+    "PaymentCapturedV1": {
+      "owner": "Payments"
+    },
+    "PaymentViewV1": {
+      "owner": "Payments"
+    }
+  },
+  "forbidden_writers": [
+    "Identity",
+    "Enrollment",
+    "Accounting",
+    "Reporting"
+  ]
+}

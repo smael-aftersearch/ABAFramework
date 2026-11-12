@@ -1,0 +1,25 @@
+{
+  "context": "Accounting",
+  "owned_capabilities": [
+    "Balanced financial journal posting",
+    "Append-only financial truth"
+  ],
+  "publishes": [
+    "JournalPostedV1"
+  ],
+  "consumes": [
+    "PaymentCapturedV1"
+  ],
+  "allowed_dependencies": [
+    "Aba.Foundation",
+    "Aba.LocalMessaging",
+    "Academy.Accounting.Contracts",
+    "Academy.Payments.Contracts"
+  ],
+  "forbidden_dependencies": [
+    "Academy.Identity",
+    "Academy.Enrollment",
+    "Academy.Payments",
+    "Academy.Reporting"
+  ]
+}

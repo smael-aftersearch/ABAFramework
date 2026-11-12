@@ -1,0 +1,4 @@
+interface:
+  display_name: "ABA Engineering"
+  short_description: "Document-driven ABA workflow for .NET 10 coding agents"
+  default_prompt: "Apply the ABA engineering protocol: locate the owning context, read ownership and ADRs, generate a scope-aware test plan, implement through versioned contracts, update docs, run QA and report actual PASS/FAIL/NOT_RUN evidence."

@@ -1,0 +1,146 @@
+{
+  "contracts": {
+    "UserRegisteredV1": {
+      "owner": "Identity",
+      "type": "IntegrationEvent",
+      "version": 1,
+      "consumers": [
+        "Reporting"
+      ],
+      "compatibility": "additive_only",
+      "status": "active"
+    },
+    "UserViewV1": {
+      "owner": "Identity",
+      "type": "DataTransfer",
+      "version": 1,
+      "consumers": [],
+      "compatibility": "additive_only",
+      "status": "active"
+    },
+    "IIdentityReaderV1": {
+      "owner": "Identity",
+      "type": "ApplicationQuery",
+      "version": 1,
+      "consumers": [],
+      "compatibility": "additive_only",
+      "status": "active"
+    },
+    "EnrollmentRequestedV1": {
+      "owner": "Enrollment",
+      "type": "IntegrationEvent",
+      "version": 1,
+      "consumers": [
+        "Reporting"
+      ],
+      "compatibility": "additive_only",
+      "status": "active"
+    },
+    "EnrollmentActivatedV1": {
+      "owner": "Enrollment",
+      "type": "IntegrationEvent",
+      "version": 1,
+      "consumers": [
+        "Reporting"
+      ],
+      "compatibility": "additive_only",
+      "status": "active"
+    },
+    "EnrollmentWaitlistedV1": {
+      "owner": "Enrollment",
+      "type": "IntegrationEvent",
+      "version": 1,
+      "consumers": [
+        "Reporting"
+      ],
+      "compatibility": "additive_only",
+      "status": "active"
+    },
+    "CourseViewV1": {
+      "owner": "Enrollment",
+      "type": "DataTransfer",
+      "version": 1,
+      "consumers": [],
+      "compatibility": "additive_only",
+      "status": "active"
+    },
+    "EnrollmentViewV1": {
+      "owner": "Enrollment",
+      "type": "DataTransfer",
+      "version": 1,
+      "consumers": [],
+      "compatibility": "additive_only",
+      "status": "active"
+    },
+    "PaymentQuoteV1": {
+      "owner": "Enrollment",
+      "type": "DataTransfer",
+      "version": 1,
+      "consumers": [],
+      "compatibility": "additive_only",
+      "status": "active"
+    },
+    "IEnrollmentPaymentQuoteV1": {
+      "owner": "Enrollment",
+      "type": "ApplicationQuery",
+      "version": 1,
+      "consumers": [],
+      "compatibility": "additive_only",
+      "status": "active"
+    },
+    "PaymentCapturedV1": {
+      "owner": "Payments",
+      "type": "IntegrationEvent",
+      "version": 1,
+      "consumers": [
+        "Enrollment",
+        "Accounting",
+        "Reporting"
+      ],
+      "compatibility": "additive_only",
+      "status": "active"
+    },
+    "PaymentViewV1": {
+      "owner": "Payments",
+      "type": "DataTransfer",
+      "version": 1,
+      "consumers": [],
+      "compatibility": "additive_only",
+      "status": "active"
+    },
+    "JournalPostedV1": {
+      "owner": "Accounting",
+      "type": "IntegrationEvent",
+      "version": 1,
+      "consumers": [
+        "Reporting"
+      ],
+      "compatibility": "additive_only",
+      "status": "active"
+    },
+    "JournalLineViewV1": {
+      "owner": "Accounting",
+      "type": "DataTransfer",
+      "version": 1,
+      "consumers": [],
+      "compatibility": "additive_only",
+      "status": "active"
+    },
+    "JournalViewV1": {
+      "owner": "Accounting",
+      "type": "DataTransfer",
+      "version": 1,
+      "consumers": [],
+      "compatibility": "additive_only",
+      "status": "active"
+    },
+    "ReportSummaryV1": {
+      "owner": "Reporting",
+      "type": "DataTransfer",
+      "version": 1,
+      "consumers": [],
+      "compatibility": "additive_only",
+      "status": "active"
+    }
+  }
+}

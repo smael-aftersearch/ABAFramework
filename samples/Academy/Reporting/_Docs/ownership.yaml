@@ -1,0 +1,29 @@
+{
+  "context": "Reporting",
+  "data_ownership": {
+    "ReportingProjection": {
+      "owner": "Reporting"
+    }
+  },
+  "rule_ownership": {
+    "ProjectionNotSourceOfTruth": {
+      "owner": "Reporting"
+    }
+  },
+  "decision_ownership": {
+    "UpdateReadModel": {
+      "owner": "Reporting"
+    }
+  },
+  "contract_ownership": {
+    "ReportSummaryV1": {
+      "owner": "Reporting"
+    }
+  },
+  "forbidden_writers": [
+    "Identity",
+    "Enrollment",
+    "Payments",
+    "Accounting"
+  ]
+}

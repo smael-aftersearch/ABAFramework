@@ -1,0 +1,29 @@
+name: Verify ABA Phase 1
+on:
+  push:
+  pull_request:
+jobs:
+  governance-and-runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Regressions for AI planner/QA runner
+        run: python3 scripts/test_task_protocol.py
+      - name: Recorded QA gates (includes architecture, AI checks, .NET build and C# smoke)
+        run: |
+          python3 scripts/task_protocol.py verify --profile all \
+            --output artifacts/verification/ci.json \
+            --markdown artifacts/verification/ci.md
+      - name: Upload QA evidence (including failed/incomplete runs)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aba-verification-evidence
+          path: artifacts/verification/
+          if-no-files-found: warn

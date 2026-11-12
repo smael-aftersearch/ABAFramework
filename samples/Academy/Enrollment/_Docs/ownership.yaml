@@ -1,0 +1,56 @@
+{
+  "context": "Enrollment",
+  "data_ownership": {
+    "Course": {
+      "owner": "Enrollment"
+    },
+    "Enrollment": {
+      "owner": "Enrollment"
+    }
+  },
+  "rule_ownership": {
+    "CourseCapacity": {
+      "owner": "Enrollment"
+    },
+    "PaidEnrollment": {
+      "owner": "Enrollment"
+    }
+  },
+  "decision_ownership": {
+    "ActivateEnrollment": {
+      "owner": "Enrollment"
+    },
+    "WaitlistEnrollment": {
+      "owner": "Enrollment"
+    }
+  },
+  "contract_ownership": {
+    "EnrollmentRequestedV1": {
+      "owner": "Enrollment"
+    },
+    "EnrollmentActivatedV1": {
+      "owner": "Enrollment"
+    },
+    "EnrollmentWaitlistedV1": {
+      "owner": "Enrollment"
+    },
+    "CourseViewV1": {
+      "owner": "Enrollment"
+    },
+    "EnrollmentViewV1": {
+      "owner": "Enrollment"
+    },
+    "PaymentQuoteV1": {
+      "owner": "Enrollment"
+    },
+    "IEnrollmentPaymentQuoteV1": {
+      "owner": "Enrollment"
+    }
+  },
+  "forbidden_writers": [
+    "Identity",
+    "Payments",
+    "Accounting",
+    "Reporting"
+  ]
+}

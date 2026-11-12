@@ -1,0 +1,36 @@
+# راهنمای کوتاه فارسی: استفاده از ایجنت و Skill معماری ABA
+
+این مخزن دو نوع راهنمای هوش مصنوعی دارد: `AGENTS.md` برای قواعد ثابت در سطح پروژه، و `.agents/skills/aba-engineering/SKILL.md` برای روند اجرای تسک. `docs/ai/INDEX.md` نقشه مستندات و `docs/ai/knowledge-map.json` فهرست ماشین‌خوان آنهاست. قوانین معماری فقط متنی نیستند؛ `scripts/governance.py` و `scripts/ai_check.py` در CI اجرا می‌شوند.
+
+## به ایجنت چه بگویم؟
+
+این جمله را در محیط Coding Agent که به همین مخزن دسترسی دارد بفرست:
+
+> ابتدا AGENTS.md و Skill موجود در .agents/skills/aba-engineering/SKILL.md را بخوان. برای این تسک، با python3 scripts/ai_check.py brief --task "..." مستندات مرتبط را پیدا کن. پیش از کدنویسی مالک هر تصمیم را در ownership.yaml بررسی کن. سپس کد، تست و مستندات مربوط را با هم تغییر بده، چک‌های Governance را اجرا کن و گزارش اثر معماری و نتیجه تست‌ها را بده. از وابستگی مستقیم بین Domainهای مختلف و تغییر بی‌نسخه Contractها خودداری کن.
+
+ابزار جدید `plan` مستندات و تست‌های پیشنهادی هر تسک را فهرست می‌کند؛ مالکیت را به‌صورت قطعی تعیین نمی‌کند. ابزار `verify` فرمان‌های بررسی ثابت را اجرا و نتیجه هرکدام را در JSON/Markdown ثبت می‌کند. در صورت نبود .NET خروجی `NOT_RUN` است، نه PASS. خروجی‌ها در `artifacts/verification/` ذخیره می‌شوند و CI نیز آن‌ها را نگه می‌دارد.
+
+برای مثال:
+
+```bash
+python3 scripts/ai_check.py brief --task "اضافه کردن استرداد پرداخت و رویداد نسخه‌دار" --file samples/Academy/Payments.Contracts/PaymentContracts.cs
+python3 scripts/task_protocol.py plan --task "اضافه کردن استرداد پرداخت و رویداد نسخه‌دار" --file samples/Academy/Payments.Contracts/PaymentContracts.cs
+python3 scripts/test_task_protocol.py
+python3 scripts/task_protocol.py verify --profile static --output artifacts/verification/static.json
+# نیازمند .NET 10 برای بررسی کامل:
+python3 scripts/task_protocol.py verify --profile all --output artifacts/verification/full.json
+```
+
+## نصب و رفتار واقعی
+
+- در Codex، دستورهای دائمی پروژه در `AGENTS.md` و Skill محلی در `.agents/skills/` قرار دارد. در ابزارهای دیگر، قابلیت شناسایی خودکار ممکن است متفاوت باشد.
+- برای استفاده مستقل از مخزن، فایل `skill.zip` جداگانه آماده شده است؛ آن را از بخش Skills در محیط پشتیبانی‌شده اضافه کنید.
+- برای GitHub Copilot، مسیر `.github/copilot-instructions.md` و برای Claude Code و Gemini راهنماهای سطح ریشه نیز قرار داده شده‌اند.
+- **مهم:** صرف وجود فایل Skill باعث نمی‌شود همه مدل‌ها آن را خودکار بخوانند. ایجنت باید به مخزن دسترسی داشته باشد و دستورهای پروژه در محیط مربوط فعال/لود شده باشند.
+- Skill به‌صورت خودکار در پس‌زمینه تغییرات را رصد نمی‌کند؛ هنگام اجرای تسک مستندات را بررسی و تکمیل می‌کند. تست‌های CI برخی خطاهای ساختاری را می‌گیرند، اما جای بررسی معنایی را نمی‌گیرند.
+
+## تست‌ها کجاست و ایجنت چطور باید تست بنویسد؟
+
+فایل `docs/testing/TEST-STRATEGY.md` قانون اصلی تست پروژه و `tests/README.md` راهنمای یافتن تست‌هاست. در نسخه فعلی، `tests/Aba.SmokeTests/Program.cs` تست کنسولی C# است و پروژه xUnit نیست؛ چک‌های منفی معماری و مستندات در `scripts/test_governance.py` و `scripts/test_ai_check.py` قرار دارند.
+
+در هر تسک جدید، قبل از کدنویسی از ایجنت بخواه: «یک سناریوی موفق، حداقل یک سناریوی خطا و invariant مربوط را مشخص کن؛ سپس تست و کد را با هم بنویس. در پایان فرمان‌های اجراشده و نتیجه دقیق PASS/FAIL/NOT RUN را گزارش بده». دستور کلی `bash scripts/verify-all.sh` شامل چک‌های Python و، در صورت نصب .NET 10، Build و smoke C# است. تست واقعی PostgreSQL/Redis/Wolverine، xUnit، امنیت و بار هنوز در نسخه اول پیاده نشده است.

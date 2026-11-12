@@ -1,0 +1,41 @@
+{
+  "context": "Accounting",
+  "data_ownership": {
+    "Journal": {
+      "owner": "Accounting"
+    },
+    "JournalLine": {
+      "owner": "Accounting"
+    }
+  },
+  "rule_ownership": {
+    "BalancedDebitsAndCredits": {
+      "owner": "Accounting"
+    },
+    "ImmutablePostedJournals": {
+      "owner": "Accounting"
+    }
+  },
+  "decision_ownership": {
+    "PostJournal": {
+      "owner": "Accounting"
+    }
+  },
+  "contract_ownership": {
+    "JournalPostedV1": {
+      "owner": "Accounting"
+    },
+    "JournalLineViewV1": {
+      "owner": "Accounting"
+    },
+    "JournalViewV1": {
+      "owner": "Accounting"
+    }
+  },
+  "forbidden_writers": [
+    "Identity",
+    "Enrollment",
+    "Payments",
+    "Reporting"
+  ]
+}

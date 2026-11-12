@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "generated_utc": "2026-11-11T23:06:43.669659+00:00",
+  "profile": "all",
+  "repository": "ABA.Net10.Phase1",
+  "checks": [
+    {
+      "name": "AI readiness",
+      "command": [
+        "/opt/pyvenv/bin/python3",
+        "scripts/ai_check.py",
+        "check"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_seconds": 0.97,
+      "failure_output_redacted": ""
+    },
+    {
+      "name": "AI negative tests",
+      "command": [
+        "/opt/pyvenv/bin/python3",
+        "scripts/test_ai_check.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_seconds": 0.97,
+      "failure_output_redacted": ""
+    },
+    {
+      "name": "Task protocol negative tests",
+      "command": [
+        "/opt/pyvenv/bin/python3",
+        "scripts/test_task_protocol.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_seconds": 1.43,
+      "failure_output_redacted": ""
+    },
+    {
+      "name": "ABA governance",
+      "command": [
+        "/opt/pyvenv/bin/python3",
+        "scripts/governance.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_seconds": 0.64,
+      "failure_output_redacted": ""
+    },
+    {
+      "name": "Governance negative tests",
+      "command": [
+        "/opt/pyvenv/bin/python3",
+        "scripts/test_governance.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_seconds": 3.57,
+      "failure_output_redacted": ""
+    },
+    {
+      "name": "Static C# scan (NOT compilation)",
+      "command": [
+        "/opt/pyvenv/bin/python3",
+        "scripts/static_review.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_seconds": 0.64,
+      "failure_output_redacted": ""
+    },
+    {
+      "name": "Dotnet restore",
+      "command": [
+        "dotnet",
+        "restore",
+        "ABA.Net10.Phase1.slnx"
+      ],
+      "status": "NOT_RUN",
+      "exit_code": null,
+      "duration_seconds": 0,
+      "reason": ".NET SDK unavailable in this environment"
+    },
+    {
+      "name": "Dotnet build",
+      "command": [
+        "dotnet",
+        "build",
+        "ABA.Net10.Phase1.slnx",
+        "-c",
+        "Release",
+        "--no-restore"
+      ],
+      "status": "NOT_RUN",
+      "exit_code": null,
+      "duration_seconds": 0,
+      "reason": ".NET SDK unavailable in this environment"
+    },
+    {
+      "name": "Academy runtime smoke",
+      "command": [
+        "dotnet",
+        "run",
+        "--project",
+        "tests/Aba.SmokeTests",
+        "-c",
+        "Release",
+        "--no-build"
+      ],
+      "status": "NOT_RUN",
+      "exit_code": null,
+      "duration_seconds": 0,
+      "reason": ".NET SDK unavailable in this environment"
+    }
+  ],
+  "summary": {
+    "PASS": 6,
+    "FAIL": 0,
+    "NOT_RUN": 3
+  },
+  "claim_limit": "Static PASS is not a .NET compile/runtime result. NOT_RUN is not PASS."
+}

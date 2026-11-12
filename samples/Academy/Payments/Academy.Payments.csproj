@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../../src/Framework/Aba.Foundation/Aba.Foundation.csproj" />
+    <ProjectReference Include="../../../src/Framework/Aba.LocalMessaging/Aba.LocalMessaging.csproj" />
+    <ProjectReference Include="../Payments.Contracts/Academy.Payments.Contracts.csproj" />
+    <ProjectReference Include="../Enrollment.Contracts/Academy.Enrollment.Contracts.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,38 @@
+{
+  "context": "Identity",
+  "data_ownership": {
+    "User": {
+      "owner": "Identity"
+    }
+  },
+  "rule_ownership": {
+    "NormalizeEmail": {
+      "owner": "Identity"
+    },
+    "UniqueEmail": {
+      "owner": "Identity"
+    }
+  },
+  "decision_ownership": {
+    "RegisterUser": {
+      "owner": "Identity"
+    }
+  },
+  "contract_ownership": {
+    "UserRegisteredV1": {
+      "owner": "Identity"
+    },
+    "UserViewV1": {
+      "owner": "Identity"
+    },
+    "IIdentityReaderV1": {
+      "owner": "Identity"
+    }
+  },
+  "forbidden_writers": [
+    "Enrollment",
+    "Payments",
+    "Accounting",
+    "Reporting"
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "context": "Reporting",
+  "owned_capabilities": [
+    "Event-driven reporting projections"
+  ],
+  "publishes": [],
+  "consumes": [
+    "UserRegisteredV1",
+    "EnrollmentRequestedV1",
+    "EnrollmentActivatedV1",
+    "EnrollmentWaitlistedV1",
+    "PaymentCapturedV1",
+    "JournalPostedV1"
+  ],
+  "allowed_dependencies": [
+    "Aba.Foundation",
+    "Aba.LocalMessaging",
+    "Aba.Caching",
+    "Academy.Reporting.Contracts",
+    "Academy.Identity.Contracts",
+    "Academy.Enrollment.Contracts",
+    "Academy.Payments.Contracts",
+    "Academy.Accounting.Contracts"
+  ],
+  "forbidden_dependencies": [
+    "Academy.Identity",
+    "Academy.Enrollment",
+    "Academy.Payments",
+    "Academy.Accounting"
+  ]
+}

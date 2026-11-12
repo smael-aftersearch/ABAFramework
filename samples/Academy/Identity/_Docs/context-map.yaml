@@ -1,0 +1,22 @@
+{
+  "context": "Identity",
+  "owned_capabilities": [
+    "User lifecycle",
+    "User registration"
+  ],
+  "publishes": [
+    "UserRegisteredV1"
+  ],
+  "consumes": [],
+  "allowed_dependencies": [
+    "Aba.Foundation",
+    "Aba.LocalMessaging",
+    "Academy.Identity.Contracts"
+  ],
+  "forbidden_dependencies": [
+    "Academy.Enrollment",
+    "Academy.Payments",
+    "Academy.Accounting",
+    "Academy.Reporting"
+  ]
+}

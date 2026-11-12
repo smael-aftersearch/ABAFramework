@@ -1,0 +1,17 @@
+{
+  "must_read": [
+    "ownership.yaml",
+    "context-map.yaml",
+    "decisions.md"
+  ],
+  "forbidden": [
+    "create_cross_context_domain_reference",
+    "create_unversioned_contract",
+    "modify_other_context_database",
+    "share_business_domain_models"
+  ],
+  "required_checks": [
+    "python scripts/governance.py",
+    "dotnet run --project tests/Aba.SmokeTests"
+  ]
+}

@@ -1,0 +1,224 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Academy ABA Phase 1 Development API",
+    "version": "1.0.0",
+    "description": "Local-only API. NOT AUTHENTICATED. Do not expose to production/public networks."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5080"
+    }
+  ],
+  "paths": {
+    "/health/live": {
+      "get": {
+        "summary": "Liveness probe",
+        "responses": {
+          "200": {
+            "description": "Alive"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/courses": {
+      "get": {
+        "summary": "Browse demo course",
+        "responses": {
+          "200": {
+            "description": "Courses"
+          }
+        }
+      }
+    },
+    "/api/v1/users": {
+      "post": {
+        "summary": "Register user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created"
+          },
+          "400": {
+            "description": "Domain rule rejected"
+          }
+        }
+      }
+    },
+    "/api/v1/enrollments": {
+      "post": {
+        "summary": "Request enrollment",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "userId",
+                  "courseId"
+                ],
+                "properties": {
+                  "userId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "courseId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Enrollment requested"
+          },
+          "400": {
+            "description": "Domain rule rejected"
+          }
+        }
+      }
+    },
+    "/api/v1/enrollments/{id}": {
+      "get": {
+        "summary": "Fetch enrollment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Enrollment state"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/v1/payments/capture": {
+      "post": {
+        "summary": "Capture simulated payment",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "enrollmentId"
+                ],
+                "properties": {
+                  "enrollmentId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Simulated payment captured"
+          },
+          "400": {
+            "description": "Business rule rejected"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/journals": {
+      "get": {
+        "summary": "Read accounting journals",
+        "responses": {
+          "200": {
+            "description": "Balanced immutable journals"
+          }
+        }
+      }
+    },
+    "/api/v1/reporting/summary": {
+      "get": {
+        "summary": "Read eventually-consistent reporting projection",
+        "responses": {
+          "200": {
+            "description": "Projection summary"
+          }
+        }
+      }
+    },
+    "/openapi/v1.json": {
+      "get": {
+        "summary": "Download static OpenAPI specification",
+        "responses": {
+          "200": {
+            "description": "JSON document"
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}": {
+      "get": {
+        "summary": "Fetch user",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User account"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    }
+  }
+}
