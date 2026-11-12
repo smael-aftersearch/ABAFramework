@@ -7,7 +7,7 @@ This is a **starter** for a new API product, not a sample academy/enrollment dom
 - .NET 10 minimal API
 - generated OpenAPI and Development-only interactive Scalar API reference
 - liveness health check, correlation ID response header, Problem Details exception handling
-- built-in fixed-window global request rate limiting (per process and remote IP; gateway controls are still needed at scale)
+- configurable fixed-window API rate limiting per verified JWT subject/tenant (anonymous peer IP only), with Health bypass; a gateway is required for shared multi-replica limits
 - fail-closed non-Development OIDC/JWT configuration and authorization fallback policy
 - xUnit integration and security-configuration tests, plus opt-in real PostgreSQL/SQL Server/Redis tests
 - AI agent and test documentation
@@ -16,9 +16,9 @@ This is a **starter** for a new API product, not a sample academy/enrollment dom
 
 Name the context using actual business language. Record its owning data, rules, decisions and versioned contracts in `metadata/contexts.json`. Then create appropriate Domain, Application, Infrastructure and Contracts projects, register their services in the Host, and add dependency-ownership tests. Do not create shared domain entities.
 
-## Not delivered by this starter yet
+## Delivered technical adapters versus missing release gates
 
-PostgreSQL/EF Core 10, SQL Server/EF Core 10, Wolverine relational persistence wiring and Redis distributed caching are now implemented as **optional** technical modules. A checked-in technical idempotency migration is present. End-to-end transactional business messaging, tenant isolation, load testing, automatic deployment and production hardening remain unimplemented. These remain separate platform milestones and must not be asserted as installed.
+EF Core 10 for **PostgreSQL and SQL Server**, provider-neutral technical migrations, Redis distributed caching, Wolverine 6 durable relational messaging, JWT claims, optional EF tenant query/write guards, and an injectable read-through query cache are implemented and exercised in automated tests. An additional production-startup connection-string TLS guard is newly authored and must pass its own CI. **Not delivered**: provider-level tenant RLS and raw/bulk SQL guards, real business-specific handlers/contracts/migrations, live IdP membership policies, ungraceful crash/dead-letter replay, business authorization, migrations/backup/restore drills, collector export, load/security assessment and secure public deployment. The authoritative task/status catalog is in the source ABAFramework repository at `docs/IMPLEMENTATION-STATUS.md`; a generated customer project must maintain its own business-specific roadmap.
 
 ## Security
 
@@ -30,11 +30,11 @@ The generated API includes a deliberately protected `GET /api/v1/system/authoriz
 
 ## Optional tenancy-awareness (not tenant data isolation)
 
-Set `Platform:Tenancy:Enabled=true` to require a trusted tenant claim on every authenticated API endpoint, via both the default and fallback JWT authorization policies. `Platform:Tenancy:ClaimType` defaults to `tenant_id`. `IRequestTenant` reads only the principal populated by authentication middleware; a caller's `X-Tenant-ID` header is never accepted as proof of membership. The option is **disabled** for the clean Single-Tenant quickstart. Actual tenant authorization, record filtering, migrations, per-tenant storage, cross-tenant negative database tests, and account membership belong to the real owning business contexts/provider; **do not advertise production tenant isolation** yet.
+Set `Platform:Tenancy:Enabled=true` to require a trusted tenant claim on every authenticated API endpoint, via both the default and fallback JWT authorization policies. `Platform:Tenancy:ClaimType` defaults to `tenant_id`. `IRequestTenant` reads only the principal populated by authentication middleware; a caller's `X-Tenant-ID` header is never accepted as proof of membership. The option is **disabled** for the clean Single-Tenant quickstart. EF `AbaTenantDbContext` query/write safeguards and cross-tenant negative tests now run on PostgreSQL and SQL Server. But actual organization membership, database RLS, raw/bulk SQL isolation and context-specific migrations still belong to the real owners; **do not advertise production tenant isolation** yet.
 
 ## Signed JWT validation tests
 
-The default xUnit suite injects a disposable test-only key into the actual ASP.NET Core bearer middleware and exercises signature, issuer, audience and lifetime checks. These tests do **not** connect to a real Keycloak/Entra/Okta OIDC provider or certify token key rotation, per-tenant membership or permission claims. Read `docs/decisions/ADR-002-verified-token-test-boundary.md`.
+The default xUnit suite injects a disposable test-only key into the actual ASP.NET Core bearer middleware and exercises signature, issuer, audience and lifetime checks. These fast tests intentionally do not connect to a remote identity provider; the separate repository CI additionally exercises **real Keycloak OIDC/JWKS** with positive/negative tenant cases. Neither suite certifies production token key rotation, actual organization membership or permission claims. Read `docs/decisions/ADR-002-verified-token-test-boundary.md`.
 
 ## Container build and runtime boundary
 

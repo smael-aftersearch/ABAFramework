@@ -8,6 +8,9 @@ This is the **navigation map** for humans and coding agents. **For any new custo
 | Source | Purpose | When to read |
 | --- | --- | --- |
 | `AGENTS.md` | Mandatory repository-level do/don't and verification | Every coding session in a supported agent |
+| `docs/implementation-status.json` | Machine-readable generic-template capabilities, current state, owner, evidence and remaining tasks | Every release/capability/roadmap change |
+| `docs/IMPLEMENTATION-STATUS.md` | Generated readable implementation matrix + prioritized P0/P1/P2 backlog | Roadmap, planning and status requests |
+| `scripts/status_matrix.py` and `scripts/test_status_matrix.py` | Fail CI on stale tables, fake missing source/tests and invalid status | Every feature status change |
 | `.agents/skills/aba-engineering/SKILL.md` | Task execution procedure | Code, architecture, API, infrastructure and docs changes |
 | `docs/reference/ABA_Adaptive_Business_Architecture_English_Edition.pdf` | Authoritative **ABA principles** (Ch. 6-9, 16-24, 38-42, 53-55) | New architectural decisions or rule conflicts; selected chapters |
 | `docs/architecture.md` | Current Phase-1 implementation and constraints | Context, cross-context flow, persistence/messaging changes |

@@ -1,6 +1,9 @@
-> **Current status (2026-11-12):** The original author's environment lacked .NET, but the **generic** API template is now tested on [real PostgreSQL, SQL Server, Redis and Wolverine](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43290885904). The original Academy-specific risks below still apply to that optional example; they do not imply the new generic template lacks dual database or Redis adapters. **Remaining generic risks:** no proven crash/restart/outbox failure atomicity, fully validated IdP tokens, tenant row isolation, rollback/load/failover plan, real OTel collector verification or production deployment readiness.
-
+> **Generic API current evidence (2026-11-13):** [successful .NET 10 full CI](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43302521502) verifies generated API tests, both PostgreSQL and SQL Server, Redis, Wolverine technical Outbox tests, real Keycloak tokens, non-root Docker and NuGet install. The exact implemented/partial/not-yet-implemented matrix and acceptance checklist are [here](IMPLEMENTATION-STATUS.md). Production remains gated by real business authorization/RLS, crash/dead-letter recovery, backup/restore, collector/export validation, security review, deployment and release controls. The numbered Phase-1 notes below apply **only to the optional Academy example**, not the generic template.
 # Known limitations and security warnings
+
+## Optional Academy Phase 1 — historical example constraints
+
+These historical warnings describe the Academy demo (file Outbox and in-memory Cache), **not** the technical generic API starter. See the current [generic framework status catalog](IMPLEMENTATION-STATUS.md) for current provider and security implementation.
 
 1. **C# not compiled in authoring environment:** .NET 10 SDK is absent, network DNS unavailable. Source has been authored and checked by Python structural validation only. Do not interpret the ZIP as a verified build.
 2. **No production authentication or authorization:** this is a DEVELOPMENT-ONLY demo. The host aborts on non-development environments. Never bind it to a public IP, put behind a public reverse proxy, or connect real user data.

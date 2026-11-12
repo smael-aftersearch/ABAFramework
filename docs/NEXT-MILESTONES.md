@@ -1,4 +1,6 @@
-# Next implementation milestones (2026-11-12)
+# Next implementation milestones (2026-11-13)
+
+The authoritative, maintained **54-feature status table** and prioritized open-task backlog live at [docs/IMPLEMENTATION-STATUS.md](IMPLEMENTATION-STATUS.md); the machine-readable source is [docs/implementation-status.json](implementation-status.json). This file is a high-level release narrative, not an independent status source. Run `python3 scripts/status_matrix.py --write` after every change.
 
 ## Main product is the generic API starter
 
@@ -20,7 +22,7 @@
 
 1. **Wolverine release reliability:** technical outbox atomicity, injected pre-commit rollback and clean restart recovery are VERIFIED on both providers; still needed: actual context-owned domain handlers, ungraceful process-kill crash windows, poison/dead-letter/replay tooling, duplicate/concurrent consumers and optional broker transports.
 2. **Production security:** Keycloak real OIDC/JWKS positive/negative token tests and EF query/SaveChanges tenant guards on both SQL providers are VERIFIED. Still needed: organization membership and RBAC/ABAC policies, tenant database RLS, bulk/raw-SQL guardrails, externally managed IdP key rotation and secure HTTPS deployment.
-3. **EF Core production operations:** optional per-context empty DbContext scaffolding now exists; real context-owned models/migrations, optimistic concurrency, forward/rollback/backup/restore verification, TLS-enforced SQL Server connections and PostgreSQL operations remain to deliver when real business ownership exists.
+3. **EF Core production operations:** optional per-context empty DbContext scaffolding and a pre-startup production TLS verification guard now exist; the **new TLS tests require a passing CI run before that gate is promoted to implemented**. Real context-owned models/migrations, optimistic concurrency, forward/rollback/backup/restore drills and actual production certificate-chain validation remain to deliver with business ownership.
 4. **Redis resilience:** an opt-in authoritative-source fallback for noncritical reads and real-client network-failure test now exist; remaining: controlled live restart/reconnect, distributed invalidation, tenant authorization across services, key rotation, stampede protection and load testing.
 5. **OpenTelemetry and operations:** real collector/export verification, logs correlation, sampling/PII policy, health dependency readiness, performance baselines, load/failover tests, audit events and dashboards.
 6. **Distribution/deployment:** the `0.3.0-preview.1` NuGet API template package and a non-root OCI image are build/test artifacts. Each generated project has default self-contained CI and an opt-in real-infrastructure workflow. Public NuGet.org publishing, signed attestations, selected cloud deployment, SLA/release automation, threat modeling and vulnerability scans remain incomplete.

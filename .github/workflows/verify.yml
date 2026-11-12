@@ -13,6 +13,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Verify implementation status catalog, task backlog and evidence links
+        run: |
+          python3 scripts/test_status_matrix.py
+          python3 scripts/status_matrix.py --check
       - name: Regressions for AI planner/QA runner
         run: python3 scripts/test_task_protocol.py
       - name: Recorded QA gates (includes architecture, AI checks, .NET build and C# smoke)

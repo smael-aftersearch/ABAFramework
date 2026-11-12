@@ -12,7 +12,7 @@
 | API route, auth policy, schema or errors changed | OpenAPI + route tests, relevant README and `docs/security.md` | Verify static OpenAPI matches reality |
 | Database or messaging semantics changed | `docs/architecture.md`, per-context `evolution.md`, relevant ADR, ops and failure tests | Document recovery/rollback behavior |
 | Cache keys/invalidations changed | Cache docs in architecture or context evolution; integration tests | Invalidation correctness matters |
-| New operational feature claimed delivered | README status table, `docs/KNOWN-LIMITATIONS.md`, verification report | Do not mark planned work as implemented |
+| New operational feature claimed delivered | `docs/implementation-status.json`, README status table, `docs/IMPLEMENTATION-STATUS.md`, `docs/KNOWN-LIMITATIONS.md`, verification report | Do not mark planned work as implemented; attach executable tests and source proof |
 | Agent workflow/skill changes | `.agents/skills/aba-engineering/`, `AGENTS.md` if global, knowledge map, agent policy tests | Keep frontmatter triggers precise |
 | Test policy or suite changes | `docs/testing/TEST-STRATEGY.md`, `tests/README.md`, knowledge map and CI as applicable | Report executed vs authored/planned; never silently weaken coverage |
 | Agent task planner or evidence gates change | Skill scripts + negative tests, `AGENTS.md`, change protocol, CI, verification report | Record exact PASS/FAIL/NOT_RUN; no automatic semantic certification |
@@ -31,3 +31,7 @@
 ## Definition of done for documentation
 
 A material change is document-complete when the published facts, ownership metadata, dependencies, contract catalog, relevant decision history, and actual code agree. Run `python3 scripts/ai_check.py check` plus architecture governance. These scripts check structural consistency, not the full semantic truth of prose; human review and task evidence remain required.
+
+## Machine-readable implementation status (mandatory)
+
+The **generic API template** is tracked independently from the optional Academy example. When a capability's code, verification status, owner, release gate or scope changes, edit `docs/implementation-status.json` first. Mark it Implemented only with evidence from source, focused tests and a reviewed successful CI baseline. Keep partial implementation and unverified deployment tasks explicitly Partial or Not implemented. Then run `python3 scripts/status_matrix.py --write`, `python3 scripts/test_status_matrix.py` and `python3 scripts/status_matrix.py --check`. CI checks both the README table and `docs/IMPLEMENTATION-STATUS.md`. Evidence path existence alone does not prove behavioral correctness; never mark tests as executed until their CI run is successful.
