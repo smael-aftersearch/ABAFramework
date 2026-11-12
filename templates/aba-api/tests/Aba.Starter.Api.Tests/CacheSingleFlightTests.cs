@@ -109,6 +109,46 @@ public sealed class CacheSingleFlightTests
     }
 
     [Fact]
+    public async Task CachedZeroAndFalseAreHitsRatherThanRepeatedMisses()
+    {
+        using var provider = Build();
+        await using var scope = provider.CreateAsyncScope();
+        var query = scope.ServiceProvider.GetRequiredService<ReadThroughQueryCache>();
+        var zeroCalls = 0;
+        var falseCalls = 0;
+        Assert.Equal(0, await query.GetOrLoadAsync<int>("tenant-safe", "count",
+            TimeSpan.FromMinutes(1),
+            _ => { zeroCalls++; return Task.FromResult(0); }));
+        Assert.Equal(0, await query.GetOrLoadAsync<int>("tenant-safe", "count",
+            TimeSpan.FromMinutes(1),
+            _ => throw new InvalidOperationException("Zero is a cached value, not a miss")));
+        Assert.False(await query.GetOrLoadAsync<bool>("tenant-safe", "flag",
+            TimeSpan.FromMinutes(1),
+            _ => { falseCalls++; return Task.FromResult(false); }));
+        Assert.False(await query.GetOrLoadAsync<bool>("tenant-safe", "flag",
+            TimeSpan.FromMinutes(1),
+            _ => throw new InvalidOperationException("False is a cached value, not a miss")));
+        Assert.Equal(1, zeroCalls);
+        Assert.Equal(1, falseCalls);
+    }
+
+    [Fact]
+    public async Task CachedJsonNullDoesNotTriggerAnotherAuthoritativeRead()
+    {
+        using var provider = Build();
+        await using var scope = provider.CreateAsyncScope();
+        var query = scope.ServiceProvider.GetRequiredService<ReadThroughQueryCache>();
+        var called = 0;
+        Assert.Null(await query.GetOrLoadAsync<string?>("tenant-safe", "nullable",
+            TimeSpan.FromMinutes(1),
+            _ => { called++; return Task.FromResult<string?>(null); }));
+        Assert.Null(await query.GetOrLoadAsync<string?>("tenant-safe", "nullable",
+            TimeSpan.FromMinutes(1),
+            _ => throw new InvalidOperationException("JSON null was already cached")));
+        Assert.Equal(1, called);
+    }
+
+    [Fact]
     public async Task ExpiredEntryReloadsAfterTtl()
     {
         using var provider = Build();
