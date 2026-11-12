@@ -10,6 +10,7 @@ Read `docs/ai/INDEX.md`, `docs/architecture.md`, `docs/testing/TEST-STRATEGY.md`
 - Do not change an existing published V1 contract incompatibly; introduce V2 with compatibility and consumer tests.
 - When tenancy is enabled, extract tenant scope from a verified signed JWT claim via `IRequestTenant`; never trust a user-supplied tenant header. Context-owned EF Infrastructure rows should implement `ITenantOwnedRow` and use `AbaTenantDbContext` for read filters and SaveChanges guards, **plus** domain membership and database/bulk-SQL defenses. Context owners must still test their row isolation independently.
 - Preserve signed JWT xUnit tests for a valid token and invalid signature/issuer/audience/expiration; never replace ASP.NET Core token verification with a test-only fake authorization handler in production.
+- Authenticate before assigning per-user rate-limit partitions; never trust raw forwarded/tenant headers, and keep Health probes exempt. A per-instance limiter does not replace shared gateway quotas.
 - HTTP endpoints require authentication by default. Explicitly justify every `AllowAnonymous` endpoint. No secrets or unsigned JWT shortcuts.
 - Keep OpenAPI generated from the actual endpoints. Documentation UI is Development only.
 - Cache outage bypass is explicit and only for non-authoritative queries after proper tenant authorization. Never use read-through cache fallback for security decisions, idempotency or business invariants.

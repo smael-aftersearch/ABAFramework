@@ -72,3 +72,7 @@ The generator supports `--with-db` to add an empty owner-specific Infrastructure
 ## Real concurrent callback claims
 
 `ConcurrentSameKeyClaimsHaveOneWinnerAndNoDuplicateWork` starts four concurrent isolated EF scopes with the same idempotency key on both PostgreSQL and SQL Server. Acceptance: exactly one transaction commits the receipt and its associated technical row, the other three are duplicates, and the database contains exactly one of each. This exercises actual unique constraints and transaction overlap, not a single-threaded repeat. A failure must trigger a code fix, not removal of the assertion.
+
+## Configurable rate-limiting and health resilience
+
+`RateLimitTests` verifies invalid limits fail configuration, JWT subject/tenant isolation is unaffected by untrusted tenant headers, anonymous IP partitioning ignores forwarded spoofing, and a tiny 2-request quota returns 429 on the next API request while Health remains available. Production multi-instance quotas still require gateway or distributed rate enforcement.

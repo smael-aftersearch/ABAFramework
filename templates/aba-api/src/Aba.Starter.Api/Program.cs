@@ -44,19 +44,12 @@ builder.Services.AddAuthorization(options =>
     options.DefaultPolicy = baseline;
     options.FallbackPolicy = baseline;
 });
+var rateLimit = AbaRateLimitOptions.FromConfiguration(builder.Configuration);
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(http =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            _ => new FixedWindowRateLimiterOptions
-            {
-                AutoReplenishment = true,
-                PermitLimit = 120,
-                QueueLimit = 0,
-                Window = TimeSpan.FromMinutes(1)
-            }));
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(
+        rateLimit.ForRequest);
 });
 
 var app = builder.Build();
@@ -71,8 +64,9 @@ app.Use(async (context, next) =>
         : context.TraceIdentifier;
     await next();
 });
-app.UseRateLimiter();
+// Evaluate validated JWT identity before assigning a user's rate-limit bucket.
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapHealthChecks("/health/live").AllowAnonymous().WithTags("Health");

@@ -64,3 +64,7 @@ Read [docs/platform-infrastructure.md](docs/platform-infrastructure.md) for conf
 ## Cache outage handling
 
 For non-authoritative, already-authorized queries you may use `ReadThroughQueryCache` with `CacheOutagePolicy.UseAuthoritativeSource` to fetch fresh source data when Redis connectivity fails; default remains strict `FailClosed`. Never use this for authentication, tenant authorization, accounting, financial idempotency or other business invariants. See `docs/platform-infrastructure.md`.
+
+## Request rate limits
+
+`Platform:RateLimit:PermitLimit` (default 120) and `Platform:RateLimit:WindowSeconds` (default 60) configure per-instance fixed-window limits. Authenticated requests partition on verified JWT subject plus tenant claim; anonymous traffic is grouped by the actual TCP peer IP, never by untrusted `X-Forwarded-For` or `X-Tenant-ID`. The health endpoints are exempt from request throttling so load cannot make readiness/liveness accidentally fail. This is **per-process**, not a distributed quota across replicas; production needs an API gateway/shared limiter. Test in `RateLimitTests` covers 429, anonymous and JWT partition keys, and health bypass.
