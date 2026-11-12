@@ -264,6 +264,11 @@ def check():
                 forbidden = rf"\b(?:global\s+)?using\s+(?:static\s+)?{re.escape(ns)}\.{re.escape(other)}\.(?:Domain|Application|Infrastructure)\b"
                 if re.search(forbidden, code):
                     raise ValueError(f"Forbidden cross-context implementation import: {source}")
+        if record.get("efCore", False):
+            persistence_file = ROOT / "src/Modules" / name / "Infrastructure" / "Persistence" / f"{name}DbContext.cs"
+            registration_code = (ROOT / "src/Modules" / name / "Infrastructure" / "ModuleRegistration.cs").read_text()
+            if not persistence_file.is_file() or "UseNpgsql" not in registration_code or "UseSqlServer" not in registration_code:
+                raise ValueError(f"Context-owned dual-provider EF wiring is missing: {name}")
         if f"../Modules/{name}/Infrastructure/{ns}.{name}.Infrastructure.csproj" not in api.read_text():
             raise ValueError(f"Missing host project reference for {name}")
         registration = ("builder.Configuration" if record.get("efCore", False) else "")
@@ -288,7 +293,7 @@ def create(name, with_db=False):
     testdir = ROOT / "tests" / f"{ns}.{name}.Tests"
     if srcdir.exists() or testdir.exists():
         raise ValueError("Refusing to overwrite existing source/test folder")
-    files, projects = files_for(name, ns)
+    files, projects = files_for(name, ns, with_db=with_db)
     progpath = api.parent / "Program.cs"
     program = progpath.read_text()
     hook = "builder.Services.AddHealthChecks();"
