@@ -198,3 +198,11 @@ or rewritten without failing signed-prefix verification. These
 tests do not certify immutable offsite storage or a real business
 Outbox publish/ACK crash boundary. Use actual CI run evidence
 before claiming successful execution.
+
+A third isolated CrashDrill mode parks a synthetic Wolverine
+handler after a separately committed idempotent effect but
+before its ACK. On process kill/restart, a second delivery
+attempt is required while the effect remains unique. This
+specifically exercises the at-least-once/duplicate-delivery
+ACK boundary under real process death. The generated Product
+still needs proof for its own handler and external side effects.

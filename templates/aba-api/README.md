@@ -180,3 +180,10 @@ AbaAuditCheckpointCodec.Sign to bind tenant, sequence and digest
 with a wholly independent HMAC key stored OUTSIDE the API.
 No automatic external immutability sink or Production key
 manager is supplied. See ADR-008, ADR-009 and the runbook.
+
+**Additional technical crash test:** the SIGKILL drill now checks
+the consumer-ACK gap using a synthetic receipt written before
+handler acknowledgement. Restart must produce a second delivery
+attempt while the idempotent effect remains unique. This
+probe is CI-only and is not a Production business-handler
+guarantee; check the latest run's success before relying on it.

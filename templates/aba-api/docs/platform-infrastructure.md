@@ -180,3 +180,15 @@ sequence; have an independent custodian sign with a separate
 secret; preserve the signed record off-database. A later
 VerifyAnchoredPrefixAsync call verifies the signed prefix even
 if the ledger contains newer valid rows. Read ADR-009.
+
+## Before consumer ACK, after technical effect commit
+
+The technical AbaCrashAckProbe writes an attempt receipt and
+atomically claimed effect receipt outside Wolverine's handler
+acknowledgement path. Only when the explicit CI process-crash
+marker is configured will that synthetic handler park before
+returning. Its test's parent then kills the worker and requires
+new-host re-delivery with an unchanged single effect receipt.
+The template does not expose this probe through an HTTP endpoint
+or invoke a real business provider. Actual multi-context,
+broker ACK and external side-effect guarantees remain open.

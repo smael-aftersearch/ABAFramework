@@ -162,3 +162,10 @@ candidate and a historical-prefix verifier. Security/Operations
 must still deploy an actual immutable offsite checkpoint sink,
 isolate and rotate the offline signing key, set retention and
 operator permissions and audit actual context-owned decisions.
+
+**ACK-loss progress (authored, final CI pending):** a third
+SIGKILL case now commits an idempotent technical receipt, kills
+the worker before handler ACK, and requires restored Wolverine
+to redeliver without duplicating the receipt. This still needs
+validation against the owning business domain's external effects,
+publisher Outbox and broker transports.

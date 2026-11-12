@@ -55,3 +55,19 @@ only disposable CI services.
   failover or contractual RTO/RPO.
 
 No output from this drill is proof of these properties.
+
+## New pre-ACK redelivery case
+
+A third explicit child mode sends a test-only AbaCrashAckProbe to
+the durable local queue. Its handler commits two independently
+scoped technical records: a unique execution-attempt ID and a
+deduplicated effect ID. A marker appears only AFTER the effect
+has committed; the handler then blocks BEFORE Wolverine can ACK.
+The parent SIGKILLs the exact worker process, starts another host
+and requires at least two attempt records with exactly one effect.
+This distinguishes genuine re-delivery from a mere restart.
+
+The marker is gated by CI=true, the drill opt-in and the temp
+directory restriction. The test remains outside normal xUnit.
+No real business side effect or callback can be invoked. A failure
+in this case must be investigated, not reclassified as a pass.

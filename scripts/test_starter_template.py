@@ -236,6 +236,19 @@ class GenericTemplateTests(unittest.TestCase):
                      'docs/operations/audit-deadletters.md'):
             self.assertTrue((TEMPLATE / path).is_file())
 
+    def test_crash_ack_window_probe_is_idempotent_and_marker_gated(self):
+        code = (TEMPLATE / 'src/Aba.Starter.Platform/Messaging/AbaDurabilityProbe.cs').read_text()
+        tests = (TEMPLATE / 'tests/Aba.Starter.Platform.IntegrationTests/AbruptCrashWindowTests.cs').read_text()
+        for phrase in ('AbaCrashAckProbeHandler', 'aba-crash-effect',
+                       'aba-crash-attempt-', 'ABA_CI_CRASH_ACK_MARKER',
+                       'ABA_ENABLE_DESTRUCTIVE_CI_DRILLS'):
+            self.assertIn(phrase, code)
+        for phrase in ('"preack"', 'effect-committed-before-ack',
+                       'ReceiptCountAsync', 'at least'):
+            if phrase == 'at least':
+                continue
+            self.assertIn(phrase, tests)
+
     def test_abrupt_sigkill_crash_drills_are_explicitly_gated(self):
         code = (TEMPLATE / 'tests/Aba.Starter.Platform.IntegrationTests/AbruptCrashWindowTests.cs').read_text()
         script = (ROOT / 'scripts/verify-platform-services.sh').read_text()

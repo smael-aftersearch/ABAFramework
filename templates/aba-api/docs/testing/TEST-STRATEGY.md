@@ -176,3 +176,14 @@ prefix deletion, missing records and append-after-checkpoint
 on PostgreSQL and SQL Server. No offsite WORM/SIEM backend,
 consumer ACK fault injection or real business effects are
 covered by these technical fixtures.
+
+## New ACK-window SIGKILL case
+
+AbruptCrashWindowTests now also includes a third controlled
+pre-ACK mode. A technical Wolverine handler in a separate EF
+scope commits an idempotent effect receipt, records a delivery
+attempt and blocks before acknowledging. The parent kills its
+child process, restarts Wolverine on the same SQL store, requires
+at least one redelivery attempt and exactly one effect. This
+covers the ACK-loss idempotency invariant for a synthetic
+technical handler, not a domain consumer or external payment.

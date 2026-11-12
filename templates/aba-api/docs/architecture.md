@@ -115,3 +115,10 @@ historical prefix. VerifyAnchoredPrefixAsync validates that
 prefix in a consistent SQL snapshot while accepting new appends.
 The application deliberately does not own the immutable
 checkpoint archive, signing HSM or customer retention policy.
+
+The separate CrashDrill now also has an ACK-loss technical
+probe: one committed idempotent effect must remain after the
+original worker is killed before its Wolverine acknowledgement,
+even when the next host reprocesses the durable envelope.
+Neither the probe nor its receipt belongs to a business owner;
+real transactions and external effects still need their own tests.

@@ -25,6 +25,17 @@ per-case marker confirms one of two exact fault boundaries.
    must process the scheduled envelope into one technical receipt.
    This is the post-schedule-durability recovery case.
 
+3. **Committed effect but consumer ACK withheld:** a synthetic
+   AbaCrashAckProbe writes one externally committed technical effect
+   receipt and a unique delivery-attempt receipt in a separate EF
+   scope. The handler signals the parent then deliberately parks
+   **before returning to Wolverine**, preventing its ACK. The parent
+   SIGKILLs the worker, starts a new host, requires at least a second
+   recorded attempt from persisted redelivery and checks the
+   idempotency effect still has exactly one receipt. This models
+   a lost consumer ACK after an independently committed effect,
+   without using any real business side effects or public route.
+
 All results are verified separately on real PostgreSQL 16 and
 SQL Server 2022 containers. The test uses unique GUID receipts and
 marker paths and never registers a new public HTTP fault route.
@@ -48,10 +59,11 @@ ordinary developer or Production hosts.
 
 ## Boundaries and next steps
 
-This verifies process death before a SQL commit and after Wolverine
-durable scheduling, without losing a scheduled message. It is NOT
-an instrumented SIGKILL between the **same business transaction's**
-commit, Outbox flush, broker publish and consumer ACK. It does not
+This verifies process death before a SQL commit, after Wolverine
+durable scheduling, and after a technical effect commits before the
+handler ACK. It is NOT an instrumented SIGKILL between the **same
+business transaction's** commit, Outbox flush, broker publish and
+consumer ACK, nor is the effect receipt a real external payment. It does not
 prove double-delivery under ACK loss, exactly-once external effects,
 network partitions, broker failover or a business consumer's
 idempotency. Those acceptance gates remain open. A process-kill test

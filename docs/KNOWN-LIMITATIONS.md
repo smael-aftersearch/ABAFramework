@@ -114,9 +114,10 @@ business consumer compensation.
 ## Current crash/drift boundaries
 
 The new CrashDrill is restricted to synthetic technical effects
-on ephemeral local SQL engines and tests only two carefully
-synchronized SIGKILL boundaries: pre-commit flushed SQL and
-post-schedule persisted Wolverine message. It is NOT fault
+on ephemeral local SQL engines and tests three carefully
+synchronized SIGKILL boundaries: pre-commit flushed SQL,
+post-schedule persisted Wolverine message, and technical
+committed-effect-before-consumer-ACK. It is NOT fault
 injection between real business transaction commit, Outbox
 dispatch, broker acceptance and consumer acknowledgement.
 A root CI-only child dotnet worker is killed by PID handle; this
