@@ -21,6 +21,17 @@ dotnet pack packaging/ABAFramework.GenericApi.Template.csproj -c Release \
   /p:PackageVersion=0.2.0-preview.1
 PACKAGE="$ROOT/artifacts/packages/ABAFramework.GenericApi.Template.0.2.0-preview.1.nupkg"
 test -s "$PACKAGE"
+python3 - "$PACKAGE" <<'PY'
+import sys, zipfile
+with zipfile.ZipFile(sys.argv[1]) as z:
+    names = z.namelist()
+    print("Package inventory:", len(names), "entries")
+    for name in names[:100]:
+        print("  ZIP:", name)
+    for required in ("AGENTS.md", "Dockerfile", ".agents/skills/aba-engineering/SKILL.md"):
+        matched = [name for name in names if name.endswith("/" + required)]
+        print("Package lookup:", required, matched[:4])
+PY
 dotnet new install "$PACKAGE"
 dotnet new aba-api -n Pilot.Packaged -o "$TMP/from-package"
 for required in \
