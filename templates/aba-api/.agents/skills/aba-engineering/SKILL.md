@@ -23,6 +23,7 @@ description: >
 - Other contexts consume versioned contracts, not private models or tables.
 - The API host is composition-only; business decisions belong to owning contexts.
 - Do not silently modify public V1 contracts. Introduce V2 and compatibility tests when needed.
+- For tenant-aware code, require a validated JWT tenant claim and context-owned tenant/row isolation; never use a raw tenant header as an authority. Optional claim-aware middleware is not sufficient to claim full tenant isolation.
 - HTTP routes remain authenticated by default; only narrowly justified endpoints can be anonymous.
 - No production secrets, fake payment side effects, or claims of unimplemented PostgreSQL, Redis, Wolverine or tenant isolation.
 

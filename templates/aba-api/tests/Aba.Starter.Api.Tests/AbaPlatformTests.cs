@@ -1,6 +1,9 @@
 using Aba.Starter.Platform.Caching;
 using Aba.Starter.Platform.Observability;
 using Aba.Starter.Platform.Persistence;
+using Aba.Starter.Platform.Security;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
@@ -25,6 +28,48 @@ public sealed class AbaPlatformTests
         Assert.Throws<InvalidOperationException>(() =>
             AbaObservabilityOptions.FromConfiguration(config, isDevelopment: false));
         Assert.True(AbaObservabilityOptions.FromConfiguration(config, isDevelopment: true).Enabled);
+    }
+
+    [Fact]
+    public void TenantResolverIgnoresUnsignedUserSuppliedHeaders()
+    {
+        var anonymous = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim("tenant_id", "injected-tenant")]));
+        Assert.Null(AbaTenantClaims.Resolve(anonymous, "tenant_id"));
+        var authenticated = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim("tenant_id", "tenant.alpha")], "validated-bearer"));
+        Assert.Equal("tenant.alpha", AbaTenantClaims.Resolve(authenticated, "tenant_id"));
+        var missing = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim("sub", "user-1")], "validated-bearer"));
+        Assert.Null(AbaTenantClaims.Resolve(missing, "tenant_id"));
+        var malformed = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim("tenant_id", "../tenant 1")], "validated-bearer"));
+        Assert.Null(AbaTenantClaims.Resolve(malformed, "tenant_id"));
+    }
+
+    [Fact]
+    public async Task OptInTenancyPolicyRequiresAuthenticatedTenantClaim()
+    {
+        var configured = new AbaTenantOptions(true, "tenant_id");
+        var policy = AbaTenantClaims.BuildPolicy(configured);
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection.AddAuthorization();
+        using var provider = serviceCollection.BuildServiceProvider();
+        var authorization = provider.GetRequiredService<IAuthorizationService>();
+        var accepted = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim("tenant_id", "tenant-a")], "bearer"));
+        var denied = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim("sub", "person-123")], "bearer"));
+        Assert.True((await authorization.AuthorizeAsync(accepted, resource: null, policy)).Succeeded);
+        Assert.False((await authorization.AuthorizeAsync(denied, resource: null, policy)).Succeeded);
+    }
+
+    [Fact]
+    public void TenantModeDefaultsToOff()
+    {
+        var config = Config(new Dictionary<string, string?>());
+        Assert.False(AbaTenantOptions.FromConfiguration(config).Enabled);
     }
 
     [Fact]

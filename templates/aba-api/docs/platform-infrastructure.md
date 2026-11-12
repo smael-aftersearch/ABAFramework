@@ -69,3 +69,7 @@ Set `ABA_TEST_POSTGRESQL`, `ABA_TEST_SQLSERVER` and `ABA_TEST_REDIS` and run `ba
 
 Set `Platform__Observability__Enabled=true` to enable ASP.NET Core and outgoing HTTP traces/metrics. Set `Platform__Observability__ServiceName=MyApi` and optionally `Platform__Observability__OtlpEndpoint=https://collector.example:4317` to export via OTLP. An unsecured HTTP collector is accepted only in local Development. No external collector, credentials, public metrics endpoint or telemetry backend is bundled. Review tracing sampling, PII filters, service identity and collector trust in production.
 
+
+## Optional tenant claim safety
+
+`Platform__Tenancy__Enabled=true` requires a nonempty authenticated `tenant_id` claim for protected API routes; customize `Platform__Tenancy__ClaimType` when your trusted IdP has a different claim. `IRequestTenant` reads only validated JWT principals and never trusts `X-Tenant-ID` from an untrusted caller. This is a technical guardrail, **not** a complete multitenancy authorization or EF Core row-level data isolation system.

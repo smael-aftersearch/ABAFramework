@@ -1,6 +1,7 @@
 using System.Threading.RateLimiting;
 using Aba.Starter.Api.Platform;
 using Aba.Starter.Platform;
+using Aba.Starter.Platform.Security;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -28,12 +29,15 @@ builder.Services
         options.Audience = audience;
         options.RequireHttpsMetadata = true;
     });
+// A tenant is trusted only when taken from a validated JWT claim. Anonymous
+// infrastructure routes remain explicitly marked AllowAnonymous.
+var tenancy = AbaTenantOptions.FromConfiguration(builder.Configuration);
+builder.Services.AddAbaTenantResolution(tenancy);
 builder.Services.AddAuthorization(options =>
 {
-    // Newly added routes are protected unless they explicitly opt out.
-    options.FallbackPolicy = new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme)
-        .RequireAuthenticatedUser()
-        .Build();
+    var baseline = AbaTenantClaims.BuildPolicy(tenancy);
+    options.DefaultPolicy = baseline;
+    options.FallbackPolicy = baseline;
 });
 builder.Services.AddRateLimiter(options =>
 {

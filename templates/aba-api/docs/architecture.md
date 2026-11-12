@@ -27,3 +27,7 @@ The host does not ship a JWT signing key or an identity provider. For non-Develo
 ## Authentication gate verification
 
 The generated API includes a deliberately protected `GET /api/v1/system/authorization-check` endpoint. A request without a valid bearer token returns `401` **even in Development**. This does not replace full OIDC integration, tenant-isolation or signed-token claim tests. Documentation UI is Development-only, and production startup still requires HTTPS authority/audience.
+
+## Optional tenancy-awareness (not tenant data isolation)
+
+Set `Platform:Tenancy:Enabled=true` to require a trusted tenant claim on every authenticated API endpoint, via both the default and fallback JWT authorization policies. `Platform:Tenancy:ClaimType` defaults to `tenant_id`. `IRequestTenant` reads only the principal populated by authentication middleware; a caller's `X-Tenant-ID` header is never accepted as proof of membership. The option is **disabled** for the clean Single-Tenant quickstart. Actual tenant authorization, record filtering, migrations, per-tenant storage, cross-tenant negative database tests, and account membership belong to the real owning business contexts/provider; **do not advertise production tenant isolation** yet.
