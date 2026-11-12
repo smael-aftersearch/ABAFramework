@@ -91,10 +91,26 @@ public sealed record AbaCrashAckProbe(Guid Id);
 
 public static class AbaCrashAckProbeHandler
 {
+    public static void RequireIsolatedCrashMarker(
+        string marker, bool ci, bool explicitlyEnabled)
+    {
+        if (!ci || !explicitlyEnabled || string.IsNullOrWhiteSpace(marker) ||
+            !Path.GetFullPath(marker).StartsWith(Path.GetFullPath(Path.GetTempPath()),
+                StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "ACK fault injection is forbidden outside an explicit disposable CI drill.");
+    }
+
     public static async Task Handle(
         AbaCrashAckProbe message, IServiceScopeFactory scopeFactory,
         CancellationToken ct)
     {
+        var marker = Environment.GetEnvironmentVariable("ABA_CI_CRASH_ACK_MARKER");
+        // Check the safety gate BEFORE touching any database row.
+        if (!string.IsNullOrWhiteSpace(marker))
+            RequireIsolatedCrashMarker(marker,
+                Environment.GetEnvironmentVariable("CI") == "true",
+                Environment.GetEnvironmentVariable("ABA_ENABLE_DESTRUCTIVE_CI_DRILLS") == "yes");
         var key = message.Id.ToString("N");
         await using var separate = scopeFactory.CreateAsyncScope();
         var receipts = separate.ServiceProvider.GetRequiredService<EfIdempotencyStore>();
@@ -104,15 +120,8 @@ public static class AbaCrashAckProbeHandler
             Guid.NewGuid().ToString("N"), ct);
         var first = await receipts.TryClaimAsync("aba-crash-effect", key, ct);
 
-        var marker = Environment.GetEnvironmentVariable("ABA_CI_CRASH_ACK_MARKER");
         if (string.IsNullOrWhiteSpace(marker))
             return;
-        if (Environment.GetEnvironmentVariable("CI") != "true" ||
-            Environment.GetEnvironmentVariable("ABA_ENABLE_DESTRUCTIVE_CI_DRILLS") != "yes" ||
-            !Path.GetFullPath(marker).StartsWith(Path.GetFullPath(Path.GetTempPath()),
-                StringComparison.Ordinal))
-            throw new InvalidOperationException(
-                "ACK fault injection is forbidden outside an explicit disposable CI drill.");
         // The receipt is committed, but Wolverine has not acknowledged the
         // envelope: this handler has not yet returned to the runtime.
         File.WriteAllText(marker, first
