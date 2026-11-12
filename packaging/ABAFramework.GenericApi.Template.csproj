@@ -20,7 +20,7 @@
     <Compile Remove="**/*.cs" />
     <Content Include="content/aba-api/**/*" Exclude="content/aba-api/**/bin/**;content/aba-api/**/obj/**;content/aba-api/**/.vs/**;content/aba-api/**/artifacts/**">
       <Pack>true</Pack>
-      <PackagePath>content/aba-api/%(RecursiveDir)</PackagePath>
+      <PackagePath>content/aba-api/</PackagePath>
     </Content>
   </ItemGroup>
 </Project>
