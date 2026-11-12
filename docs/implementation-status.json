@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "baseline": {
-    "ci_run": 43305238518,
-    "commit": "31362d6d8595f7e671c3bf753f395b2bd691d3bb",
-    "note": "Five-job generic API CI: 70 default xUnit, 16 real integration tests, Keycloak, Docker Production TLS rejection, package and status synchronization; 0.3.0-preview.2 packaging is later and requires its own CI."
+    "ci_run": 43308144489,
+    "commit": "af70d88ecc9ce6c51aab08e56e7436104c1e6e2e",
+    "note": "Five-job green generated API CI: 73 packed-template xUnit tests, 16 real PostgreSQL/SQL Server/Redis/Wolverine integration tests, Keycloak, non-root Docker, safe RFC 7807 HTTP and independent liveness/readiness negative tests."
   },
   "features": [
     {
@@ -46,16 +46,19 @@
       "id": "api-problems",
       "area": "API",
       "feature": "Problem Details and HTTP errors",
-      "status": "partial",
+      "status": "implemented",
       "owner": "Host",
       "priority": "P1",
-      "delivered": "ProblemDetails and exception middleware registered; error-response payload still lacks a focused HTTP test",
-      "remaining": "Add deterministic HTTP exception fixture and assert safe RFC 7807 response payload",
+      "delivered": "RFC 7807 HTTP 500 with nonsecret Production response, validated header/body correlation ID and focused HTTP failure tests",
+      "remaining": "Review validation/client errors, proxy traces and application logging policy per deployment",
       "acceptance": "Unexpected errors produce stable nonsecret ProblemDetails with correlation ID",
       "evidence": [
-        "templates/aba-api/src/Aba.Starter.Api/Program.cs"
+        "templates/aba-api/src/Aba.Starter.Api/Program.cs",
+        "templates/aba-api/src/Aba.Starter.Api/Platform/AbaErrorHandlingExtensions.cs"
       ],
-      "tests": []
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/ErrorHandlingTests.cs"
+      ]
     },
     {
       "id": "api-correlation",
@@ -81,8 +84,8 @@
       "status": "implemented",
       "owner": "Platform + Host",
       "priority": "P0",
-      "delivered": "Separate health/live and health/ready with dependency tags",
-      "remaining": "Prove health behavior during dependency outage and at scale",
+      "delivered": "Independent liveness and ready-tagged dependencies; injected health failure returns live 200 and ready 503",
+      "remaining": "Prove real database/Redis outage, reconnection and readiness behavior under load",
       "acceptance": "Live does not depend on DB; ready detects configured dependencies",
       "evidence": [
         "templates/aba-api/src/Aba.Starter.Api/Program.cs",
@@ -90,7 +93,8 @@
       ],
       "tests": [
         "templates/aba-api/tests/Aba.Starter.Api.Tests/ApiSmokeTests.cs",
-        "scripts/verify-container-starter.sh"
+        "scripts/verify-container-starter.sh",
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/ReadinessTests.cs"
       ]
     },
     {
@@ -623,8 +627,8 @@
       "status": "implemented",
       "owner": "Developer tools",
       "priority": "P1",
-      "delivered": "Installable versioned NuGet template verified at v0.3.0-preview.1; next v0.3.0-preview.2 package is gated by new CI",
-      "remaining": "Verify v0.3.0-preview.2 packing plus NuGet.org release/signing strategy",
+      "delivered": "Installable versioned v0.3.0-preview.2 NuGet API template built, installed and tested with 73 xUnit cases in CI",
+      "remaining": "NuGet.org publication, provenance/signing and release automation remain gated",
       "acceptance": "Fresh project builds and tests from actual packed nupkg",
       "evidence": [
         "packaging/ABAFramework.GenericApi.Template.csproj"

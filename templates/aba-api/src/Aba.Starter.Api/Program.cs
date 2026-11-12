@@ -14,7 +14,7 @@ var authority = builder.Configuration["Authentication:Authority"];
 var audience = builder.Configuration["Authentication:Audience"];
 StartupSecurityGuard.Validate(builder.Environment.IsDevelopment(), authority, audience);
 
-builder.Services.AddProblemDetails();
+builder.Services.AddAbaErrorHandling();
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
 // Data, cache and Wolverine are opt-in; a blank project never needs an external service.
@@ -55,23 +55,18 @@ builder.Services.AddRateLimiter(options =>
 });
 
 var app = builder.Build();
-app.UseExceptionHandler();
-app.Use(async (context, next) =>
-{
-    var requestedId = context.Request.Headers["X-Correlation-ID"].ToString();
-    var valid = requestedId.Length is > 0 and <= 64
-        && requestedId.All(c => char.IsAsciiLetterOrDigit(c) || c == '-' || c == '_');
-    context.Response.Headers["X-Correlation-ID"] = valid
-        ? requestedId
-        : context.TraceIdentifier;
-    await next();
-});
+app.UseAbaErrorHandling();
 // Evaluate validated JWT identity before assigning a user's rate-limit bucket.
 app.UseAuthentication();
 app.UseRateLimiter();
 app.UseAuthorization();
 
-app.MapHealthChecks("/health/live").AllowAnonymous().WithTags("Health");
+// Liveness must not depend on opt-in database/Redis health checks.
+// An unavailable dependency makes the API unready, not necessarily dead.
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false
+}).AllowAnonymous().WithTags("Health");
 app.MapHealthChecks("/health/ready", new HealthCheckOptions
 {
     Predicate = registration => registration.Tags.Contains("ready")

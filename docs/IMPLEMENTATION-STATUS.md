@@ -11,18 +11,18 @@ do not count as generic framework features.
 The **generic .NET 10 API template** is the primary product. This matrix is separate from the
 historical Academy Phase 1 demo below. A feature can be implemented technically while
 its **production release gates remain open**. Evidence refers to the last reviewed baseline:
-[CI run 43305238518](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43305238518)
-(commit `31362d6d8595`). New commits must pass their own CI before being treated as verified.
+[CI run 43308144489](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43308144489)
+(commit `af70d88ecc9c`). New commits must pass their own CI before being treated as verified.
 
-**Tracked: 54** · Implemented: 30 · Partial: 3 · Not implemented: 21.
+**Tracked: 54** · Implemented: 31 · Partial: 2 · Not implemented: 21.
 
 | Area | Parameter / feature | Status | Delivered scope | Remaining task | Priority |
 | --- | --- | --- | --- | --- | --- |
 | API | Domain-neutral .NET 10 HTTP API | **Implemented** | Versioned Minimal API with composition root | No generic framework work outstanding | P0 |
 | API | OpenAPI plus interactive Scalar | **Implemented** | Generated OpenAPI and Development-only Scalar UI | Production API docs need a reviewed access policy | P1 |
-| API | Problem Details and HTTP errors | **Partial** | ProblemDetails and exception middleware registered; error-response payload still lacks a focused HTTP test | Add deterministic HTTP exception fixture and assert safe RFC 7807 response payload | P1 |
+| API | Problem Details and HTTP errors | **Implemented** | RFC 7807 HTTP 500 with nonsecret Production response, validated header/body correlation ID and focused HTTP failure tests | Review validation/client errors, proxy traces and application logging policy per deployment | P1 |
 | API | Request correlation IDs | **Implemented** | Validated X-Correlation-ID response header | Correlate logs, traces and message envelopes across services | P1 |
-| API | Liveness and readiness | **Implemented** | Separate health/live and health/ready with dependency tags | Prove health behavior during dependency outage and at scale | P0 |
+| API | Liveness and readiness | **Implemented** | Independent liveness and ready-tagged dependencies; injected health failure returns live 200 and ready 503 | Prove real database/Redis outage, reconnection and readiness behavior under load | P0 |
 | API | Authenticated per-identity rate limits | **Implemented** | JWT subject + tenant partition; anonymous TCP peer; Health bypass | Multi-node shared quotas require a gateway | P1 |
 | API | Distributed multi-instance rate limits | **Not implemented** | Not implemented | Add shared gateway/quota store with trusted proxy policy | P1 |
 | Security | OIDC/JWT signature, issuer and audience | **Implemented** | ASP.NET JWT bearer validation and fail-closed production OIDC config | External real-user IdP configuration and security operations remain | P0 |
@@ -57,7 +57,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | Observability | Collector pipeline and export integration test | **Not implemented** | Not implemented | Add isolated OTLP receiver/collector to CI and verify trace/metric export | P1 |
 | Observability | Tamper-evident audit trail | **Not implemented** | Not implemented | Define context-owned auditable actions with safe retention/PII policy | P0 |
 | Operations | Production secrets, key rotation and policy | **Not implemented** | Not implemented | Add approved secret store, rotation and least-privilege deployment setup | P0 |
-| Developer | Installable versioned NuGet API template | **Implemented** | Installable versioned NuGet template verified at v0.3.0-preview.1; next v0.3.0-preview.2 package is gated by new CI | Verify v0.3.0-preview.2 packing plus NuGet.org release/signing strategy | P1 |
+| Developer | Installable versioned NuGet API template | **Implemented** | Installable versioned v0.3.0-preview.2 NuGet API template built, installed and tested with 73 xUnit cases in CI | NuGet.org publication, provenance/signing and release automation remain gated | P1 |
 | Developer | Domain/Application/Contracts/Infrastructure generator | **Implemented** | Scaffold real named contexts with ownership docs; no fictional entities | Complete real domain behavior remains owner-dependent | P1 |
 | Governance | ABA ownership and forbidden-edge checks | **Implemented** | Repo and generated-project architecture checks with negative cases | Semantic/IL enforcement still requires human architecture review | P0 |
 | Governance | Portable agent Skill, task plan and verification | **Implemented** | AGENTS, Skill, task-aware reader, PASS/FAIL/NOT_RUN evidence | AI agent adoption varies by platform; semantic review still manual | P1 |
@@ -117,7 +117,6 @@ Run `python3 scripts/status_matrix.py --check` to fail CI on mismatched tables.
 | `biz-contracts` | Business owners (TBD) | P0 | Partial | V1 consumers stay compatible; private implementation edges rejected |
 | `biz-contract-tests` | Business owners (TBD) | P0 | Not implemented | A breaking V1 change fails CI and requires an explicit V2 |
 | `biz-endpoints` | Actual business owner (TBD) | P0 | Not implemented | Owner-specific happy/negative/invariant and provider integration tests pass |
-| `api-problems` | Host | P1 | Partial | Unexpected errors produce stable nonsecret ProblemDetails with correlation ID |
 | `api-shared-limits` | Operations | P1 | Not implemented | Verify one limit across two replicas under concurrent load |
 | `db-concurrency` | Actual context owner (TBD) | P1 | Not implemented | Two updates cannot silently overwrite the same business aggregate |
 | `msg-broker` | Platform | P1 | Not implemented | Broker outage, retry and duplicate-delivery integration scenarios pass |
@@ -133,9 +132,9 @@ Run `python3 scripts/status_matrix.py --check` to fail CI on mismatched tables.
 | --- | --- | --- |
 | `api-host` | `templates/aba-api/src/Aba.Starter.Api/Program.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/ApiSmokeTests.cs`, `scripts/verify-starter.sh` |
 | `api-openapi` | `templates/aba-api/src/Aba.Starter.Api/Program.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/ApiSmokeTests.cs`, `scripts/verify-starter.sh` |
-| `api-problems` | `templates/aba-api/src/Aba.Starter.Api/Program.cs` | NOT RUN / no complete test |
+| `api-problems` | `templates/aba-api/src/Aba.Starter.Api/Program.cs`, `templates/aba-api/src/Aba.Starter.Api/Platform/AbaErrorHandlingExtensions.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/ErrorHandlingTests.cs` |
 | `api-correlation` | `templates/aba-api/src/Aba.Starter.Api/Program.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/ApiSmokeTests.cs` |
-| `api-health` | `templates/aba-api/src/Aba.Starter.Api/Program.cs`, `templates/aba-api/src/Aba.Starter.Platform/AbaPlatformSetup.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/ApiSmokeTests.cs`, `scripts/verify-container-starter.sh` |
+| `api-health` | `templates/aba-api/src/Aba.Starter.Api/Program.cs`, `templates/aba-api/src/Aba.Starter.Platform/AbaPlatformSetup.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/ApiSmokeTests.cs`, `scripts/verify-container-starter.sh`, `templates/aba-api/tests/Aba.Starter.Api.Tests/ReadinessTests.cs` |
 | `api-rate-limits` | `templates/aba-api/src/Aba.Starter.Api/Platform/AbaRateLimitOptions.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/RateLimitTests.cs` |
 | `auth-jwt` | `templates/aba-api/src/Aba.Starter.Api/Program.cs`, `templates/aba-api/src/Aba.Starter.Api/Platform/StartupSecurityGuard.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/SignedJwtAuthenticationTests.cs`, `templates/aba-api/tests/Aba.Starter.Api.Tests/SecurityGuardTests.cs` |
 | `auth-keycloak` | `scripts/verify-keycloak-oidc.sh`, `infra/keycloak/aba-ci-realm.json` | `scripts/verify-keycloak-oidc.sh` |
