@@ -100,7 +100,8 @@ class GenericTemplateTests(unittest.TestCase):
 
     def test_new_context_generator_present_and_no_fictional_default_contexts(self):
         generator = (TEMPLATE / 'tools/new_context.py').read_text()
-        self.assertIn('def create(name):', generator)
+        self.assertIn('def create(name, with_db=False):', generator)
+        self.assertIn('--with-db', generator)
         self.assertIn('def check():', generator)
         self.assertIn('Domain', generator)
         self.assertIn('forbidden', generator)
