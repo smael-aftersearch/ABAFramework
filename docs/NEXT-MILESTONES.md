@@ -2,7 +2,7 @@
 
 The authoritative, maintained **54-feature status table** and prioritized open-task backlog live at [docs/IMPLEMENTATION-STATUS.md](IMPLEMENTATION-STATUS.md); the machine-readable source is [docs/implementation-status.json](implementation-status.json). This file is a high-level release narrative, not an independent status source. Run `python3 scripts/status_matrix.py --write` after every change.
 
-## New P0 SQL isolation and release-integrity work
+## New P0 SQL isolation and release-integrity work (CI verified)
 
 - **SQL security:** PostgreSQL FORCE RLS and SQL Server FILTER/BLOCK
   policy builders are in the generic Platform, with trusted per-transaction
@@ -26,7 +26,7 @@ The authoritative, maintained **54-feature status table** and prioritized open-t
 - **EF Core 10 both PostgreSQL and Microsoft SQL Server:** runtime provider selection; technical idempotency model with provider-neutral migration; real integration tests against both engines.
 - **Redis:** optional distributed caching, scoped JSON keys, TTL and invalidation; strict fail-closed by default. Explicit read-through of *non-authoritative* query data on Redis network failure is tested with fault injection and the real Redis client against an unreachable TCP endpoint. Multi-node invalidation and reconnect/load resilience remain incomplete.
 - **Wolverine 6:** durable EF transaction+outbox happy path and injected pre-commit rollback verified on both SQL engines, plus persistent scheduled-message recovery after a clean host restart. Real business handlers and arbitrary process-kill recovery remain unverified.
-- **OIDC/JWT:** real ephemeral Keycloak OIDC discovery/JWKS and signed bearer 204/401/403 tests; Production requires HTTPS identity metadata, with HTTP loopback opt-in allowed only in Development. Claim-based tenant gates and EF row query/write guards are tested against both SQL engines. Full IdP user membership, SQL RLS and operational key rotation are not delivered.
+- **OIDC/JWT:** real ephemeral Keycloak OIDC discovery/JWKS and signed bearer 204/401/403 tests; Production requires HTTPS identity metadata, with HTTP loopback opt-in allowed only in Development. Claim-based tenant gates and EF row query/write guards are tested against both SQL engines. Full IdP membership, production RLS policy installation/role governance and operational key rotation are not delivered; generic RLS providers and raw/bulk negative checks are now technically verified.
 - **OpenTelemetry:** optional ASP.NET+HttpClient tracing/metrics, validated OTLP endpoint, no collector auto-installed.
 - **Status tracking:** the 54-capability JSON/README matrix and generated P0/P1/P2 backlog now pass six negative/positive checks plus a CI drift gate.
 - **Quality and AI:** xUnit/WebApplicationFactory, provider/tenant/Outbox recovery CI, concurrent four-caller idempotency tests on both SQL engines, JWT/tenant-partitioned rate limits with health bypass, agent Skill/AGENTS and a portable `aba_task.py` document/evidence runner, installable NuGet template and optional per-context dual-provider `--with-db` EF scaffolding. Generated projects include their own default and manually triggered integration CI workflows.
@@ -48,7 +48,7 @@ The authoritative, maintained **54-feature status table** and prioritized open-t
 ## Still incomplete (release blockers, not yet delivered)
 
 1. **Wolverine release reliability:** technical outbox atomicity, injected pre-commit rollback and clean restart recovery are VERIFIED on both providers; still needed: actual context-owned domain handlers, ungraceful process-kill crash windows, poison/dead-letter/replay tooling, duplicate/concurrent consumers and optional broker transports.
-2. **Production security:** Keycloak real OIDC/JWKS positive/negative token tests and EF query/SaveChanges tenant guards on both SQL providers are VERIFIED. Still needed: organization membership and RBAC/ABAC policies, tenant database RLS, bulk/raw-SQL guardrails, externally managed IdP key rotation and secure HTTPS deployment.
+2. **Production security:** Keycloak real OIDC/JWKS positive/negative token tests and EF query/SaveChanges tenant guards on both SQL providers are VERIFIED. Still needed: organization membership and RBAC/ABAC policies, approved production tenant RLS migrations and strict DB role grants, SQL-injection-safe raw/Bulk SQL boundaries, externally managed IdP key rotation and secure HTTPS deployment.
 3. **EF Core production operations:** optional per-context empty DbContext scaffolding and a production-startup TLS verification guard now exist and passed direct + real Docker negative tests in [CI 43305238518](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43305238518). Real context-owned models/migrations, optimistic concurrency, forward/rollback/backup/restore drills and actual production certificate-chain validation remain to deliver with business ownership.
 4. **Redis resilience:** an opt-in authoritative-source fallback for noncritical reads and real-client network-failure test now exist; remaining: controlled live restart/reconnect, distributed invalidation, tenant authorization across services, key rotation, stampede protection and load testing.
 5. **OpenTelemetry and operations:** real collector/export verification, logs correlation, sampling/PII policy, health dependency readiness, performance baselines, load/failover tests, audit events and dashboards.
@@ -115,3 +115,5 @@ The original requirement is in `docs/reference/TARGET-SPECIFICATION.md`. The pha
 ## Agent/documentation automation hardening (future)
 
 The first document-driven ABA Skill has been added and verified with Python tests. Further useful work is to (1) compare changed contracts against a baseline and detect breaking API/event changes, (2) validate source-to-document references and freshness on PR diffs, (3) test the actual skill against multiple real coding tasks and score false negatives, and (4) optionally surface documentation/ownership health in a dashboard. These are **not yet implemented**. Avoid pretending a static document map can prove semantic correctness.
+
+**Latest security evidence:** [all eight CI jobs passed](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43317295032) with 81 default API xUnit cases, 18 real-service SQL/Redis/Wolverine tests (including PostgreSQL/SQL Server RLS negative cases), 7 native recovery cases, runtime Trivy scan and signed template attestation with tamper rejection. Business membership and released-image signature controls remain unapproved.

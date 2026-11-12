@@ -18,7 +18,7 @@ Name the context using actual business language. Record its owning data, rules, 
 
 ## Delivered technical adapters versus missing release gates
 
-EF Core 10 for **PostgreSQL and SQL Server**, provider-neutral technical migrations, Redis distributed caching, Wolverine 6 durable relational messaging, JWT claims, optional EF tenant query/write guards, and an injectable read-through query cache are implemented and exercised in automated tests. An additional production-startup connection-string TLS guard is newly authored and must pass its own CI. **Not delivered**: provider-level tenant RLS and raw/bulk SQL guards, real business-specific handlers/contracts/migrations, live IdP membership policies, ungraceful crash/dead-letter replay, business authorization, migrations/backup/restore drills, collector export, load/security assessment and secure public deployment. The authoritative task/status catalog is in the source ABAFramework repository at `docs/IMPLEMENTATION-STATUS.md`; a generated customer project must maintain its own business-specific roadmap.
+EF Core 10 for **PostgreSQL and SQL Server**, provider-neutral technical migrations, Redis distributed caching, Wolverine 6 durable relational messaging, JWT claims, optional EF tenant query/write guards, and an injectable read-through query cache are implemented and exercised in automated tests. An additional production-startup connection-string TLS guard is newly authored and must pass its own CI. **Delivered as optional technical reference only**: provider-specific PostgreSQL/SQL Server RLS policy generators and trusted tenant-scoped transaction work with cross-tenant direct SQL/EF bulk negative tests. **Not delivered for a real business**: owner-approved RLS/DBA roles, real handlers/contracts/migrations, live IdP memberships, arbitrary crash/dead-letter replay, business authorization, production backup/restore, collector validation, load/security certification and public deployment. The authoritative task/status catalog is in the source ABAFramework repository at `docs/IMPLEMENTATION-STATUS.md`; a generated customer project must maintain its own business-specific roadmap.
 
 ## Security
 
@@ -30,7 +30,7 @@ The generated API includes a deliberately protected `GET /api/v1/system/authoriz
 
 ## Optional tenancy-awareness (not tenant data isolation)
 
-Set `Platform:Tenancy:Enabled=true` to require a trusted tenant claim on every authenticated API endpoint, via both the default and fallback JWT authorization policies. `Platform:Tenancy:ClaimType` defaults to `tenant_id`. `IRequestTenant` reads only the principal populated by authentication middleware; a caller's `X-Tenant-ID` header is never accepted as proof of membership. The option is **disabled** for the clean Single-Tenant quickstart. EF `AbaTenantDbContext` query/write safeguards and cross-tenant negative tests now run on PostgreSQL and SQL Server. But actual organization membership, database RLS, raw/bulk SQL isolation and context-specific migrations still belong to the real owners; **do not advertise production tenant isolation** yet.
+Set `Platform:Tenancy:Enabled=true` to require a trusted tenant claim on every authenticated API endpoint, via both the default and fallback JWT authorization policies. `Platform:Tenancy:ClaimType` defaults to `tenant_id`. `IRequestTenant` reads only the principal populated by authentication middleware; a caller's `X-Tenant-ID` header is never accepted as proof of membership. The option is **disabled** for the clean Single-Tenant quickstart. EF `AbaTenantDbContext` query/write safeguards and cross-tenant negative tests now run on PostgreSQL and SQL Server. But actual organization membership, production database RLS deployment, secure raw/bulk SQL command boundaries and context-specific migrations still belong to real owners; **do not advertise production tenant isolation** yet.
 
 ## Signed JWT validation tests
 
@@ -44,7 +44,7 @@ The default xUnit suite injects a disposable test-only key into the actual ASP.N
 
 `AbaTenantDbContext` can be used as the base class for context-owned EF Infrastructure models implementing `ITenantOwnedRow`. It applies per-context-instance tenant query filtering, populates the tenant column for new records, and rejects cross-tenant inserts, modifications and deletions even if an administrative EF query bypasses the read filter. The tenant source is `IRequestTenant`, which is derived only from a validated authenticated JWT claim in HTTP requests. Tests use isolated SQLite to verify tenant A cannot read tenant B's data or mutate it through `IgnoreQueryFilters`.
 
-**This is application-level EF protection, not full tenant isolation or authorization:** bulk SQL, `ExecuteUpdate`, raw DB connections, administrative accounts, actual Identity memberships, tenant-specific migrations, and database RLS remain outside this abstraction and need separate release gates. Each real business context must opt in and perform its own tenant validation.
+**EF protection alone is not full tenant isolation:** this abstraction still permits bulk SQL and administrative access. The separate opt-in `AbaTenantRlsPolicies` + `AbaTenantSqlScope` can enforce provider-native row predicates on actual SQL/EF bulk operations; it is not automatically installed for a real owner. Identity memberships, policy migrations, privileged database roles, SQL-injection control and administrative bypass remain separate release gates. Each real business context must opt in and perform its own tenant validation.
 
 ## Per-identity API rate limiting
 
@@ -73,7 +73,7 @@ PostgreSQL/SQL Server backup and restore against disposable fixtures with a
 negative safety guard, but does not replace owner-specific production DB
 restore tests or an approved DBA runbook. The NuGet supply-chain gate also
 separately audits the optional real-infrastructure test project's packages;
-signed release provenance and OCI image scans remain open.
+publicly signed OCI releases and immutable base-image pins remain open; template CI now has an actual runtime OCI scan and signed NuGet package provenance.
 
 ## Database tenant enforcement / release trust boundary
 

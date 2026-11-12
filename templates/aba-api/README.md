@@ -87,7 +87,7 @@ least-privilege production roles are still required. See
 
 ## Generated CI runtime security
 
-The included `.github/workflows/ci.yml` now builds and scans the real
+The [verified framework CI run](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43317295032) passed the upstream image scan and NuGet provenance gates. The included `.github/workflows/ci.yml` now builds and scans the real
 runtime Docker image using commit-pinned Trivy. Fixable CRITICAL findings
 fail its job and JSON evidence is retained. A generated product does not
 inherit the source repository's NuGet template artifact signer or

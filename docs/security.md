@@ -50,3 +50,5 @@ the previously tested NuGet package with a modified-artifact rejection
 test. Publication identity, base-image digest pins and Production
 deployment/secret rotation are not delivered. See
 [release-integrity.md](release-integrity.md) and the latest execution run.
+
+**Latest executed release and database-security evidence:** [8-job successful CI run 43317295032](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43317295032) verifies both provider-level RLS fixtures and SQL bulk denial, a Trivy final-runtime vulnerability gate and signed NuGet template provenance. Real business tenant membership, privileged database bypass review, published OCI signatures and approved Production deployment remain incomplete.

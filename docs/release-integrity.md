@@ -4,6 +4,15 @@ This document describes technical controls for the **domain-neutral**
 `dotnet new aba-api` template. It is not approval to publish to NuGet.org,
 deploy a customer product or manage production secrets.
 
+**Actual verified execution:** [GitHub Actions 43317295032](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43317295032)
+passed all 8 jobs, including the commit-pinned Trivy runtime scan and
+keyless signed/verified NuGet template provenance. The package's
+Sigstore public-good Rekor record is available as
+[GitHub attestation 66918425](https://github.com/smael-aftersearch/ABAFramework/attestations/66918425).
+A same-name modified package was intentionally rejected.
+This signs an internal CI-produced template package, **not** a published
+NuGet.org binary or a container image.
+
 ## Implemented CI definitions
 
 **Dependency audit:** both the default solution and the independent
