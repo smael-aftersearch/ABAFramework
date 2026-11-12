@@ -42,3 +42,7 @@ Each feature needs relevant success, negative and invariant tests, and updated A
 ## Restart-and-recover for durable scheduled messages
 
 The external integration suite includes `DurabilityRecoveryTests`: with PostgreSQL and SQL Server, a scheduled technical Wolverine message must survive a clean host shutdown and be processed by a newly started host using the same relational store. Do not confuse this with process-kill fault-injection, poison/dead-letter replay or external broker tests, which still need separate evidence.
+
+## Same-transaction idempotency
+
+`IdempotencyReceiptRollsBackWithSameDbContextWork` runs on **both** SQL engines and asserts that an exception rolls back both the technical receipt and same-DbContext state, a successful transaction persists both, and a duplicate callback does not invoke work. This intentionally does not promise exactly-once semantics for external providers or multiple independent DbContexts.

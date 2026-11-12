@@ -25,7 +25,7 @@ dotnet ef database update --project src/Your.Project.Platform --context AbaPlatf
 
 A single platform migration path deliberately uses *provider-neutral CLR types*; both provider SQL generators are exercised by database integration tests. Independently version/migrate every business context's storage.
 
-The included `EfIdempotencyStore` uses a unique compound primary key `(Scope, Key)`. The business owner is responsible for choosing the correct request scope and response semantics; this low-level store does **not** enforce authorization or tenant ownership.
+The included `EfIdempotencyStore` uses a unique compound primary key `(Scope, Key)`. Prefer `ExecuteOnceInTransactionAsync(scope,key,work)` to persist the receipt **and technical work performed on the same DbContext** atomically; real tests on both SQL engines cover rollback, success and duplicate suppression. Do not perform HTTP calls, publish to an unrelated bus, or mutate another context's DbContext inside this callback. The older `TryClaimAsync` persists a receipt immediately and is unsuitable by itself for a business operation that can fail later. The business owner remains responsible for scope, response semantics, tenant authorization and any cross-context outbox.
 
 ## Redis caching
 

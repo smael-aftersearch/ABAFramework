@@ -243,6 +243,61 @@ public sealed class AbaExternalInfrastructureTests
         }
     }
 
+    [Theory]
+    [InlineData("PostgreSql", "ABA_TEST_POSTGRESQL")]
+    [InlineData("SqlServer", "ABA_TEST_SQLSERVER")]
+    public async Task IdempotencyReceiptRollsBackWithSameDbContextWork(
+        string provider, string variable)
+    {
+        var connection = Environment.GetEnvironmentVariable(variable);
+        Assert.False(string.IsNullOrWhiteSpace(connection),
+            $"Missing required integration connection: {variable}");
+        var config = new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?>
+            {
+                ["Platform:Database:Provider"] = provider,
+                ["ConnectionStrings:AbaDatabase"] = connection
+            }).Build();
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddAbaPersistence(AbaDatabaseOptions.FromConfiguration(config));
+        await using var sp = services.BuildServiceProvider();
+        await using var scope = sp.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AbaPlatformDbContext>();
+        await db.Database.MigrateAsync();
+        var store = scope.ServiceProvider.GetRequiredService<EfIdempotencyStore>();
+
+        var failed = Guid.NewGuid().ToString("N");
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            store.ExecuteOnceInTransactionAsync("tx", failed, (ctx, _) =>
+            {
+                ctx.IdempotencyReceipts.Add(new IdempotencyReceipt
+                {
+                    Scope = "side-effect", Key = failed,
+                    CreatedUtc = DateTimeOffset.UtcNow
+                });
+                throw new InvalidOperationException("Injected failure before EF commit.");
+            }));
+        Assert.False(await db.IdempotencyReceipts.AsNoTracking()
+            .AnyAsync(x => x.Key == failed));
+
+        var success = Guid.NewGuid().ToString("N");
+        Assert.True(await store.ExecuteOnceInTransactionAsync("tx", success, (ctx, _) =>
+        {
+            ctx.IdempotencyReceipts.Add(new IdempotencyReceipt
+            {
+                Scope = "side-effect", Key = success,
+                CreatedUtc = DateTimeOffset.UtcNow
+            });
+            return Task.CompletedTask;
+        }));
+        Assert.Equal(2, await db.IdempotencyReceipts.AsNoTracking()
+            .CountAsync(x => x.Key == success));
+        Assert.False(await store.ExecuteOnceInTransactionAsync(
+            "tx", success, (_, _) => throw new InvalidOperationException(
+                "Duplicate callback must not execute.")));
+    }
+
     [Fact]
     public async Task RealRedisProvidesScopedRoundTripAndInvalidation()
     {
