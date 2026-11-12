@@ -11,10 +11,10 @@ do not count as generic framework features.
 The **generic .NET 10 API template** is the primary product. This matrix is separate from the
 historical Academy Phase 1 demo below. A feature can be implemented technically while
 its **production release gates remain open**. Evidence refers to the last reviewed baseline:
-[CI run 43320400760](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43320400760)
-(commit `976c21325b85`). New commits must pass their own CI before being treated as verified.
+[CI run 43322594901](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43322594901)
+(commit `dc651b465613`). New commits must pass their own CI before being treated as verified.
 
-**Tracked: 54** · Implemented: 31 · Partial: 8 · Not implemented: 15.
+**Tracked: 54** · Implemented: 31 · Partial: 9 · Not implemented: 14.
 
 | Area | Parameter / feature | Status | Delivered scope | Remaining task | Priority |
 | --- | --- | --- | --- | --- | --- |
@@ -46,7 +46,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | Messaging | EF Core/Wolverine technical transactional Outbox | **Implemented** | Technical state+outgoing message atomic under precommit fault | Real business consumers and crash windows remain open | P0 |
 | Messaging | Durable scheduled message across clean restart | **Implemented** | Persisted scheduled Wolverine message recovers after host restart | Abrupt crash and poison replay remain unverified | P1 |
 | Messaging | Poison/dead-letter inspection and replay | **Partial** | CI-verified opt-in Wolverine poison quarantine, metadata-only inspection and exact-ID audit-before-replay with permission/type/mismatch denial; 2 real SQL providers exercised | Issue real signed operator IdP permission, tenant-scoped message store authorization, replay dedup/business compensation, volume limits and approved production runbook | P0 |
-| Messaging | Crash-kill Outbox recovery and duplicate delivery | **Not implemented** | Not implemented | Test kill at commit/publish/ack boundary and recovery on both SQL engines | P0 |
+| Messaging | Crash-kill Outbox recovery and duplicate delivery | **Partial** | CI-gated real child-process SIGKILL harness for PostgreSQL/SQL Server; flushed-but-uncommitted SQL rollback and persisted Wolverine scheduled-message recovery tests authored, latest execution pending | Verify both SIGKILL windows in green CI, kill at business Outbox COMMIT/publish/consumer ACK boundaries, prove controlled duplicate delivery, broker disruption and external idempotency | P0 |
 | Messaging | Optional external RabbitMQ/Kafka transport | **Not implemented** | Not implemented | Add a versioned optional broker adapter when actual demand exists | P1 |
 | Messaging | Real context-owned events and consumers | **Not implemented** | Not implemented | Implement owner-approved domain contracts, Inbox and cross-context handlers | P0 |
 | Caching | Redis distributed cache with TTL and scopes | **Implemented** | StackExchangeRedis adapter with scoped JSON TTL/invalidation | Distributed invalidation and PII audit remain open | P1 |
@@ -55,7 +55,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | Caching | Cache stampede and Redis restart resilience | **Not implemented** | Not implemented | Test reconnect after real Redis restart, TTL races and concurrent miss budget | P1 |
 | Observability | OpenTelemetry ASP.NET/HTTP traces and metrics | **Partial** | Optional tracing/metrics instrumentation and OTLP exporter wiring | Prove export to a real collector and enforce PII/sampling policy | P1 |
 | Observability | Collector pipeline and export integration test | **Not implemented** | Not implemented | Add isolated OTLP receiver/collector to CI and verify trace/metric export | P1 |
-| Observability | Tamper-evident audit trail | **Partial** | CI-verified opt-in HMAC-SHA256 per-tenant audit ledger with PostgreSQL/SQL Server SERIALIZABLE append, rotation, tamper/checkpoint detection and concurrent sequence tests | Define context-owned audited decisions, signed actor/tenant authorization, immutable independent head checkpoints, production HMAC secret custody, privacy retention and append-only database grants | P0 |
+| Observability | Tamper-evident audit trail | **Partial** | CI-verified HMAC-SHA256 per-tenant ledger, serializable dual SQL append, tamper/rotation tests plus separately signed offline checkpoint codec and historical-prefix verification on both SQL engines | Deploy independently immutable off-DB checkpoint archive, real signing key custody/rotation and context-owned actor/event/retention rules; audit appender role restrictions and legal policies | P0 |
 | Operations | Production secrets, key rotation and policy | **Not implemented** | Not implemented | Add approved secret store, rotation and least-privilege deployment setup | P0 |
 | Developer | Installable versioned NuGet API template | **Implemented** | Installable versioned v0.3.0-preview.2 NuGet API template built, installed and tested with 73 xUnit cases in CI | NuGet.org publication, provenance/signing and release automation remain gated | P1 |
 | Developer | Domain/Application/Contracts/Infrastructure generator | **Implemented** | Scaffold real named contexts with ownership docs; no fictional entities | Complete real domain behavior remains owner-dependent | P1 |
@@ -83,9 +83,9 @@ its **production release gates remain open**. Evidence refers to the last review
 | `db-business-migrations` | Implement real owner-specific models and migrations after requirements — Both SQL engines perform context migration without shared business tables | Not implemented |
 | `db-backup-restore` | Prove business-schema and point-in-time recovery, migration rollback, offsite encrypted backups, RTO/RPO and operator restore rehearsal — Recover both SQL engines and confirm data integrity after test failure | Partial |
 | `msg-poison-replay` | Issue real signed operator IdP permission, tenant-scoped message store authorization, replay dedup/business compensation, volume limits and approved production runbook — Poison message is quarantined, inspected and safely replayed exactly as intended | Partial |
-| `msg-crash-window` | Test kill at commit/publish/ack boundary and recovery on both SQL engines — No message loss across abrupt process death and controlled duplicate deliveries | Not implemented |
+| `msg-crash-window` | Verify both SIGKILL windows in green CI, kill at business Outbox COMMIT/publish/consumer ACK boundaries, prove controlled duplicate delivery, broker disruption and external idempotency — No message loss across abrupt process death and controlled duplicate deliveries | Partial |
 | `msg-domain-consumers` | Implement owner-approved domain contracts, Inbox and cross-context handlers — Consumer cannot mutate another context's tables; duplicate events are safe | Not implemented |
-| `ops-audit` | Define context-owned audited decisions, signed actor/tenant authorization, immutable independent head checkpoints, production HMAC secret custody, privacy retention and append-only database grants — Audit cannot be silently rewritten and records actor, action, tenant, outcome | Partial |
+| `ops-audit` | Deploy independently immutable off-DB checkpoint archive, real signing key custody/rotation and context-owned actor/event/retention rules; audit appender role restrictions and legal policies — Audit cannot be silently rewritten and records actor, action, tenant, outcome | Partial |
 | `ops-prod-secrets` | Add approved secret store, rotation and least-privilege deployment setup — No plaintext production secret in repo/container/CI logs | Not implemented |
 | `dev-release-sbom` | Pin OCI base image digests, approve HIGH/unfixed severity policies, sign actual published OCI/NuGet releases and institute production release/change-control — Release pipeline rejects vulnerable/untrusted dependencies and verifies provenance | Partial |
 | `dev-prod-deploy` | Choose target hosting, configure DNS/TLS/secrets and deployment rollback — Production smoke, zero-downtime deploy and rollback drill pass | Not implemented |
@@ -108,7 +108,7 @@ Run `python3 scripts/status_matrix.py --check` to fail CI on mismatched tables.
 | `db-business-migrations` | Actual context owner (TBD) | P0 | Not implemented | Both SQL engines perform context migration without shared business tables |
 | `db-backup-restore` | Operations / DBA | P0 | Partial | Recover both SQL engines and confirm data integrity after test failure |
 | `msg-poison-replay` | Platform / Operations | P0 | Partial | Poison message is quarantined, inspected and safely replayed exactly as intended |
-| `msg-crash-window` | Platform / Operations | P0 | Not implemented | No message loss across abrupt process death and controlled duplicate deliveries |
+| `msg-crash-window` | Platform / Operations | P0 | Partial | No message loss across abrupt process death and controlled duplicate deliveries |
 | `msg-domain-consumers` | Business owners (TBD) | P0 | Not implemented | Consumer cannot mutate another context's tables; duplicate events are safe |
 | `ops-audit` | Security / business owners | P0 | Partial | Audit cannot be silently rewritten and records actor, action, tenant, outcome |
 | `ops-prod-secrets` | Operations / Security | P0 | Not implemented | No plaintext production secret in repo/container/CI logs |
@@ -154,10 +154,11 @@ Run `python3 scripts/status_matrix.py --check` to fail CI on mismatched tables.
 | `msg-ef-outbox` | `templates/aba-api/src/Aba.Starter.Platform/Messaging/AbaDurabilityProbe.cs` | `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs` |
 | `msg-restart` | `templates/aba-api/src/Aba.Starter.Platform/Messaging/AbaWolverineServices.cs` | `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/DurabilityRecoveryTests.cs` |
 | `msg-poison-replay` | `templates/aba-api/src/Aba.Starter.Platform/Messaging/AbaDeadLetterAdministration.cs`, `templates/aba-api/src/Aba.Starter.Platform/Messaging/AbaDurabilityProbe.cs`, `templates/aba-api/docs/decisions/ADR-007-wolverine-deadletter-operator.md` | `templates/aba-api/tests/Aba.Starter.Api.Tests/DeadLetterOperatorGuardTests.cs`, `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/DeadLetterOperatorIntegrationTests.cs` |
+| `msg-crash-window` | `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbruptCrashWindowTests.cs`, `scripts/verify-platform-services.sh`, `templates/aba-api/docs/decisions/ADR-008-kill-window-recovery.md` | `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbruptCrashWindowTests.cs`, `scripts/test_starter_template.py` |
 | `cache-redis` | `templates/aba-api/src/Aba.Starter.Platform/Caching/AbaCachingServices.cs` | `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs` |
 | `cache-outage` | `templates/aba-api/src/Aba.Starter.Platform/Caching/ReadThroughQueryCache.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/ReadThroughCacheTests.cs`, `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs` |
 | `otel-instrument` | `templates/aba-api/src/Aba.Starter.Platform/Observability/AbaObservabilityServices.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/AbaPlatformTests.cs` |
-| `ops-audit` | `templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaAuditLedger.cs`, `templates/aba-api/src/Aba.Starter.Platform/Persistence/Migrations/202611130001_AuditLedger.cs`, `templates/aba-api/docs/decisions/ADR-006-audit-ledger.md` | `templates/aba-api/tests/Aba.Starter.Api.Tests/AuditLedgerConfigTests.cs`, `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AuditLedgerIntegrationTests.cs` |
+| `ops-audit` | `templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaAuditLedger.cs`, `templates/aba-api/src/Aba.Starter.Platform/Persistence/Migrations/202611130001_AuditLedger.cs`, `templates/aba-api/docs/decisions/ADR-006-audit-ledger.md`, `templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaAuditCheckpoint.cs`, `templates/aba-api/docs/decisions/ADR-009-offline-audit-checkpoints.md` | `templates/aba-api/tests/Aba.Starter.Api.Tests/AuditLedgerConfigTests.cs`, `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AuditLedgerIntegrationTests.cs`, `templates/aba-api/tests/Aba.Starter.Api.Tests/AuditCheckpointTests.cs`, `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AuditAnchoredCheckpointIntegrationTests.cs` |
 | `dev-dotnetnew` | `packaging/ABAFramework.GenericApi.Template.csproj` | `scripts/pack-template.sh` |
 | `dev-contexts` | `templates/aba-api/tools/new_context.py` | `scripts/verify-starter.sh` |
 | `dev-architecture` | `scripts/governance.py`, `templates/aba-api/tools/new_context.py` | `scripts/test_governance.py`, `scripts/verify-starter.sh` |
