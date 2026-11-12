@@ -36,7 +36,10 @@ def verify(root: Path) -> dict:
         reviewed = dt.date.fromisoformat(lock["reviewed_date"])
     except (KeyError, TypeError, ValueError) as exc:
         raise OciLockError("Missing or malformed OCI security review date") from exc
-    if reviewed > dt.datetime.now(dt.timezone.utc).date():
+    # Reviewed dates are civil dates; for reviewers east of UTC the local
+    # date may already be tomorrow during a late-night UTC CI run.
+    # Allow one calendar-day offset, but still reject fabricated future reviews.
+    if reviewed > dt.datetime.now(dt.timezone.utc).date() + dt.timedelta(days=1):
         raise OciLockError("OCI base review date cannot be in the future")
     images = lock.get("images")
     if not isinstance(images, dict) or set(images) != set(STAGES):

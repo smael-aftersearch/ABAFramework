@@ -64,6 +64,11 @@ class ReviewedOciBaseLockTests(unittest.TestCase):
         with self.assertRaisesRegex(OciLockError, "nonroot"):
             verify(self.root)
 
+    def test_artificial_future_review_is_rejected(self):
+        self.change_lock(lambda d: d.update(reviewed_date="2099-01-01"))
+        with self.assertRaisesRegex(OciLockError, "future"):
+            verify(self.root)
+
     def test_missing_lock_or_dockerfile_fail_closed(self):
         self.lock.unlink()
         with self.assertRaisesRegex(OciLockError, "readable"):
