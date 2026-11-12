@@ -7,7 +7,6 @@ using Wolverine.Postgresql;
 using Wolverine.SqlServer;
 using JasperFx;
 using Microsoft.Extensions.Hosting;
-using Oakton.Resources;
 
 namespace Aba.Starter.Platform.Messaging;
 
@@ -39,11 +38,11 @@ public static class AbaWolverineServices
             options.UseEntityFrameworkCoreTransactions();
             options.Policies.UseDurableLocalQueues();
             options.Policies.AutoApplyTransactions();
+            // In explicitly opted-in Development tests only, create Wolverine
+            // relational envelope resources before processing messages.
+            if (builder.Environment.IsDevelopment()
+                && builder.Configuration.GetValue<bool>("Platform:Messaging:AutoProvisionInDevelopment"))
+                options.Services.AddResourceSetupOnStartup();
         });
-        // Provision message storage only in development with an explicit opt-in.
-        // Production schema/resource updates belong in a reviewed deployment step.
-        if (builder.Environment.IsDevelopment()
-            && builder.Configuration.GetValue<bool>("Platform:Messaging:AutoProvisionInDevelopment"))
-            builder.Services.AddResourceSetupOnStartup();
     }
 }
