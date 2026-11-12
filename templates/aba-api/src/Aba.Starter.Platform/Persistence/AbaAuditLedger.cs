@@ -99,7 +99,7 @@ public static class AbaAuditRegistration
 /// the HMAC keys is detected. Root/terminal truncation needs an independently
 /// retained head digest, accepted by VerifyAsync(expectedHeadDigest).
 /// </summary>
-public sealed class AbaAuditLedger(IServiceScopeFactory scopes, AbaAuditOptions options)
+public sealed partial class AbaAuditLedger(IServiceScopeFactory scopes, AbaAuditOptions options)
 {
     private const string Genesis = "0000000000000000000000000000000000000000000000000000000000000000";
 
