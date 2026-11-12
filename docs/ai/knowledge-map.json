@@ -144,7 +144,9 @@
       "docs": [
         "docs/architecture.md",
         "docs/decisions/ADR-002-local-messaging-for-bootstrap.md",
-        "docs/NEXT-MILESTONES.md"
+        "docs/NEXT-MILESTONES.md",
+        "templates/aba-api/docs/decisions/ADR-008-kill-window-recovery.md",
+        "templates/aba-api/docs/operations/crash-drills.md"
       ]
     },
     "security": {
@@ -162,7 +164,8 @@
       ],
       "docs": [
         "docs/security.md",
-        "docs/KNOWN-LIMITATIONS.md"
+        "docs/KNOWN-LIMITATIONS.md",
+        "templates/aba-api/docs/decisions/ADR-009-offline-audit-checkpoints.md"
       ]
     },
     "persistence": {
@@ -180,7 +183,9 @@
       ],
       "docs": [
         "docs/architecture.md",
-        "docs/NEXT-MILESTONES.md"
+        "docs/NEXT-MILESTONES.md",
+        "templates/aba-api/docs/decisions/ADR-008-kill-window-recovery.md",
+        "templates/aba-api/docs/decisions/ADR-009-offline-audit-checkpoints.md"
       ]
     },
     "caching": {
@@ -263,7 +268,8 @@
         "VERIFICATION-REPORT.md",
         "scripts/task_protocol.py",
         "scripts/test_task_protocol.py",
-        ".agents/skills/aba-engineering/references/testing-and-evidence.md"
+        ".agents/skills/aba-engineering/references/testing-and-evidence.md",
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbruptCrashWindowTests.cs"
       ]
     }
   }

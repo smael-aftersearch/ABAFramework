@@ -67,3 +67,16 @@ change ticket and exact envelope identity and is pre-audited.
 Tenant-scoped operator access is blocked until independently
 authorized message stores are implemented. Replaying does not
 guarantee business idempotency, payment safety or compensation.
+
+## Separately signed audit prefix anchors (new technical primitive)
+
+The platform now exposes an UNSIGNED audit head/sequence candidate
+after validating the full HMAC chain. A separate offline custodian can
+sign the candidate with a dedicated key unrelated to the ledger HMAC
+ring; VerifyAnchoredPrefixAsync checks that signed historical digest
+under a repeatable-read SQL snapshot even after new legitimate
+events arrive. This protects an archived prefix against database
+tail truncation or older row changes only when the signed checkpoint
+is stored in independent immutable custody. No HSM, WORM archive,
+external checkpoint store or offline signing credentials are bundled.
+Keep the external key out of the application and ordinary CI logs.

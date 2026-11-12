@@ -60,7 +60,7 @@ For a short Persian operator guide, see `docs/ai/USAGE-FA.md`. Read `docs/ai/CHA
 
 ## Implementation truth and confidence
 
-The **optional Academy Phase-1 sample** has local file messaging and memory cache. The **generic template** has real optional EF Core 10 PostgreSQL/SQL Server, Redis caching, Wolverine relational durable messaging and OTel wiring; GitHub Actions verified both SQL engines, Redis and a Wolverine technical message handler. Ephemeral real Keycloak/JWKS 204/401/403, PostgreSQL/SQL Server EF tenant query/write guards, technical Outbox pre-commit rollback and clean restart recovery are now verified in CI. Production membership authorization and deployed RLS migrations are still missing; generic forced-RLS/provider predicate builders and cross-tenant SQL negative tests now pass CI on both SQL engines. Poison/dead-letter replay, arbitrary process crashes and real business context Outbox remain incomplete. The original authoring environment lacked .NET, but GitHub Actions now runs .NET build, xUnit and real service integration tests. **Do not turn planned architecture into a statement of delivered behavior**. See `VERIFICATION-REPORT.md`.
+The **optional Academy Phase-1 sample** has local file messaging and memory cache. The **generic template** has real optional EF Core 10 PostgreSQL/SQL Server, Redis caching, Wolverine relational durable messaging and OTel wiring; GitHub Actions verified both SQL engines, Redis and a Wolverine technical message handler. Ephemeral real Keycloak/JWKS 204/401/403, PostgreSQL/SQL Server EF tenant query/write guards, technical Outbox pre-commit rollback and clean restart recovery are now verified in CI. Production membership authorization and deployed RLS migrations are still missing; generic forced-RLS/provider predicate builders and cross-tenant SQL negative tests now pass CI on both SQL engines. Technical poison/dead-letter replay is now proven in CI; a separate opt-in SIGKILL drill targets a flushed-but-uncommitted SQL row and a persisted scheduled Wolverine message. Production consumer ACK window, real business context Outbox and operator identity remain incomplete. The original authoring environment lacked .NET, but GitHub Actions now runs .NET build, xUnit and real service integration tests. **Do not turn planned architecture into a statement of delivered behavior**. See `VERIFICATION-REPORT.md`.
 
 ## Example cross-context rule
 
@@ -74,3 +74,9 @@ ADR-007-wolverine-deadletter-operator.md, and its
 docs/operations/audit-deadletters.md. These technical capabilities
 do not own application business actions, operator identity or
 Production audit key material.
+
+For process-crash CI and offline audit attestation, read
+the generic template's ADR-008-kill-window-recovery.md and
+ADR-009-offline-audit-checkpoints.md. These technical decisions
+do not establish actual Production process supervision, legal
+immutability, operator key custody or consumer ACK semantics.

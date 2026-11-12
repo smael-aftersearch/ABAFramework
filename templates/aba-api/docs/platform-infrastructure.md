@@ -43,7 +43,7 @@ Wolverine envelope tables are separately managed from EF Core domain migrations.
 
 Wolverine 6 requires the explicit `WolverineFx.RuntimeCompilation` package for dynamic handler code generation, and the template now includes it. For **isolated Development integration tests only**, set `Platform__Messaging__AutoProvisionInDevelopment=true` to allow Wolverine's native `AutoBuildMessageStorageOnStartup` policy to create required envelope tables. Production startup explicitly keeps `AutoCreate.None` and requires reviewed provisioning before deployment. A technical probe handler is included to verify durable local message processing against each real SQL engine.
 
-No RabbitMQ/Kafka or business handler is silently installed. CI now also exercises a **technical EF + Wolverine transactional outbox probe** on both SQL engines: a successful handler writes state and dispatches a message together; an injected pre-commit exception after `PublishAsync` must leave neither the state row nor the downstream receipt. This tests rollback at a real transactional boundary. **Process crashes/restarts, dead-letter replay and real business consumer coverage are still incomplete.** Do not equate the probe with complete production message reliability.
+No RabbitMQ/Kafka or business handler is silently installed. CI now also exercises a **technical EF + Wolverine transactional outbox probe** on both SQL engines: a successful handler writes state and dispatches a message together; an injected pre-commit exception after `PublishAsync` must leave neither the state row nor the downstream receipt. This tests rollback at a real transactional boundary. **CI-verified synthetic dead-letter replay and clean restart are available; abrupt SIGKILL drills are separately authored and CI-gated. Production process supervision, business Outbox commit/publish/ACK and consumer idempotency are still incomplete.** Do not equate the probe with complete production message reliability.
 
 ## Local development integration services
 
@@ -162,3 +162,21 @@ with explicit inspect/replay permission claims and audit-first
 processing. Inspection does not return bodies or exception messages.
 A replay mark is not evidence of successful consumption. See the
 operations guide for detailed incident checks.
+
+## SIGKILL fault boundaries and offline audit anchoring
+
+CrashDrill (external test suite) runs a real child .NET host
+with PostgreSQL or SQL Server, deliberately kills that child
+after an uncommitted EF flush or after a durable Wolverine
+ScheduleAsync, then validates rollback and restarted-host
+delivery. It must run only with CI=true, the disposable-drill
+opt-in and the exact local aba_ci fixture. Ordinary xUnit
+verification excludes this category. Read ADR-008.
+
+The audit checkpoint signer is intentionally NOT in ordinary
+runtime dependency injection. Use CheckpointCandidateAsync
+to obtain an unsigned, previously verified tenant digest and
+sequence; have an independent custodian sign with a separate
+secret; preserve the signed record off-database. A later
+VerifyAnchoredPrefixAsync call verifies the signed prefix even
+if the ledger contains newer valid rows. Read ADR-009.

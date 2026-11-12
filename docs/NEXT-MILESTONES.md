@@ -144,3 +144,21 @@ integration cases (with HMAC audit and technical dead-letter replay on
 both SQL engines), plus 7 native recovery tests. An owner-approved
 operator IdP, immutable audit checkpoints, retention and business replay
 policies remain open P0 gates.
+
+## New P0 crash-fault and audit checkpoint hardening
+
+Technical, opt-in SIGKILL drills have been authored against real
+PostgreSQL and SQL Server: a flushed but uncommitted SQL receipt
+must roll back when its child host dies, and a durably scheduled
+Wolverine envelope must be processed after a new host starts.
+The independent crash test category is explicitly CI-gated and
+rejects non-disposable DB targets. Pending the latest CI, do not
+present this as proven. The remaining P0 crash acceptance gap
+is kill in the same business Outbox commit/publish/ACK window,
+duplicate delivery and consumer/external side-effect idempotency.
+
+The audit HMAC chain now has a separately signable checkpoint
+candidate and a historical-prefix verifier. Security/Operations
+must still deploy an actual immutable offsite checkpoint sink,
+isolate and rotate the offline signing key, set retention and
+operator permissions and audit actual context-owned decisions.

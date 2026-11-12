@@ -100,3 +100,18 @@ ticket, and creates an audit record before marking one explicit
 message for replay. No HTTP management route or tenant-unsafe
 multi-tenant mode is enabled. Business message handlers must still
 be idempotent and compensate external side effects.
+
+## Process-kill and offline audit verification boundaries
+
+CI-only CrashDrill isolates true child-process SIGKILL from
+ordinary API startup. Its negative and success cases cover
+transaction rollback before COMMIT and delayed Wolverine
+schedule recovery after durable persistence on both relational
+engines. This is not a true business Outbox publish/ACK window.
+
+CheckpointCandidateAsync returns an UNSIGNED, per-tenant
+digest/sequence; a distinct offline signing key attests a
+historical prefix. VerifyAnchoredPrefixAsync validates that
+prefix in a consistent SQL snapshot while accepting new appends.
+The application deliberately does not own the immutable
+checkpoint archive, signing HSM or customer retention policy.

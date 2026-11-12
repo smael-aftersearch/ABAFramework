@@ -176,3 +176,25 @@ passed all 24 real-service tests and 7 recovery/safety tests, including
 PostgreSQL/SQL Server audit concurrency, tampering and rotation,
 and each provider's poison quarantine, repaired replay and
 pre-committed HMAC operator audit.
+
+## OS-process SIGKILL and independent audit checkpoint tests
+
+AbruptCrashWindowTests (Category=CrashDrill) is isolated from the
+normal external suite. With CI=true, explicit disposable-drill opt-in,
+exact loopback aba_ci database and unique marker, a parent xUnit
+process launches an independent dotnet test host. It kills that
+specific child after a SQL row has been flushed but not committed,
+then proves the DB rolled it back. A second child is SIGKILLed
+after Wolverine ScheduleAsync returns but before its delayed
+message is due; a restarted host must process that durable
+message. Both phases run on PostgreSQL and SQL Server. Negative
+tests reject remote targets, wrong databases and missing opt-in.
+
+AuditCheckpointTests signs an independent historical checkpoint
+with a separately held HMAC key and rejects changes to tenant,
+digest, sequence, key ID and timestamp. Actual SQL provider tests
+confirm a valid prefix survives later appends and cannot be deleted
+or rewritten without failing signed-prefix verification. These
+tests do not certify immutable offsite storage or a real business
+Outbox publish/ACK crash boundary. Use actual CI run evidence
+before claiming successful execution.

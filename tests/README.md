@@ -74,3 +74,20 @@ passed 96 generated API xUnit, 24 real SQL/Redis/Wolverine integration,
 7 recovery/safety cases and signed/verified template package provenance.
 Real business poison replay and external checkpoint durability are
 not part of this technical test fixture.
+
+## SIGKILL fault-injection and offline HMAC checkpoints
+
+The template now contains AbruptCrashWindowTests.cs, intentionally
+excluded from ordinary infrastructure verification. Root CI invokes
+the CrashDrill category only with explicit CI/opt-in environment
+flags and exactly located disposable aba_ci SQL servers. It creates
+and kills its OWN child dotnet test process, checking rollback of
+an uncommitted row and recovery of a previously persisted delayed
+Wolverine message. This is not a live consumer ACK/fanout or real
+business Outbox test.
+
+AuditCheckpointTests.cs and AuditAnchoredCheckpointIntegrationTests.cs
+cover separately signed historical checkpoints, wrong-key/tamper
+denial and PostgreSQL/SQL Server prefix rollback detection while
+allowing later legitimate audit writes. Real offsite immutable
+storage remains an operational responsibility.

@@ -61,3 +61,21 @@ default authorization, public HTTP surface or exactly-once external
 effect guarantee is included.
 
 Architecture decisions: ADR-006 and ADR-007 under \`docs/decisions/\`.
+
+## Independently signed audit prefix checkpoints
+
+The database ledger's current digest is only an UNSIGNED
+candidate. Obtain one with CheckpointCandidateAsync after
+its chain check. A separate offline custodian, NOT the API's
+HMAC key ring, uses AbaAuditCheckpointCodec.Sign with an
+independent 32-byte-or-larger key and an immutable external
+archive to sign tenant, sequence and head digest. Keep the
+offline signing key outside appsettings and running API
+configuration. Persist the signed checkpoint plus its
+key ID/version in a separately access-controlled archive.
+
+VerifyAnchoredPrefixAsync(checkpoint, offlineKey) can then
+detect a tampered or truncated historical prefix even after
+later valid records arrive. Without a real external checkpoint
+archive and separately protected signing key, this is only
+a technical primitive. Do not claim production immutability.

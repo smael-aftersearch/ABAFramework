@@ -163,3 +163,20 @@ The generated project includes `.github/workflows/ci.yml`, which automatically c
 including per-provider HMAC audit and Wolverine poison quarantine/replay
 negative and positive tests. Generated products must independently validate
 their own operator policies, HMAC key custody and event processing.
+
+## Explicit crash tests and historical checkpoint signatures
+
+The optional real-service workflow runs an independently gated
+CrashDrill category with actual child-process SIGKILL on both
+PostgreSQL and SQL Server CI fixture databases. The tests prove
+that an uncommitted SQL write rolls back when its process dies,
+and that a persisted, time-scheduled Wolverine envelope survives
+an abrupt host death. Ordinary build/test startup is unaffected;
+do not enable these tests on real customer databases.
+
+The audit service offers CheckpointCandidateAsync and
+VerifyAnchoredPrefixAsync. A separate offline signer uses
+AbaAuditCheckpointCodec.Sign to bind tenant, sequence and digest
+with a wholly independent HMAC key stored OUTSIDE the API.
+No automatic external immutability sink or Production key
+manager is supplied. See ADR-008, ADR-009 and the runbook.

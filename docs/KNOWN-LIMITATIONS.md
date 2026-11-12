@@ -110,3 +110,20 @@ an explicitly authorized technical operator. This does not
 implement production operator entitlements, multi-tenant dead-letter
 isolation, legally compliant audit storage, signed checkpoints or
 business consumer compensation.
+
+## Current crash/drift boundaries
+
+The new CrashDrill is restricted to synthetic technical effects
+on ephemeral local SQL engines and tests only two carefully
+synchronized SIGKILL boundaries: pre-commit flushed SQL and
+post-schedule persisted Wolverine message. It is NOT fault
+injection between real business transaction commit, Outbox
+dispatch, broker acceptance and consumer acknowledgement.
+A root CI-only child dotnet worker is killed by PID handle; this
+does not authorize killing Production processes.
+
+A new separately signed audit checkpoint can detect deletion
+of a historical prefix while permitting later appends. It does
+not provide an off-DB immutable retention service, secret custody,
+actual offline signing infrastructure or protection if both
+the ledger and checkpoint signing keys are compromised.

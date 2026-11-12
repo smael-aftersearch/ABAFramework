@@ -156,3 +156,23 @@ synthetic poison message to verify quarantine, denied anonymous
 or type-mismatched requests, operator-authorized replay after
 repair and chain verification. These are technical tests, not
 business workflow or live operator identity approval.
+
+## Real SIGKILL and externally signed audit prefix cases
+
+The separate CrashDrill category runs a nested dotnet test
+worker, synchronizes via an ephemeral marker and SIGKILLs
+only the child process tree. It tests two windows per real
+SQL provider: EF SaveChanges flushed but not committed
+must roll back, and Wolverine scheduled-envelope persistence
+must survive process death and recover in a new host.
+CI=true, explicit drill opt-in and exact loopback aba_ci
+fixture are mandatory, with negative rejection tests.
+Regular external tests and task runner exclude CrashDrill.
+
+AuditCheckpointTests plus AuditAnchoredCheckpointIntegrationTests
+validate an independently signed HMAC checkpoint, wrong-key
+or modified signatures, historical audit prefix binding,
+prefix deletion, missing records and append-after-checkpoint
+on PostgreSQL and SQL Server. No offsite WORM/SIEM backend,
+consumer ACK fault injection or real business effects are
+covered by these technical fixtures.
