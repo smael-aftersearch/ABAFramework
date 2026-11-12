@@ -61,7 +61,12 @@ app.UseAuthentication();
 app.UseRateLimiter();
 app.UseAuthorization();
 
-app.MapHealthChecks("/health/live").AllowAnonymous().WithTags("Health");
+// Liveness must not depend on opt-in database/Redis health checks.
+// An unavailable dependency makes the API unready, not necessarily dead.
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false
+}).AllowAnonymous().WithTags("Health");
 app.MapHealthChecks("/health/ready", new HealthCheckOptions
 {
     Predicate = registration => registration.Tags.Contains("ready")
