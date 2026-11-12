@@ -57,13 +57,18 @@ public static class AbaTransactionalOutboxProbeHandler
 /// </summary>
 public sealed record AbaPoisonProbe(Guid Id);
 
+public sealed class AbaPoisonProbeException : Exception
+{
+    public AbaPoisonProbeException() : base("Synthetic technical poison message") { }
+}
+
 public static class AbaPoisonProbeHandler
 {
     public static void Handle(AbaPoisonProbe message, AbaPlatformDbContext db)
     {
         var key = message.Id.ToString("N");
         if (!db.IdempotencyReceipts.Any(x => x.Scope == "aba-poison-fixed" && x.Key == key))
-            throw new InvalidOperationException("Synthetic poison probe: dependency is still unhealthy.");
+            throw new AbaPoisonProbeException();
 
         db.IdempotencyReceipts.Add(new IdempotencyReceipt
         {
