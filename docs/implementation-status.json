@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "baseline": {
-    "ci_run": 43313417455,
-    "commit": "3e8f18552d9b64bc9da21af1433b62d51b1f6c44",
-    "note": "Six-job verified .NET 10 generic API CI: 73 default xUnit cases, 16 existing PostgreSQL/SQL Server/Redis/Wolverine integration cases plus 7 protected provider-native backup/restore safety and recovery cases; 16 supply-chain negative/positive tests, two independently scanned package graphs with 161 and 104 NuGet packages, Keycloak, container and template package."
+    "ci_run": 43317295032,
+    "commit": "bffe4efc341a9c34a2472b686c81e5033aa8f2e8",
+    "note": "Eight-job green CI with 81 default API xUnit tests, 18 real PostgreSQL/SQL Server/Redis/Wolverine integration tests including provider RLS/raw SQL/EF bulk, 7 native recovery+safety tests, both NuGet advisory/SPDX inventories, Keycloak, non-root image, fixable-CRITICAL Trivy image scan and signed/verified SLSA NuGet template provenance with tamper rejection."
   },
   "features": [
     {
@@ -220,7 +220,7 @@
       "status": "partial",
       "owner": "Owning business context / DBA",
       "priority": "P0",
-      "delivered": "Opt-in PostgreSQL forced RLS and SQL Server FILTER/BLOCK SQL policy generators, transaction-bound tenant scope and real provider negative tests; latest CI verification pending",
+      "delivered": "CI-verified PostgreSQL FORCE RLS and SQL Server FILTER/BLOCK DDL, trusted tenant transaction scopes, and real cross-tenant raw SQL + EF bulk negative tests on both databases",
       "remaining": "Apply owner-specific RLS migrations and least-privilege roles, verify membership authorization and privileged/session spoof bypass cases",
       "acceptance": "Direct SQL and EF ExecuteUpdate cannot modify foreign tenant records",
       "evidence": [
@@ -239,7 +239,7 @@
       "status": "partial",
       "owner": "Owning business context / Security",
       "priority": "P0",
-      "delivered": "Trusted, parameterized tenant-to-transaction binding with raw SQL and EF ExecuteUpdate/Delete denial tests; new CI verification pending",
+      "delivered": "CI-verified tenant-scoped SQL transaction wrapper; direct SQL and EF ExecuteUpdate/ExecuteDelete cross-tenant denial, forged insert rejection and session isolation on both SQL engines",
       "remaining": "Block SQL-injection tenant session spoofing, adopt real context-aware raw SQL authorization and least-privileged production accounts",
       "acceptance": "Cross-tenant raw SQL and bulk mutation are denied",
       "evidence": [
@@ -806,8 +806,8 @@
       "status": "partial",
       "owner": "Release engineering",
       "priority": "P0",
-      "delivered": "NuGet audited/SPDX project graphs, runtime fixable-CRITICAL Trivy scanner and GitHub OIDC/Sigstore template provenance verification wired in CI; new CI status pending",
-      "remaining": "Prove signed provenance verification, pin base-image digests, approve severity policy and sign actual published OCI/NuGet releases",
+      "delivered": "CI-verified NuGet direct/transitive audits plus SPDX graphs, fixable-CRITICAL runtime Trivy scan and keyless signed/verified SLSA provenance for tested .nupkg with tamper rejection",
+      "remaining": "Pin OCI base image digests, approve HIGH/unfixed severity policies, sign actual published OCI/NuGet releases and institute production release/change-control",
       "acceptance": "Release pipeline rejects vulnerable/untrusted dependencies and verifies provenance",
       "evidence": [
         "templates/aba-api/tools/supply_chain.py",

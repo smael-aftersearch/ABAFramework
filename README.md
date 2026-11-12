@@ -1,6 +1,6 @@
 # ABA Framework — .NET 10 generic API quick start
 
-**Verified technical baseline (2026-11-13):** [six passing GitHub Actions jobs](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43313417455) compiled a fresh .NET 10 domain-neutral API, passed **73 xUnit API tests** plus generated-context registration checks, **16 standard real-service integration tests** and **7 isolated native backup/restore and safety tests** (PostgreSQL, SQL Server, Redis and Wolverine). CI also verified actual Keycloak OIDC/JWKS 204/401/403, non-root Docker, installable NuGet package and ABA governance. Improvements in the new template include optional per-context `--with-db` scaffolding, transactional/concurrent idempotency, an explicit source-backed Redis outage path, JWT-partitioned rate limiting and an agent task/evidence runner. This successful baseline includes a fail-closed NuGet dependency audit and SPDX 2.3 inventory, AI status-matrix checks, Production SQL TLS guards and startup negative tests, Keycloak, and CI workflows inside generated projects. v0.3.0-preview.2 package installation and generated-project tests have now passed their own CI. Academy remains an **optional example**, not the base framework. **Production release is still gated.**
+**Verified technical baseline (2026-11-13):** [all eight CI jobs passed](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43317295032) on commit `bffe4efc341a`. The generic starter passed **81 API xUnit tests**, **18 live PostgreSQL/SQL Server/Redis/Wolverine tests**, **7 isolated backup/restore and safety cases**, the real Keycloak OIDC/JWKS test, package installation, non-root container checks and enforced NuGet dependency scans. Database RLS blocked cross-tenant direct SQL and EF bulk operations on both providers. The built runtime image passed a fixable-CRITICAL Trivy vulnerability gate, and the tested NuGet template package received a **verified, signed Sigstore/SLSA provenance attestation** with a tampered-package negative case. Academy remains optional. **This does not certify Production readiness.**
 
 
 **Start here if you want a new, ordinary API.** The domain-neutral `aba-api` template is the primary deliverable. You do **not** need the Academy enrollment/payment example to create your product.
@@ -22,7 +22,7 @@ The generated project has no Academy or business examples. It includes a version
 
 ## Supply-chain audit and SBOM
 
-The latest six-job GitHub CI verifies the fail-closed NuGet direct/transitive
+The latest eight-job GitHub CI verifies the fail-closed NuGet direct/transitive
 advisory gate with **16 positive/negative tests**. Two separate SPDX 2.3
 inventories cover **161 resolved packages in the default API solution** and
 **104 packages in the external integration-test project**. Neither scan
@@ -92,8 +92,8 @@ Setup and connection settings: [generic platform infrastructure guide](templates
 The **generic .NET 10 API template** is the primary product. This matrix is separate from the
 historical Academy Phase 1 demo below. A feature can be implemented technically while
 its **production release gates remain open**. Evidence refers to the last reviewed baseline:
-[CI run 43313417455](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43313417455)
-(commit `3e8f18552d9b`). New commits must pass their own CI before being treated as verified.
+[CI run 43317295032](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43317295032)
+(commit `bffe4efc341a`). New commits must pass their own CI before being treated as verified.
 
 **Tracked: 54** · Implemented: 31 · Partial: 6 · Not implemented: 17.
 
@@ -111,8 +111,8 @@ its **production release gates remain open**. Evidence refers to the last review
 | Security | Trusted tenant claim required when enabled | **Implemented** | JWT tenant claim fallback/default authorization; ignores raw tenant header | Prove organization membership in actual IdP | P0 |
 | Security | Tenant membership / RBAC / ABAC | **Not implemented** | Not implemented | Define owning membership model, roles and permissions | P0 |
 | Security | EF tenant row query and SaveChanges guards | **Implemented** | Tenant-scoped EF filtering and foreign-row write rejection | Raw SQL, bulk updates and SQL-level RLS remain open | P0 |
-| Security | Database-enforced Row-Level Security | **Partial** | Opt-in PostgreSQL forced RLS and SQL Server FILTER/BLOCK SQL policy generators, transaction-bound tenant scope and real provider negative tests; latest CI verification pending | Apply owner-specific RLS migrations and least-privilege roles, verify membership authorization and privileged/session spoof bypass cases | P0 |
-| Security | Bulk/raw SQL tenant authorization | **Partial** | Trusted, parameterized tenant-to-transaction binding with raw SQL and EF ExecuteUpdate/Delete denial tests; new CI verification pending | Block SQL-injection tenant session spoofing, adopt real context-aware raw SQL authorization and least-privileged production accounts | P0 |
+| Security | Database-enforced Row-Level Security | **Partial** | CI-verified PostgreSQL FORCE RLS and SQL Server FILTER/BLOCK DDL, trusted tenant transaction scopes, and real cross-tenant raw SQL + EF bulk negative tests on both databases | Apply owner-specific RLS migrations and least-privilege roles, verify membership authorization and privileged/session spoof bypass cases | P0 |
+| Security | Bulk/raw SQL tenant authorization | **Partial** | CI-verified tenant-scoped SQL transaction wrapper; direct SQL and EF ExecuteUpdate/ExecuteDelete cross-tenant denial, forged insert rejection and session isolation on both SQL engines | Block SQL-injection tenant session spoofing, adopt real context-aware raw SQL authorization and least-privileged production accounts | P0 |
 | Persistence | Production SQL TLS and certificate identity | **Implemented** | Production startup rejects PostgreSQL without VerifyFull and SQL Server without verified encryption; real container negative tests passed | Configure real certificate authority/trust chain and rotation in target deployment | P0 |
 | Persistence | EF Core 10 PostgreSQL provider | **Implemented** | Runtime Npgsql provider selected by config | Context-owned schema migrations require real domains | P0 |
 | Persistence | EF Core 10 Microsoft SQL Server provider | **Implemented** | Runtime EF SqlServer provider selected by config | Context-owned schema migrations require real domains | P0 |
@@ -147,7 +147,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | Testing | Real PostgreSQL/SQL Server/Redis/Wolverine CI | **Implemented** | 16 executable real-service tests across both SQL engines | Crash, high-load and external broker remain release gates | P0 |
 | Testing | CI bundled into each generated API | **Implemented** | Push/PR build gate and manually triggered real-service workflow | Generated-project pipelines need repository policy/hardening to be adopted | P1 |
 | Deployment | Non-root OCI image and local Compose | **Implemented** | Multi-stage .NET 10 Dockerfile, localhost-only Development Compose | Production image signing, secrets/TLS/hosting still open | P1 |
-| Deployment | SBOM, vulnerability scans and signed releases | **Partial** | NuGet audited/SPDX project graphs, runtime fixable-CRITICAL Trivy scanner and GitHub OIDC/Sigstore template provenance verification wired in CI; new CI status pending | Prove signed provenance verification, pin base-image digests, approve severity policy and sign actual published OCI/NuGet releases | P0 |
+| Deployment | SBOM, vulnerability scans and signed releases | **Partial** | CI-verified NuGet direct/transitive audits plus SPDX graphs, fixable-CRITICAL runtime Trivy scan and keyless signed/verified SLSA provenance for tested .nupkg with tamper rejection | Pin OCI base image digests, approve HIGH/unfixed severity policies, sign actual published OCI/NuGet releases and institute production release/change-control | P0 |
 | Deployment | Production deployment with TLS, identity and rollback | **Not implemented** | Not implemented | Choose target hosting, configure DNS/TLS/secrets and deployment rollback | P0 |
 | Operations | Latency/throughput/load and failover baseline | **Not implemented** | Not implemented | Set SLO and run load/chaos tests across two provider deployments | P1 |
 | Business | Owner-defined versioned cross-context contracts | **Partial** | Context generator creates Contracts project; no real product Contracts | Specify real public V1 schemas, consumers and compatibility evolution | P0 |
@@ -168,7 +168,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | `msg-domain-consumers` | Implement owner-approved domain contracts, Inbox and cross-context handlers — Consumer cannot mutate another context's tables; duplicate events are safe | Not implemented |
 | `ops-audit` | Define context-owned auditable actions with safe retention/PII policy — Audit cannot be silently rewritten and records actor, action, tenant, outcome | Not implemented |
 | `ops-prod-secrets` | Add approved secret store, rotation and least-privilege deployment setup — No plaintext production secret in repo/container/CI logs | Not implemented |
-| `dev-release-sbom` | Prove signed provenance verification, pin base-image digests, approve severity policy and sign actual published OCI/NuGet releases — Release pipeline rejects vulnerable/untrusted dependencies and verifies provenance | Partial |
+| `dev-release-sbom` | Pin OCI base image digests, approve HIGH/unfixed severity policies, sign actual published OCI/NuGet releases and institute production release/change-control — Release pipeline rejects vulnerable/untrusted dependencies and verifies provenance | Partial |
 | `dev-prod-deploy` | Choose target hosting, configure DNS/TLS/secrets and deployment rollback — Production smoke, zero-downtime deploy and rollback drill pass | Not implemented |
 | `biz-contracts` | Specify real public V1 schemas, consumers and compatibility evolution — V1 consumers stay compatible; private implementation edges rejected | Partial |
 | `biz-contract-tests` | Introduce consumer-driven tests for real event/HTTP contracts — A breaking V1 change fails CI and requires an explicit V2 | Not implemented |
