@@ -144,3 +144,15 @@ its actual final runtime container image; fixable CRITICAL
 findings fail the separate `container-security` job, with JSON
 evidence retained. Generated projects are not automatically
 published or signed under the upstream ABAFramework identity.
+
+## Audit ledger and dead-letter test contract
+
+Default xUnit cases cover key validation, disabled defaults, key
+rotation and malformed audit fields. Real PostgreSQL and SQL Server
+tests assert HMAC integrity, changed-row detection, external
+checkpoint mismatch, missing old signing keys and concurrent
+append sequencing. The Wolverine integration suite uses a
+synthetic poison message to verify quarantine, denied anonymous
+or type-mismatched requests, operator-authorized replay after
+repair and chain verification. These are technical tests, not
+business workflow or live operator identity approval.

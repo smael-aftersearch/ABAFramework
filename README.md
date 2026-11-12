@@ -71,6 +71,28 @@ OCI scan. See [release integrity](docs/release-integrity.md) for what is
 enforced and what remains unverified (including base-image digest pinning,
 publication/signing of OCI images and Production secrets).
 
+
+## Opt-in HMAC audit and controlled Wolverine dead-letter recovery
+
+The Platform now provides a database-backed, tamper-evident HMAC audit
+ledger with per-tenant digest chaining, transactional append, key rotation
+and integrity verification. The feature is off by default and requires
+externally managed signing keys. A separate signed head checkpoint is
+required to detect deletion of a terminal suffix.
+
+Wolverine dead-letter inspection and replay are exposed only through
+an opt-in, permission-gated **service**, never an anonymous or public
+HTTP endpoint. Operators need a valid identity, exact permission,
+change ticket, exact envelope ID and expected message/exception types.
+Replay requests are recorded to the HMAC ledger first. Multi-tenant
+administration is deliberately disabled pending business authorization.
+
+See the [audit and dead-letter runbook](templates/aba-api/docs/operations/audit-deadletters.md)
+plus [audit ADR](templates/aba-api/docs/decisions/ADR-006-audit-ledger.md)
+and [replay ADR](templates/aba-api/docs/decisions/ADR-007-wolverine-deadletter-operator.md).
+Neither service decides business membership, retention or side-effect
+compensation; these remain owner-defined release gates.
+
 ## Installable template package
 
 CI also builds and tests a versioned `ABAFramework.GenericApi.Template.*.nupkg` NuGet template artifact. After downloading it from the successful [GitHub Actions](https://github.com/smael-aftersearch/ABAFramework/actions) run, install with `dotnet new install ./ABAFramework.GenericApi.Template.0.3.0-preview.2.nupkg`, then `dotnet new aba-api -n YourCompany.Api`. This is an artifact attached to CI, **not yet a NuGet.org publication**. Pack locally with `bash scripts/pack-template.sh`.

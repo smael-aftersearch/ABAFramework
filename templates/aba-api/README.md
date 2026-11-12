@@ -94,6 +94,25 @@ inherit the source repository's NuGet template artifact signer or
 publication permissions. Independent product release identity and
 base image digest pinning remain separate tasks.
 
+
+## HMAC audit and explicit dead-letter operations
+
+The optional technical audit ledger requires PostgreSQL or SQL Server,
+an external HMAC keyring, and an explicitly enabled audit configuration.
+Its dedicated migration creates the technical audit table. AppendAsync
+records a sequence, opaque actor/action/outcome references and a
+predecessor HMAC digest. VerifyAsync checks historical integrity and,
+with an externally anchored expected digest, detects tail truncation.
+Signing keys must never be committed to Git or image layers.
+
+AbaDeadLetterAdministration is an opt-in service for Wolverine durable
+local dead letters. It refuses anonymous operators and tenant mode,
+shows metadata only, and marks only an explicitly approved envelope for
+asynchronous replay with pre-committed audit evidence. No public HTTP
+replay routes, wildcard replay or arbitrary payload exposure are added.
+The [runbook](docs/operations/audit-deadletters.md) documents all
+configuration, permissions, key rotation and rollback limits.
+
 ## Security
 
 All endpoints are authenticated by default (fallback authorization policy). `/health/live` and Development-only documentation are anonymous; the system status endpoint is also anonymous **only in Development**. In other environments, the host **refuses to start without a trusted HTTPS OIDC Authority and Audience**. It has no bundled signing key. Never treat Development mode as public-hosting configuration.

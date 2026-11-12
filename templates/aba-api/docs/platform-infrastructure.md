@@ -147,3 +147,18 @@ bypass RLS. The SQL Server CI fixture uses a disposable admin login:
 it is not least-privilege production proof. See
 [ADR-005](decisions/ADR-005-tenant-row-security.md) for rollback policy
 and trust boundaries.
+
+## Provider-backed audit and Wolverine poison recovery
+
+The 202611130001_AuditLedger migration adds a technical audit table on
+both PostgreSQL and SQL Server. The HMAC-SHA256 chain includes stable
+UTC timestamps, actor/tenant/action/outcome IDs and key version,
+and is written through SERIALIZABLE per-tenant transactions. Missing
+or weak keys fail at enabled startup; old keys are needed after
+rotation; external checkpoints detect terminal deletion.
+
+The operator service wraps Wolverine's own durable dead-letter API
+with explicit inspect/replay permission claims and audit-first
+processing. Inspection does not return bodies or exception messages.
+A replay mark is not evidence of successful consumption. See the
+operations guide for detailed incident checks.

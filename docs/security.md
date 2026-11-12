@@ -52,3 +52,18 @@ deployment/secret rotation are not delivered. See
 [release-integrity.md](release-integrity.md) and the latest execution run.
 
 **Latest executed release and database-security evidence:** [8-job successful CI run 43317295032](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43317295032) verifies both provider-level RLS fixtures and SQL bulk denial, a Trivy final-runtime vulnerability gate and signed NuGet template provenance. Real business tenant membership, privileged database bypass review, published OCI signatures and approved Production deployment remain incomplete.
+
+## Audit signing and poison-message operator boundary
+
+The generic technical audit system is off by default and requires
+externally provided HMAC signing keys and relational persistence.
+Opaque identifiers limit payload exposure, but the system still
+needs separate legal retention, production key custody and an
+immutable external digest anchor.
+
+Dead-letter management has no public endpoint or default admin
+identity; replay requires an authenticated operator permission,
+change ticket and exact envelope identity and is pre-audited.
+Tenant-scoped operator access is blocked until independently
+authorized message stores are implemented. Replaying does not
+guarantee business idempotency, payment safety or compensation.

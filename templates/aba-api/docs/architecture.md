@@ -86,3 +86,17 @@ The generated CI adds a Trivy runtime image security gate; release
 signing of the template package is handled by the upstream repository,
 not automatically by each new product. Read
 [ADR-005](decisions/ADR-005-tenant-row-security.md).
+
+## HMAC audit and dead-letter management boundary
+
+Platform provides a technical HMAC-linked audit ledger; business
+contexts still own which actions to record, authorization, PII
+retention and externally signed checkpoints. The ledger uses
+serializable transactions and provider-specific concurrency retries.
+
+The new dead-letter operator builds on Wolverine's durable storage,
+requires a separately authenticated permission claim and change
+ticket, and creates an audit record before marking one explicit
+message for replay. No HTTP management route or tenant-unsafe
+multi-tenant mode is enabled. Business message handlers must still
+be idempotent and compensate external side effects.
