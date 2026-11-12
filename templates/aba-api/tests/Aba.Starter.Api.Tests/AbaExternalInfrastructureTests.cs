@@ -1,4 +1,7 @@
+using Aba.Starter.Platform;
 using Aba.Starter.Platform.Caching;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Aba.Starter.Platform.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -57,6 +60,61 @@ public sealed class AbaExternalInfrastructureTests
         Assert.True(await store.TryClaimAsync("ci", id));
         Assert.False(await store.TryClaimAsync("ci", id));
         Assert.True(await store.TryClaimAsync("other-scope", id));
+    }
+
+
+    [Theory]
+    [InlineData("PostgreSql", "ABA_TEST_POSTGRESQL")]
+    [InlineData("SqlServer", "ABA_TEST_SQLSERVER")]
+    public async Task WolverineDurableLocalMessageProcessesOnActualDatabase(
+        string provider, string variable)
+    {
+        var connection = Environment.GetEnvironmentVariable(variable);
+        if (string.IsNullOrWhiteSpace(connection)) return;
+
+        // The test uses an isolated ephemeral HTTP host and explicitly opt-in
+        // development-only schema provisioning for Wolverine's durable tables.
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+        {
+            EnvironmentName = "Development"
+        });
+        builder.WebHost.UseUrls("http://127.0.0.1:0");
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Platform:Database:Provider"] = provider,
+            ["ConnectionStrings:AbaDatabase"] = connection,
+            ["Platform:Cache:Provider"] = "Memory",
+            ["Platform:Messaging:Enabled"] = "true",
+            ["Platform:Messaging:AutoProvisionInDevelopment"] = "true"
+        });
+        builder.Services.AddHealthChecks();
+        builder.AddAbaPlatform();
+        await using var app = builder.Build();
+        await app.StartAsync();
+        try
+        {
+            var probeId = Guid.NewGuid();
+            var bus = app.Services.GetRequiredService<Wolverine.IMessageBus>();
+            await bus.SendAsync(new Aba.Starter.Platform.Messaging.AbaDurabilityProbe(probeId));
+            var found = false;
+            for (var attempt = 0; attempt < 60; attempt++)
+            {
+                await using var scope = app.Services.CreateAsyncScope();
+                var db = scope.ServiceProvider.GetRequiredService<AbaPlatformDbContext>();
+                if (await db.IdempotencyReceipts.AsNoTracking().AnyAsync(x =>
+                    x.Scope == "aba-durability-probe" && x.Key == probeId.ToString("N")))
+                {
+                    found = true;
+                    break;
+                }
+                await Task.Delay(250);
+            }
+            Assert.True(found, $"Wolverine did not durably deliver probe {probeId} with {provider}.");
+        }
+        finally
+        {
+            await app.StopAsync();
+        }
     }
 
     [Fact]

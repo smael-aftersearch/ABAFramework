@@ -41,7 +41,9 @@ Enable with `Platform__Messaging__Enabled=true` **only when a PostgreSQL or SQL 
 
 Wolverine envelope tables are separately managed from EF Core domain migrations. Provision Wolverine's resources according to the version-matched Wolverine CLI in deployment, with the same database provider. Use `resources setup`/resource migrations in a controlled deployment step; do not enable destructive auto-purge or auto-create in production. Each handler that writes domain state and publishes messages must enroll its own owning `DbContext` in Wolverine's transaction; a registered store alone is **not proof of a transactional domain workflow**.
 
-No RabbitMQ/Kafka or business handler is silently installed. Reliable end-to-end consumer/replay and failover scenarios remain to be tested using real message handlers; do not claim those are covered by configuration tests.
+Wolverine 6 requires the explicit `WolverineFx.RuntimeCompilation` package for dynamic handler code generation, and the template now includes it. For **isolated Development integration tests only**, set `Platform__Messaging__AutoProvisionInDevelopment=true` to allow Wolverine to provision its durable message schema on host startup; never enable this during production deployment. A technical probe handler is included to verify durable local message processing against each real SQL engine.
+
+No RabbitMQ/Kafka or business handler is silently installed. CI exercises a real durability probe handler against both supported SQL engines, but **crash/restart, outbox atomicity under injected failures, replay/dead-letter and business consumer coverage are still incomplete**. Do not equate the probe with complete production message reliability.
 
 ## Local development integration services
 

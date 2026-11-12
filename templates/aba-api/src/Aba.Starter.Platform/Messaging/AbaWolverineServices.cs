@@ -5,6 +5,7 @@ using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.Postgresql;
 using Wolverine.SqlServer;
+using JasperFx;
 
 namespace Aba.Starter.Platform.Messaging;
 
@@ -25,6 +26,9 @@ public static class AbaWolverineServices
 
         builder.Host.UseWolverine(options =>
         {
+            // Wolverine 6 moved its Roslyn compiler to an explicit opt-in package.
+            options.UseRuntimeCompilation();
+            options.Discovery.IncludeAssembly(typeof(AbaDurabilityProbeHandler).Assembly);
             if (database.Provider == AbaDatabaseProvider.PostgreSql)
                 options.PersistMessagesWithPostgresql(database.ConnectionString, "aba_messages");
             else
@@ -34,5 +38,10 @@ public static class AbaWolverineServices
             options.Policies.UseDurableLocalQueues();
             options.Policies.AutoApplyTransactions();
         });
+        // Provision message storage only in development with an explicit opt-in.
+        // Production schema/resource updates belong in a reviewed deployment step.
+        if (builder.Environment.IsDevelopment()
+            && builder.Configuration.GetValue<bool>("Platform:Messaging:AutoProvisionInDevelopment"))
+            builder.Host.UseResourceSetupOnStartup();
     }
 }
