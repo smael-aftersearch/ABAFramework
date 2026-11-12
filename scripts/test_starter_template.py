@@ -108,6 +108,19 @@ class GenericTemplateTests(unittest.TestCase):
         self.assertEqual(json.loads((TEMPLATE / 'metadata/contexts.json').read_text())['contexts'], [])
         self.assertTrue((TEMPLATE / 'docs/context-generator.md').is_file())
 
+    def test_generated_project_has_automatic_and_optional_integration_ci(self):
+        ci = (TEMPLATE / '.github/workflows/ci.yml').read_text()
+        integration = (TEMPLATE / '.github/workflows/integration.yml').read_text()
+        self.assertIn("push:", ci)
+        self.assertIn("pull_request:", ci)
+        self.assertIn("contents: read", ci)
+        self.assertIn("tools/aba_task.py verify --level build", ci)
+        self.assertIn("workflow_dispatch:", integration)
+        self.assertIn("tools/aba_task.py verify --level full", integration)
+        for provider in ("postgres", "sqlserver", "redis"):
+            self.assertIn(provider + ":", integration)
+        self.assertNotIn("publish", ci.casefold())
+
     def test_portable_agent_task_protocol_is_bundled_and_negative_tested(self):
         planner = TEMPLATE / 'tools/aba_task.py'
         tests = TEMPLATE / 'tools/test_aba_task.py'

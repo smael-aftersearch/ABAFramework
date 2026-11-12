@@ -38,3 +38,7 @@ This deterministic script assists AI but does not automatically infer a business
 ## Redaction and evidence privacy
 
 Verification output tails redact configured PostgreSQL, SQL Server, Redis and client-secret environment values and common `Password=` fragments before writing JSON. Never copy full environment variables into task descriptions or `--output`; treat CI artifacts as potentially visible to colleagues. The test suite includes a synthetic secret-leak regression.
+
+## Generated repository CI
+
+The `.github/workflows/ci.yml` workflow runs on pushes/PRs and uses the portable `aba_task.py verify --level build` runner. `.github/workflows/integration.yml` is an explicit GitHub Actions workflow-dispatch job that provisions disposable PostgreSQL, SQL Server and Redis containers, then executes `verify --level full`. The integration test suite fails closed when service connections are absent. These workflows do not deploy the API or publish a public NuGet package; they supply reproducible evidence only.

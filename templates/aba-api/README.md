@@ -72,3 +72,7 @@ For non-authoritative, already-authorized queries you may use `ReadThroughQueryC
 ## Built-in coding-agent workflow
 
 `tools/aba_task.py` gives a deterministic architecture-aware document reading plan and fixed-command verification with JSON evidence; start with `docs/ai/TASK-PROTOCOL.md`. The `plan` command **never invents business ownership**, and `verify` reports PASS/FAIL/NOT_RUN rather than pretending unavailable database tests were executed. Python 3.10+ is needed for these developer tools only, not for the running API.
+
+## CI is included in every generated repository
+
+The generated project includes `.github/workflows/ci.yml`, which automatically checks agent documentation/architecture governance, .NET 10 restore/build, and xUnit on every Push and PR. A second workflow, `.github/workflows/integration.yml`, is started explicitly with **Run workflow** in GitHub Actions and provisions isolated PostgreSQL, SQL Server and Redis services for the fail-closed Wolverine/EF/Redis integration suite. Both workflows upload JSON test evidence with no production secrets. They do not publish images or deploy without your authorization.

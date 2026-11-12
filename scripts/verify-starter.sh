@@ -28,6 +28,8 @@ SOLUTION="$OUTPUT/Pilot.QuickStart.slnx"
 test -f "$SOLUTION"
 test -f "$OUTPUT/AGENTS.md"
 test -f "$OUTPUT/metadata/contexts.json"
+test -f "$OUTPUT/.github/workflows/ci.yml"
+test -f "$OUTPUT/.github/workflows/integration.yml"
 if grep -R -E "namespace Academy|Academy\\." "$OUTPUT/src" "$OUTPUT/tests" --include='*.cs' >/dev/null; then
   echo "FAIL: sample business type leaked into generated starter" >&2
   exit 1

@@ -38,6 +38,8 @@ for required in \
   AGENTS.md \
   .agents/skills/aba-engineering/SKILL.md \
   Dockerfile \
+  .github/workflows/ci.yml \
+  .github/workflows/integration.yml \
   tests/Pilot.Packaged.Platform.IntegrationTests/Pilot.Packaged.Platform.IntegrationTests.csproj; do
   if [[ ! -f "$TMP/from-package/$required" ]]; then
     echo "FAIL: template package omitted generated file: $required" >&2
