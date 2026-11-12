@@ -20,6 +20,19 @@ The generated project has no Academy or business examples. It includes a version
 
 **CI verification:** `bash scripts/verify-starter.sh` installs the template, generates a fresh named solution, runs restore/build/xUnit and checks the real local HTTP host. The original Academy sample remains an **optional reference only**, not the base API.
 
+## Ten-run hourly delivery tracker (started 2026-11-13)
+
+The [hourly delivery control issue](https://github.com/smael-aftersearch/ABAFramework/issues/6) tracks **23 remaining generic-template capabilities** from [the authoritative status catalog](docs/implementation-status.json). The initial reviewed baseline is **31 implemented, 10 partial, 13 not started** out of 54. A partial feature is **not** counted as completed. Each queue has a maximum of ten executions (one immediate run and nine scheduled hourly runs); missed or blocked production gates are reported, not auto-declared complete.
+
+| Queue / owners | Capabilities still open at baseline | Partial | Not started | Newly completed and verified this batch | Tracking |
+| --- | ---: | ---: | ---: | ---: | --- |
+| A — release/CI, audit, telemetry, operations | 7 | 3 | 4 | 0 / 7 | [#3](https://github.com/smael-aftersearch/ABAFramework/issues/3) |
+| B — persistence, messaging, caching | 9 | 4 | 5 | 0 / 9 | [#4](https://github.com/smael-aftersearch/ABAFramework/issues/4) |
+| C — security, API and business contracts | 7 | 3 | 4 | 0 / 7 | [#5](https://github.com/smael-aftersearch/ABAFramework/issues/5) |
+| **Total** | **23** | **10** | **13** | **0 / 23** | [Ledger](https://github.com/smael-aftersearch/ABAFramework/issues/6) |
+
+The table records *verified feature closures*, not speculative percentage-complete estimates. For exact feature IDs, acceptance criteria, owners and evidence, follow [the generated backlog](docs/IMPLEMENTATION-STATUS.md). After each substantive code change, update the README and source status JSON only to reflect actual tested changes, regenerate the status matrix, and record the PR/CI evidence in the relevant issue. Automated merge is allowed only after real tests, review and branch-policy gates. Business-owner approvals, production secrets, release policy, and deployment decisions remain outside the authority of these tasks.
+
 ## Supply-chain audit and SBOM
 
 The latest eight-job GitHub CI verifies the fail-closed NuGet direct/transitive
