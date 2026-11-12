@@ -38,7 +38,7 @@ public static class AbaWolverineServices
 
             // An internal synthetic poison probe is deterministic and must
             // enter the durable dead-letter store without retry storms.
-            options.OnException<AbaPoisonProbeException>().MoveToErrorQueue();
+            options.Policies.OnException<AbaPoisonProbeException>().MoveToErrorQueue();
             options.UseEntityFrameworkCoreTransactions();
             options.Policies.UseDurableLocalQueues();
             options.Policies.AutoApplyTransactions();
