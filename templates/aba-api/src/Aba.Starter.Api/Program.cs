@@ -27,7 +27,11 @@ builder.Services
         // No keys or development-only signing secret are shipped with the template.
         options.Authority = authority;
         options.Audience = audience;
-        options.RequireHttpsMetadata = true;
+        // HTTP discovery must be an explicit Development-only opt-in for
+        // local identity-provider smoke tests. Production always requires HTTPS.
+        options.RequireHttpsMetadata = !(builder.Environment.IsDevelopment()
+            && builder.Configuration.GetValue<bool>(
+                "Authentication:AllowHttpMetadataInDevelopment"));
     });
 // A tenant is trusted only when taken from a validated JWT claim. Anonymous
 // infrastructure routes remain explicitly marked AllowAnonymous.
