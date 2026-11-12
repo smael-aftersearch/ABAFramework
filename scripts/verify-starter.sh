@@ -36,6 +36,24 @@ fi
 python3 "$OUTPUT/tools/new_context.py" check
 python3 "$OUTPUT/tools/new_context.py" create --name BoundaryProbe
 python3 "$OUTPUT/tools/new_context.py" check
+python3 "$OUTPUT/tools/new_context.py" create --name AuditProbe
+python3 "$OUTPUT/tools/new_context.py" check
+# Deliberately introduce an illegal cross-context source dependency and confirm
+# executable governance rejects it, then restore the file unchanged.
+DOMAIN="$OUTPUT/src/Modules/BoundaryProbe/Domain/AssemblyMarker.cs"
+cp "$DOMAIN" "$TEMP/domain-backup.cs"
+printf '\nusing Pilot.QuickStart.AuditProbe.Infrastructure;\n' >> "$DOMAIN"
+if python3 "$OUTPUT/tools/new_context.py" check; then
+  echo "FAIL: governance accepted a private cross-context import" >&2; exit 1
+fi
+cp "$TEMP/domain-backup.cs" "$DOMAIN"
+# Same source file must not import EF Core into the pure Domain.
+printf '\nusing Microsoft.EntityFrameworkCore;\n' >> "$DOMAIN"
+if python3 "$OUTPUT/tools/new_context.py" check; then
+  echo "FAIL: governance accepted an EF Core import in Domain" >&2; exit 1
+fi
+cp "$TEMP/domain-backup.cs" "$DOMAIN"
+python3 "$OUTPUT/tools/new_context.py" check
 if python3 "$OUTPUT/tools/new_context.py" create --name BoundaryProbe; then
   echo "FAIL: context generator accepted a duplicate" >&2; exit 1
 fi

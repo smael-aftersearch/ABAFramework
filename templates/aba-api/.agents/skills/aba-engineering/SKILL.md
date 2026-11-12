@@ -34,7 +34,7 @@ description: >
 2. Implement in the owning context and update public contracts where necessary.
 3. Add focused xUnit tests to the default solution. Put real PostgreSQL/SQL Server/Redis/Wolverine tests in the separate `tests/Aba.Starter.Platform.IntegrationTests` project; never allow missing connections to silently pass. For HTTP behavior use `WebApplicationFactory<Program>`.
 4. Synchronize `metadata/contexts.json`, API documentation, ADRs and developer instructions when changed.
-5. Execute `dotnet restore`, `dotnet build -c Release` and `dotnet test -c Release`; report exact PASS, FAIL or NOT_RUN (never invent results).
+5. Execute `python3 tools/new_context.py check`, `dotnet restore`, `dotnet build -c Release` and `dotnet test -c Release`; for relevant changes also execute the real-service integration suite. Reject forbidden cross-context implementation imports and root/owner metadata drift. Report exact PASS, FAIL or NOT_RUN (never invent results).
 6. Complete with ownership impact, touched files, tests, security issues and unverified work.
 
 **The starting API intentionally has no domain sample. Do not copy Academy or Enrollment unless the real product requires those bounded contexts.**

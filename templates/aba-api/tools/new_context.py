@@ -117,6 +117,9 @@ def check():
     catalog = json.loads(CATALOG.read_text())
     records = catalog["contexts"]
     seen = set()
+    # A context's ownership metadata is part of its API. Two owners for the
+    # same declared responsibility are not allowed to pass CI.
+    responsibility_owners = {}
     declared = {x.attrib["Path"] for x in xml.getroot().findall("Project")}
     for record in records:
         name = record["name"]
@@ -126,12 +129,32 @@ def check():
         files, projects = files_for(name, ns)
         if record["owner"] != name or record["path"] != f"src/Modules/{name}":
             raise ValueError("Context ownership/path metadata mismatch")
+        owned = record.get("owns")
+        if not isinstance(owned, dict):
+            raise ValueError(f"Missing explicit ownership map: {name}")
+        for category in ("data", "businessRules", "decisions", "publicContracts"):
+            items = owned.get(category)
+            if not isinstance(items, list):
+                raise ValueError(f"Invalid ownership category {name}/{category}")
+            for item in items:
+                if not isinstance(item, str) or not item.strip():
+                    raise ValueError(f"Invalid owned responsibility in {name}/{category}")
+                key = (category, item.strip().casefold())
+                owner = responsibility_owners.setdefault(key, name)
+                if owner != name:
+                    raise ValueError(f"Two owners for {category}:{item}: {owner} and {name}")
         for rel in projects:
             if not (ROOT / rel).is_file() or rel.as_posix() not in declared:
                 raise ValueError(f"Missing project in solution: {rel}")
-            refs = ET.parse(ROOT / rel).getroot().findall(".//ProjectReference")
-            if rel.parent.name in ("Domain", "Contracts") and refs:
-                raise ValueError(f"Private or technical dependencies in pure boundary: {rel}")
+            project_xml = ET.parse(ROOT / rel).getroot()
+            refs = project_xml.findall(".//ProjectReference")
+            if rel.parent.name in ("Domain", "Contracts"):
+                if refs or project_xml.findall(".//FrameworkReference"):
+                    raise ValueError(f"Private or technical dependencies in pure boundary: {rel}")
+                for package in project_xml.findall(".//PackageReference"):
+                    package_name = package.attrib.get("Include", "")
+                    if re.search(r"(?i)(EntityFramework|AspNetCore|Wolverine|Redis|Npgsql|SqlClient|Dapper)", package_name):
+                        raise ValueError(f"Forbidden technical package in pure boundary: {rel}: {package_name}")
             for ref in refs:
                 dest = (ROOT / rel.parent / ref.attrib["Include"]).resolve()
                 other = ROOT / "src/Modules"
@@ -141,6 +164,28 @@ def check():
             info = json.loads((ROOT / "src/Modules" / name / "_Docs" / filename).read_text())
             if info.get("context") != name:
                 raise ValueError(f"Wrong metadata owner: {name}/{filename}")
+            if filename == "ownership.yaml":
+                if info.get("owner") != name or info.get("owns") != owned:
+                    raise ValueError(f"Root and context ownership metadata drift: {name}")
+        # Text imports are checked as a conservative pre-compiler guard. Real
+        # compilation and runtime/architecture tests are additional CI gates.
+        for source in (ROOT / "src/Modules" / name).rglob("*.cs"):
+            code = source.read_text(encoding="utf-8")
+            layer = source.relative_to(ROOT / "src/Modules" / name).parts[0]
+            if layer in ("Domain", "Contracts") and re.search(
+                r"\b(?:global\s+)?using\s+(?:static\s+)?"
+                r"(?:Microsoft\.(?:EntityFrameworkCore|AspNetCore)|"
+                r"StackExchange\.Redis|Wolverine|Npgsql|Microsoft\.Data\.SqlClient)\b",
+                code,
+            ):
+                raise ValueError(f"Technical framework imported into pure boundary: {source}")
+            for other_record in records:
+                other = other_record["name"]
+                if other == name:
+                    continue
+                forbidden = rf"\b(?:global\s+)?using\s+(?:static\s+)?{re.escape(ns)}\.{re.escape(other)}\.(?:Domain|Application|Infrastructure)\b"
+                if re.search(forbidden, code):
+                    raise ValueError(f"Forbidden cross-context implementation import: {source}")
         if f"../Modules/{name}/Infrastructure/{ns}.{name}.Infrastructure.csproj" not in api.read_text():
             raise ValueError(f"Missing host project reference for {name}")
         if f"builder.Services.Add{name}Module();" not in (api.parent / "Program.cs").read_text():

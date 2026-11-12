@@ -46,3 +46,7 @@ The external integration suite includes `DurabilityRecoveryTests`: with PostgreS
 ## Same-transaction idempotency
 
 `IdempotencyReceiptRollsBackWithSameDbContextWork` runs on **both** SQL engines and asserts that an exception rolls back both the technical receipt and same-DbContext state, a successful transaction persists both, and a duplicate callback does not invoke work. This intentionally does not promise exactly-once semantics for external providers or multiple independent DbContexts.
+
+## Executable generated-context governance
+
+`python3 tools/new_context.py check` inspects declared ownership, owner-local metadata, all project references and pure Domain/Contracts imports. The root CI script scaffolds two temporary contexts, verifies successful build/xUnit tests, deliberately injects a cross-context Infrastructure import into Domain, deliberately injects EF Core into Domain, and confirms that each illegal change is **rejected**, then restores the fixture before compilation. Static checks are a guardrail, not a substitute for architecture/IL/behavior tests.

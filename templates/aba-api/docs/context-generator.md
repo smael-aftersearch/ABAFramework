@@ -13,6 +13,6 @@ Use the **real business name**, never invent example domains just to populate fo
 
 It creates **no domain models, default endpoints, database tables or events** without actual requirements. The public Contracts project initially contains no published API. A context owner must explicitly specify owned data/rules/decisions/contracts and add corresponding positive/negative/invariant tests.
 
-The generator's `check` command validates declared module projects, pure Domain/Contracts dependencies, host wiring and context-specific owner metadata. It rejects unregistered module directories and cross-context project references. This is a structural check, not a complete semantic or IL-level proof.
+The generator's `check` command validates declared module projects, pure Domain/Contracts dependencies, host wiring and context-specific owner metadata. It rejects unregistered module directories, private cross-context project/source imports, framework references or forbidden technical packages in Domain/Contracts, duplicate ownership across contexts, and drift between root and owner-local responsibility maps. CI includes negative cases intentionally breaking two of these rules. This is a structural check, not a complete semantic or IL-level proof.
 
 The generator refuses duplicate names and path-traversal-like identifiers. Avoid editing generated files through external tools without also running `check`. Do not use its output as permission to change another context's private data.
