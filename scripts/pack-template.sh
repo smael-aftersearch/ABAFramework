@@ -19,10 +19,17 @@ PACKAGE="$ROOT/artifacts/packages/ABAFramework.GenericApi.Template.0.2.0-preview
 test -s "$PACKAGE"
 dotnet new install "$PACKAGE"
 dotnet new aba-api -n Pilot.Packaged -o "$TMP/from-package"
-test -f "$TMP/from-package/AGENTS.md"
-test -f "$TMP/from-package/.agents/skills/aba-engineering/SKILL.md"
-test -f "$TMP/from-package/Dockerfile"
-test -f "$TMP/from-package/tests/Pilot.Packaged.Platform.IntegrationTests/Pilot.Packaged.Platform.IntegrationTests.csproj"
+for required in \
+  AGENTS.md \
+  .agents/skills/aba-engineering/SKILL.md \
+  Dockerfile \
+  tests/Pilot.Packaged.Platform.IntegrationTests/Pilot.Packaged.Platform.IntegrationTests.csproj; do
+  if [[ ! -f "$TMP/from-package/$required" ]]; then
+    echo "FAIL: template package omitted generated file: $required" >&2
+    find "$TMP/from-package" -maxdepth 5 -type f | sort | head -n 90 >&2
+    exit 1
+  fi
+done
 dotnet build "$TMP/from-package/Pilot.Packaged.slnx" -c Release
 dotnet test "$TMP/from-package/Pilot.Packaged.slnx" -c Release --no-build
 echo "PASS: versioned ABA NuGet template package installs and generates a tested new API"
