@@ -55,7 +55,7 @@ For the decision logic behind these requirements, read [ABA authority rules](ref
 - Do not share business entities or implement cross-context data writes as a shortcut.
 - Keep accounting posted journals immutable; use compensating records for corrections.
 - Keep payment callbacks and message redelivery idempotent; use transactional Outbox/Inbox for real durable distributed implementations.
-- Distinguish the **Academy legacy sample** (local substitutes) from the **generic template** (real, opt-in PostgreSQL/SQL Server, Redis, Wolverine, OpenTelemetry and JWT tenant-claim components). Report exact CI evidence and remaining production gaps; do not invent complete OIDC/tenant isolation or end-to-end outbox reliability.
+- Distinguish the **Academy legacy sample** (local substitutes) from the **generic template** (real, opt-in PostgreSQL/SQL Server, Redis, Wolverine, OpenTelemetry and JWT tenant-claim components). Report exact CI evidence and remaining production gaps; real disposable Keycloak OIDC and EF-level tenant guards are verified, but do not invent production membership, SQL RLS, ungraceful crash recovery or full business Outbox reliability.
 - Reject secret leakage, unsafe auth bypasses, real payment execution without approval, and unverifiable security claims.
 
 ## 4. Implement code, tests, and docs in the same change
@@ -76,7 +76,7 @@ python3 scripts/task_protocol.py verify --profile static --output artifacts/veri
 python3 scripts/task_protocol.py verify --profile all --output artifacts/verification/full.json --markdown artifacts/verification/full.md
 ```
 
-`static` executes AI checks, negative governance, tool regression tests and a structural scan. `all` additionally requires a working .NET 10 SDK and executes restore/build/console smoke. If a gate cannot run, record **NOT_RUN**, not PASS. Nonzero verifier exit codes mean a failed or incomplete profile. Use `bash scripts/verify-all.sh` for the same full CI-oriented gate. The original Academy evidence runner only checks its own Phase-1 scope. The separate generic-template CI now tests xUnit, real database providers, Redis and a Wolverine technical message; it does **not** certify multi-tenant data isolation, external IdP validation or failure-injection reliability. Never invent coverage or claim production readiness.
+`static` executes AI checks, negative governance, tool regression tests and a structural scan. `all` additionally requires a working .NET 10 SDK and executes restore/build/console smoke. If a gate cannot run, record **NOT_RUN**, not PASS. Nonzero verifier exit codes mean a failed or incomplete profile. Use `bash scripts/verify-all.sh` for the same full CI-oriented gate. The original Academy evidence runner only checks its own Phase-1 scope. The separate generic-template CI now tests xUnit, real database providers, Redis and a Wolverine technical message; it now verifies Keycloak OIDC, EF-level multi-tenant query/SaveChanges guards, and injected pre-commit transaction rollback on both SQL providers; it still does **not** certify SQL RLS, IdP membership, arbitrary kill/restart crash windows or full business Outbox reliability. Never invent coverage or claim production readiness.
 
 Complete every material task using this compact report; see [evidence and drift protocol](references/evidence-and-drift.md):
 

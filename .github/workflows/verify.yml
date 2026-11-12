@@ -1,4 +1,4 @@
-name: Verify ABA Phase 1
+name: Verify ABA Framework and Generic API
 on:
   push:
   pull_request:

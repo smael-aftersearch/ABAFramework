@@ -1,5 +1,8 @@
 # ABA Framework — .NET 10 generic API quick start
 
+**Current verified baseline (2026-11-12):** [five successful GitHub CI jobs](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43298754432) verify a fresh .NET 10 API, 44 xUnit API tests, 13 live database/Redis/Wolverine tests on PostgreSQL and SQL Server, actual Keycloak OIDC/JWKS signed JWT 204/401/403, a non-root Docker image, and an installable NuGet template package. A separate generated-context CI has also built and tested an opt-in per-context `--with-db` EF Core shell; treat full CI result on later commits separately. The optional Academy sample below is NOT the default template. **Production release remains gated.**
+
+
 **Start here if you want a new, ordinary API.** The domain-neutral `aba-api` template is the primary deliverable. You do **not** need the Academy enrollment/payment example to create your product.
 
 ```bash
@@ -23,9 +26,9 @@ CI also builds and tests a versioned `ABAFramework.GenericApi.Template.*.nupkg` 
 
 ## Roadmap and scope
 
-**Implemented technical integrations (opt-in):** EF Core 10 for **both PostgreSQL and Microsoft SQL Server**, provider-neutral migrations, relational idempotency receipts, Redis distributed cache with TTL and scope isolation, Wolverine 6 durable local messaging with EF transactional middleware for either SQL engine, and OpenTelemetry traces/metrics with optional OTLP export. Optional authenticated JWT tenant-claim enforcement is configured separately; real tenant **row isolation is not implemented**. All dependencies default to off so the blank API starts immediately.
+**Implemented technical integrations (opt-in):** EF Core 10 for **both PostgreSQL and Microsoft SQL Server**, provider-neutral migrations, relational idempotency receipts, Redis distributed cache with TTL and scope isolation, Wolverine 6 durable local messaging with EF transactional middleware for either SQL engine, and OpenTelemetry traces/metrics with optional OTLP export. Optional authenticated JWT tenant-claim enforcement and context-owned EF Core query/write guards are implemented; real tests on **both** database engines verify denial of cross-tenant EF reads and writes. This does **not** provide SQL-level RLS, trusted tenant membership or protection against raw SQL/bulk operations. All dependencies default to off so the blank API starts immediately.
 
-**Evidence:** [real PostgreSQL + SQL Server + Redis + Wolverine integration CI](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43290885904). This run passed five integration scenarios, including actual message delivery via each SQL engine. Wolverine crash/restart, replay/dead letters, full business outbox atomicity, Keycloak/OIDC end-to-end tokens, per-tenant database isolation and production deployment are **not yet certified**.
+**Current evidence:** [full generic-framework run](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43298754432) verifies 13 real-service scenarios (Wolverine transactional outbox and clean restart on both engines, transactional idempotency, EF tenant protection on both SQL engines, Redis), plus actual Keycloak/OIDC tests, Docker startup, xUnit and template packaging. The module generator creates Domain/Application/Infrastructure/Contracts, owner metadata and tests; `--with-db` adds an optional context-owned EF shell for either SQL engine. **Not certified:** ungraceful process-kill recovery, poison/dead-letter replay, live tenant membership and DB RLS, external broker, migration rollback/backup plans, load/security audit or production deployment.
 
 Setup and connection settings: [generic platform infrastructure guide](templates/aba-api/docs/platform-infrastructure.md). Local optional services: `docker compose -f infra/compose.platform.yaml up -d`. Remaining quality gates: `docs/NEXT-MILESTONES.md`.
 

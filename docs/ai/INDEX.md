@@ -1,3 +1,5 @@
+> **Updated evidence (2026-11-12):** [five-job integration run](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43298754432) verifies 44 generic API xUnit checks, 13 real-service tests, Keycloak OIDC/JWKS, Docker and NuGet package installation. The optional Academy example has different limitations; see `docs/verification/2026-11-12-hardening.md`.
+
 # AI knowledge entrypoint — ABA .NET 10
 
 This is the **navigation map** for humans and coding agents. **For any new customer/product API, prefer the domain-neutral `templates/aba-api` starter, not the optional Academy example.** Its generated AGENTS.md and docs are scoped to the new repository. The repository provides a portable engineering skill at `.agents/skills/aba-engineering/SKILL.md` and permanent rules at `/AGENTS.md`. Read the relevant documentation for the request; do not assume an AI automatically reads every file.
@@ -42,7 +44,7 @@ For a short Persian operator guide, see `docs/ai/USAGE-FA.md`. Read `docs/ai/CHA
 
 ## Implementation truth and confidence
 
-The **optional Academy Phase-1 sample** has local file messaging and memory cache. The **generic template** has real optional EF Core 10 PostgreSQL/SQL Server, Redis caching, Wolverine relational durable messaging and OTel wiring; GitHub Actions verified both SQL engines, Redis and a Wolverine technical message handler. Production tenant row isolation, signed-token IdP scenarios, replay/dead-letter/fault-injection and full business transactional outbox remain incomplete. The original authoring environment lacked .NET, but GitHub Actions now runs .NET build, xUnit and real service integration tests. **Do not turn planned architecture into a statement of delivered behavior**. See `VERIFICATION-REPORT.md`.
+The **optional Academy Phase-1 sample** has local file messaging and memory cache. The **generic template** has real optional EF Core 10 PostgreSQL/SQL Server, Redis caching, Wolverine relational durable messaging and OTel wiring; GitHub Actions verified both SQL engines, Redis and a Wolverine technical message handler. Ephemeral real Keycloak/JWKS 204/401/403, PostgreSQL/SQL Server EF tenant query/write guards, technical Outbox pre-commit rollback and clean restart recovery are now verified in CI. Production membership authorization, SQL-level RLS, poison/dead-letter replay, arbitrary process crashes and real business context Outbox remain incomplete. The original authoring environment lacked .NET, but GitHub Actions now runs .NET build, xUnit and real service integration tests. **Do not turn planned architecture into a statement of delivered behavior**. See `VERIFICATION-REPORT.md`.
 
 ## Example cross-context rule
 

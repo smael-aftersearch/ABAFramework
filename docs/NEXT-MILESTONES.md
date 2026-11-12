@@ -9,18 +9,18 @@
 
 - **EF Core 10 both PostgreSQL and Microsoft SQL Server:** runtime provider selection; technical idempotency model with provider-neutral migration; real integration tests against both engines.
 - **Redis:** optional distributed caching, scoped JSON keys, explicit TTL and removal, and actual Redis test.
-- **Wolverine 6:** optional relational message persistence on either engine, durable local message processing, EF Core transactional middleware and real message handler probe in CI. This demonstrates baseline delivery only; full outbox/failure correctness requires more tests.
-- **OIDC/JWT:** production startup refuses missing HTTPS authority/audience, route authorization defaults to required, 401 negative test. Optional `tenant_id` claim gate is newly implemented, **not** a substitute for complete tenant authorization/storage isolation.
+- **Wolverine 6:** durable EF transaction+outbox happy path and injected pre-commit rollback verified on both SQL engines, plus persistent scheduled-message recovery after a clean host restart. Real business handlers and arbitrary process-kill recovery remain unverified.
+- **OIDC/JWT:** real ephemeral Keycloak OIDC discovery/JWKS and signed bearer 204/401/403 tests; Production requires HTTPS identity metadata, with HTTP loopback opt-in allowed only in Development. Claim-based tenant gates and EF row query/write guards are tested against both SQL engines. Full IdP user membership, SQL RLS and operational key rotation are not delivered.
 - **OpenTelemetry:** optional ASP.NET+HttpClient tracing/metrics, validated OTLP endpoint, no collector auto-installed.
-- **Quality and AI:** xUnit/WebApplicationFactory, real service CI, ABA governance, generic Skills/AGENTS metadata and .NET template instantiation.
+- **Quality and AI:** xUnit/WebApplicationFactory, provider/tenant/Outbox recovery CI, governance negative cases, agent Skills/AGENTS, installable versioned NuGet template and a context generator with optional dual-provider `--with-db` EF persistence.
 
-[Source-grounded infrastructure CI evidence](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43290885904) | `docs/verification/2026-11-12-platform-providers.md`.
+[Source-grounded full framework CI evidence](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43298754432) | `docs/verification/2026-11-12-platform-providers.md`.
 
 ## Still incomplete (release blockers, not yet delivered)
 
-1. **Wolverine reliability:** DB transaction + outbound message in the same committed unit of work across real bounded-context handlers, injected crashes/restarts, idempotency on duplicate callbacks, dead-letter/replay tooling, poison messages and broker-backed delivery when needed.
-2. **End-to-end security:** Keycloak/IdP with valid and invalid signed tokens, audience/issuer/key rotation, 401/403, per-tenant ownership and EF Core **row isolation** tests. Optional claim checking is only a baseline.
-3. **EF Core production operations:** per-business-context models/migrations, concurrency/race and forward/rollback tests, encrypted SQL Server TLS configuration, PostgreSQL operational backups, migration orchestration and safe rollback.
+1. **Wolverine release reliability:** technical outbox atomicity, injected pre-commit rollback and clean restart recovery are VERIFIED on both providers; still needed: actual context-owned domain handlers, ungraceful process-kill crash windows, poison/dead-letter/replay tooling, duplicate/concurrent consumers and optional broker transports.
+2. **Production security:** Keycloak real OIDC/JWKS positive/negative token tests and EF query/SaveChanges tenant guards on both SQL providers are VERIFIED. Still needed: organization membership and RBAC/ABAC policies, tenant database RLS, bulk/raw-SQL guardrails, externally managed IdP key rotation and secure HTTPS deployment.
+3. **EF Core production operations:** optional per-context empty DbContext scaffolding now exists; real context-owned models/migrations, optimistic concurrency, forward/rollback/backup/restore verification, TLS-enforced SQL Server connections and PostgreSQL operations remain to deliver when real business ownership exists.
 4. **Redis resilience:** outage fallback, distributed invalidation, cross-service tenancy checks, key rotation, race/cache stampede behavior and load tests.
 5. **OpenTelemetry and operations:** real collector/export verification, logs correlation, sampling/PII policy, health dependency readiness, performance baselines, load/failover tests, audit events and dashboards.
 6. **Distribution/deployment:** a versioned installable NuGet template package and a tested non-root OCI Docker image are generated in CI. Public NuGet.org publishing, signed release attestations, cloud deployment infrastructure, SLA/release pipeline, threat modeling and vulnerability checks remain incomplete.

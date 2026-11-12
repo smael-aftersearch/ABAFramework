@@ -1,3 +1,13 @@
+## وضعیت فعلی قالب عمومی ABA
+
+بر اساس [اجرای موفق پنج مسیر CI](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43298754432)، قالب عمومی .NET 10 دارای EF Core برای PostgreSQL و Microsoft SQL Server، Redis، Wolverine با تست تراکنشی Outbox و بازیابی پس از راه‌اندازی مجدد، تست Keycloak واقعی، تست جداسازی داده‌های Tenant در EF، Docker غیرریشه‌ای، NuGet Template و مهارت‌های AI است.
+
+در پروژه تولیدشده، برای ساخت یک Context بدون دیتابیس دستور `python3 tools/new_context.py create --name Inventory` و برای Context دارای DbContext اختصاصی با پشتیبانی هر دو دیتابیس دستور `python3 tools/new_context.py create --name Inventory --with-db` را اجرا کنید. سپس `python3 tools/new_context.py check`، `dotnet build` و `dotnet test` را اجرا کنید. نام Inventory فقط مثال نام‌گذاری دستور است، نه ماژولی که فریم‌ورک به‌صورت پیش‌فرض ایجاد کند.
+
+**محدودیت مهم:** ساخت خودکار Context به معنی ساخت قواعد واقعی کسب‌وکار نیست. برای Production هنوز امنیت مالکیت Tenant در Identity Provider، Row-Level Security دیتابیس، تست قطع ناگهانی/Dead-letter، مهاجرت و Rollback، تست فشار و استقرار امن لازم است.
+
+---
+
 ## قابلیت‌های جدید فریم‌ورک عمومی
 
 در قالب `aba-api`، انتخاب دیتابیس با `Platform__Database__Provider` بین `PostgreSql` و `SqlServer` انجام می‌شود. رشته اتصال از `ConnectionStrings__AbaDatabase` گرفته می‌شود. Redis با `Platform__Cache__Provider=Redis` و `ConnectionStrings__AbaRedis` فعال می‌شود؛ Wolverine نیز با `Platform__Messaging__Enabled=true` از همان دیتابیس انتخاب‌شده برای پیام‌های پایدار استفاده می‌کند. OpenTelemetry و کنترل Claim مربوط به Tenant به‌صورت اختیاری موجودند. این بخش‌ها در پروژه جدید بدون مثال Academy ایجاد می‌شوند.
