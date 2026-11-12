@@ -8,10 +8,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-namespace Aba.Starter.Api.Tests;
+namespace Aba.Starter.Platform.IntegrationTests;
 
 /// <summary>Real service tests; CI must inject connections to run these cases.
-/// Local `dotnet test` without containers remains a fast offline smoke run.</summary>
+/// External suite runs separately and FAILS when required connections are absent.</summary>
 public sealed class AbaExternalInfrastructureTests
 {
     [Theory]
@@ -21,7 +21,7 @@ public sealed class AbaExternalInfrastructureTests
         string provider, string variable)
     {
         var connection = Environment.GetEnvironmentVariable(variable);
-        if (string.IsNullOrWhiteSpace(connection)) return; // Opt-in integration suite.
+        Assert.False(string.IsNullOrWhiteSpace(connection), $"Missing required integration connection: {variable}");
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(
             new Dictionary<string, string?>
             {
@@ -70,7 +70,7 @@ public sealed class AbaExternalInfrastructureTests
         string provider, string variable)
     {
         var connection = Environment.GetEnvironmentVariable(variable);
-        if (string.IsNullOrWhiteSpace(connection)) return;
+        Assert.False(string.IsNullOrWhiteSpace(connection), $"Missing required integration connection: {variable}");
 
         // The test uses an isolated ephemeral HTTP host and explicitly opt-in
         // development-only schema provisioning for Wolverine's durable tables.
@@ -144,7 +144,7 @@ public sealed class AbaExternalInfrastructureTests
     public async Task RealRedisProvidesScopedRoundTripAndInvalidation()
     {
         var connection = Environment.GetEnvironmentVariable("ABA_TEST_REDIS");
-        if (string.IsNullOrWhiteSpace(connection)) return;
+        Assert.False(string.IsNullOrWhiteSpace(connection), "Missing required integration connection: ABA_TEST_REDIS");
         var config = new ConfigurationBuilder().AddInMemoryCollection(
             new Dictionary<string, string?>
             {

@@ -19,8 +19,9 @@ class GenericTemplateTests(unittest.TestCase):
         slnx = ET.parse(TEMPLATE / 'Aba.Starter.slnx').getroot()
         declared = {p.attrib['Path'] for p in slnx.findall('Project')}
         actual = {p.relative_to(TEMPLATE).as_posix() for p in TEMPLATE.rglob('*.csproj')}
-        self.assertEqual(declared, actual)
-        self.assertEqual(len(actual), 3)
+        self.assertEqual(len(declared), 3)
+        self.assertEqual(len(actual), 4)
+        self.assertEqual(actual - declared, {'tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj'})
         for project in TEMPLATE.rglob('*.csproj'):
             ET.parse(project)
 
@@ -43,6 +44,18 @@ class GenericTemplateTests(unittest.TestCase):
             self.assertIn(name, package)
         program = (TEMPLATE / 'src/Aba.Starter.Api/Program.cs').read_text()
         self.assertIn('builder.AddAbaPlatform()', program)
+
+    def test_infrastructure_tests_fail_closed_and_are_separate(self):
+        default_project = TEMPLATE / 'tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj'
+        external_project = TEMPLATE / 'tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj'
+        self.assertTrue(external_project.is_file())
+        self.assertNotIn('AbaExternalInfrastructureTests', default_project.read_text())
+        self.assertFalse((TEMPLATE / 'tests/Aba.Starter.Api.Tests/AbaExternalInfrastructureTests.cs').exists())
+        tests = (TEMPLATE / 'tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs').read_text()
+        self.assertNotIn('IsNullOrWhiteSpace(connection)) return', tests)
+        self.assertIn('Assert.False(string.IsNullOrWhiteSpace(connection)', tests)
+        script = (ROOT / 'scripts/verify-platform-services.sh').read_text()
+        self.assertIn('dotnet test "$INTEGRATION"', script)
 
     def test_ai_skill_has_trigger_metadata(self):
         skill = (TEMPLATE / '.agents/skills/aba-engineering/SKILL.md').read_text()

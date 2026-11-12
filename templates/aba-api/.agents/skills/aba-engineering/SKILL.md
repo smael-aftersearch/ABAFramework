@@ -31,7 +31,7 @@ description: >
 
 1. State the actual owner, acceptance criteria, positive test, negative test and invariant check.
 2. Implement in the owning context and update public contracts where necessary.
-3. Add relevant xUnit tests; for HTTP behavior use `WebApplicationFactory<Program>`.
+3. Add focused xUnit tests to the default solution. Put real PostgreSQL/SQL Server/Redis/Wolverine tests in the separate `tests/Aba.Starter.Platform.IntegrationTests` project; never allow missing connections to silently pass. For HTTP behavior use `WebApplicationFactory<Program>`.
 4. Synchronize `metadata/contexts.json`, API documentation, ADRs and developer instructions when changed.
 5. Execute `dotnet restore`, `dotnet build -c Release` and `dotnet test -c Release`; report exact PASS, FAIL or NOT_RUN (never invent results).
 6. Complete with ownership impact, touched files, tests, security issues and unverified work.

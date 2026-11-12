@@ -22,9 +22,10 @@ trap cleanup EXIT
 dotnet new install "$ROOT/templates/aba-api" >/dev/null
 dotnet new aba-api -n Pilot.Backends -o "$DIR/generic"
 PROJECT="$DIR/generic/Pilot.Backends.slnx"
+INTEGRATION="$DIR/generic/tests/Pilot.Backends.Platform.IntegrationTests/Pilot.Backends.Platform.IntegrationTests.csproj"
 dotnet restore "$PROJECT"
 dotnet build "$PROJECT" -c Release --no-restore
-dotnet test "$PROJECT" -c Release --no-build \
-  --filter 'FullyQualifiedName~AbaExternalInfrastructureTests' \
-  --logger 'console;verbosity=normal'
+dotnet restore "$INTEGRATION"
+dotnet build "$INTEGRATION" -c Release --no-restore
+dotnet test "$INTEGRATION" -c Release --no-build --logger 'console;verbosity=normal'
 echo "PASS: PostgreSQL, SQL Server, Redis and Wolverine message probes on generated project"
