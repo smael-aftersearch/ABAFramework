@@ -85,7 +85,11 @@ public sealed class BackupRestoreDrillTests
         var suffix = Guid.NewGuid().ToString("N");
         var original = "aba_ci_recovery_" + suffix;
         var restored = "aba_ci_restored_" + suffix;
-        var archive = Path.Combine(Path.GetTempPath(), "aba-ci-" + suffix + ".dump");
+        // Bind-mount a runner-owned directory into a PostgreSQL 16 client
+        // container. Matching the server major avoids pg_restore producing
+        // unsupported settings when the runner ships a newer pg_dump.
+        var archiveDirectory = Directory.CreateTempSubdirectory("aba-ci-drill-");
+        var archive = Path.Combine(archiveDirectory.FullName, "backup.dump");
         await using var control = new NpgsqlConnection(admin.ConnectionString);
         await control.OpenAsync();
 
@@ -121,8 +125,8 @@ public sealed class BackupRestoreDrillTests
             // PostgreSQL 16 forcibly disconnects only our disposable fixture.
             await PgSqlAsync(control, $"DROP DATABASE IF EXISTS \"{restored}\" WITH (FORCE)");
             await PgSqlAsync(control, $"DROP DATABASE IF EXISTS \"{original}\" WITH (FORCE)");
-            if (File.Exists(archive))
-                File.Delete(archive);
+            if (Directory.Exists(archiveDirectory.FullName))
+                Directory.Delete(archiveDirectory.FullName, recursive: true);
         }
     }
 
@@ -143,12 +147,24 @@ public sealed class BackupRestoreDrillTests
         string executable, NpgsqlConnectionStringBuilder settings,
         string database, string archive, bool restore)
     {
-        var start = new ProcessStartInfo(executable)
+        // Use exact PostgreSQL server major from the CI service image
+        // rather than whichever pg_dump/pg_restore version is on the runner.
+        // No Docker shell interpolation: each argument is independently passed.
+        var start = new ProcessStartInfo("docker")
         {
             UseShellExecute = false,
             RedirectStandardError = true,
             CreateNoWindow = true,
         };
+        start.ArgumentList.Add("run");
+        start.ArgumentList.Add("--rm");
+        start.ArgumentList.Add("--network=host");
+        start.ArgumentList.Add("--mount");
+        start.ArgumentList.Add($"type=bind,src={Path.GetDirectoryName(archive)},dst=/backup");
+        start.ArgumentList.Add("--env");
+        start.ArgumentList.Add("PGPASSWORD");
+        start.ArgumentList.Add("postgres:16-alpine");
+        start.ArgumentList.Add(executable);
         start.ArgumentList.Add("--host");
         start.ArgumentList.Add(settings.Host);
         start.ArgumentList.Add("--port");
@@ -162,13 +178,13 @@ public sealed class BackupRestoreDrillTests
             start.ArgumentList.Add("--no-owner");
             start.ArgumentList.Add("--no-acl");
             start.ArgumentList.Add("--exit-on-error");
-            start.ArgumentList.Add(archive);
+            start.ArgumentList.Add("/backup/" + Path.GetFileName(archive));
         }
         else
         {
             start.ArgumentList.Add("--format=custom");
             start.ArgumentList.Add("--file");
-            start.ArgumentList.Add(archive);
+            start.ArgumentList.Add("/backup/" + Path.GetFileName(archive));
         }
         start.Environment["PGPASSWORD"] = settings.Password;
         using var process = Process.Start(start)

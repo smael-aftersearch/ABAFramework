@@ -44,10 +44,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install native PostgreSQL recovery clients
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y postgresql-client
       - name: Validate both live SQL providers, Redis, Wolverine and tenant isolation
         env:
           ABA_TEST_POSTGRESQL: "Host=localhost;Port=5432;Database=aba_ci;Username=aba_ci;Password=aba-ci-local-only"

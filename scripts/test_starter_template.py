@@ -176,7 +176,7 @@ class GenericTemplateTests(unittest.TestCase):
         source = path.read_text()
         for evidence in ('pg_dump', 'pg_restore', 'BACKUP DATABASE', 'RESTORE DATABASE',
                          'RequireDisposableFixture', 'Category", "RecoveryDrill',
-                         'ABA_ENABLE_DESTRUCTIVE_CI_DRILLS'):
+                         'ABA_ENABLE_DESTRUCTIVE_CI_DRILLS', 'postgres:16-alpine'):
             self.assertIn(evidence, source)
         external = (ROOT / 'scripts/verify-platform-services.sh').read_text()
         task = (TEMPLATE / 'tools/aba_task.py').read_text()
@@ -185,7 +185,7 @@ class GenericTemplateTests(unittest.TestCase):
         self.assertIn("Category!=RecoveryDrill", external)
         self.assertIn("Category!=RecoveryDrill", task)
         for workflow in (ci, generated_ci):
-            self.assertIn("postgresql-client", workflow)
+            self.assertIn("postgres:16-alpine", workflow)
             self.assertIn("ABA_ENABLE_DESTRUCTIVE_CI_DRILLS", workflow)
 
     def test_xunit_and_companion_script_exist(self):
