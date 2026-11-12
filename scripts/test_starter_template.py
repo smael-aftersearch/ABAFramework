@@ -279,6 +279,17 @@ class GenericTemplateTests(unittest.TestCase):
         for value in (script, task):
             self.assertIn('Category!=CrashDrill&Category!=RedisRestartDrill', value)
 
+    def test_scanned_image_archive_has_attested_provenance_and_tamper_rejection(self):
+        workflow = (ROOT / '.github/workflows/verify.yml').read_text()
+        for phrase in ('docker save aba-ci-security:local',
+                       'docker load -i aba-runtime-image.tar.gz',
+                       "test \"$original\" = \"$restored\"",
+                       'subject-path: artifacts/container/aba-runtime-image.tar.gz',
+                       'gh attestation verify "$image"',
+                       'altered-after-scan',
+                       "PASS: exact OCI image archive signed and modified archive rejected"):
+            self.assertIn(phrase, workflow)
+
     def test_xunit_and_companion_script_exist(self):
         proj = (TEMPLATE / 'tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj').read_text()
         self.assertIn('PackageReference Include="xunit"', proj)
