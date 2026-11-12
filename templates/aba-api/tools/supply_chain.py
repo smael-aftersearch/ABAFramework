@@ -99,8 +99,11 @@ def check_audit(audit, projects):
             raise SupplyChainError("Duplicate project audit")
         actual.add(name)
         frameworks = item.get("frameworks")
-        if not isinstance(frameworks, list) or not frameworks:
-            raise SupplyChainError("No audited framework")
+        # In dotnet package list --vulnerable JSON, a project with no
+        # advisories legitimately has frameworks: []. We still demand
+        # complete project coverage, HTTPS sources and an intact restore graph.
+        if not isinstance(frameworks, list):
+            raise SupplyChainError("Missing/invalid audited framework list")
         for framework in frameworks:
             if not isinstance(framework, dict) or not framework.get("framework"):
                 raise SupplyChainError("Malformed framework audit")

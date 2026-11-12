@@ -58,6 +58,16 @@ class SupplyChainTests(unittest.TestCase):
         with self.assertRaisesRegex(SupplyChainError, "Known vulnerable"):
             self.check()
 
+    def test_no_vulnerabilities_can_omit_framework_entries(self):
+        self.payload["projects"][0]["frameworks"] = []
+        self.check()
+        self.assertTrue(self.output.exists())
+
+    def test_missing_framework_list_fails_closed(self):
+        self.payload["projects"][0].pop("frameworks")
+        with self.assertRaisesRegex(SupplyChainError, "audited framework"):
+            self.check()
+
     def test_missing_advisory_sources_is_rejected(self):
         self.payload["sources"] = []
         with self.assertRaisesRegex(SupplyChainError, "advisory source"):
