@@ -1,6 +1,6 @@
 # ABA Framework — .NET 10 generic API quick start
 
-**Verified technical baseline (2026-11-12):** [five passing GitHub Actions jobs](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43305238518) compiled a fresh .NET 10 domain-neutral API, passed **70 xUnit API tests** plus generated-context registration checks and **16 real-service integration tests** (PostgreSQL, SQL Server, Redis and Wolverine). CI also verified actual Keycloak OIDC/JWKS 204/401/403, non-root Docker, installable NuGet package and ABA governance. Improvements in the new template include optional per-context `--with-db` scaffolding, transactional/concurrent idempotency, an explicit source-backed Redis outage path, JWT-partitioned rate limiting and an agent task/evidence runner. This successful baseline includes AI status-matrix checks, Production SQL TLS guards and startup negative tests, Keycloak, and CI workflows inside generated projects. v0.3.0-preview.2 packaging must pass its own CI. Academy remains an **optional example**, not the base framework. **Production release is still gated.**
+**Verified technical baseline (2026-11-13):** [five passing GitHub Actions jobs](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43308144489) compiled a fresh .NET 10 domain-neutral API, passed **73 xUnit API tests** plus generated-context registration checks and **16 real-service integration tests** (PostgreSQL, SQL Server, Redis and Wolverine). CI also verified actual Keycloak OIDC/JWKS 204/401/403, non-root Docker, installable NuGet package and ABA governance. Improvements in the new template include optional per-context `--with-db` scaffolding, transactional/concurrent idempotency, an explicit source-backed Redis outage path, JWT-partitioned rate limiting and an agent task/evidence runner. This successful baseline includes AI status-matrix checks, Production SQL TLS guards and startup negative tests, Keycloak, and CI workflows inside generated projects. v0.3.0-preview.2 package installation and generated-project tests have now passed their own CI. Academy remains an **optional example**, not the base framework. **Production release is still gated.**
 
 
 **Start here if you want a new, ordinary API.** The domain-neutral `aba-api` template is the primary deliverable. You do **not** need the Academy enrollment/payment example to create your product.
@@ -14,7 +14,7 @@ cd ../MyCompany.MyApi
 dotnet run --project src/MyCompany.MyApi.Api
 ```
 
-Use .NET 10 SDK. In Development open `http://127.0.0.1:5174/scalar` for the **interactive API reference**, `/openapi/v1.json` for generated OpenAPI, or `/health/live` to check readiness. Run `dotnet test MyCompany.MyApi.slnx` for **real xUnit tests** included in every generated project.
+Use .NET 10 SDK. In Development open `http://127.0.0.1:5174/scalar` for the **interactive API reference**, `/openapi/v1.json` for generated OpenAPI, or `/health/live` for liveness and `/health/ready` for dependency readiness. Run `dotnet test MyCompany.MyApi.slnx` for **real xUnit tests** included in every generated project.
 
 The generated project has no Academy or business examples. It includes a versioned HTTP route, OIDC/JWT startup guard (non-Development requires HTTPS issuer and audience), protected endpoints by default, standard Problem Details, correlation IDs, rate limiting, test cases, architecture documentation and AI agent instructions. See `templates/aba-api/README.md` and `docs/architecture.md`.
 
@@ -28,7 +28,7 @@ CI also builds and tests a versioned `ABAFramework.GenericApi.Template.*.nupkg` 
 
 **Implemented technical integrations (opt-in):** EF Core 10 for **both PostgreSQL and Microsoft SQL Server**, provider-neutral migrations, relational idempotency receipts, Redis distributed cache with TTL and scope isolation, Wolverine 6 durable local messaging with EF transactional middleware for either SQL engine, and OpenTelemetry traces/metrics with optional OTLP export. Optional authenticated JWT tenant-claim enforcement and context-owned EF Core query/write guards are implemented; real tests on **both** database engines verify denial of cross-tenant EF reads and writes. This does **not** provide SQL-level RLS, trusted tenant membership or protection against raw SQL/bulk operations. All dependencies default to off so the blank API starts immediately.
 
-**Current evidence:** [full generic-framework run](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43305238518) verifies 16 real-service scenarios (Wolverine transactional outbox and clean restart on both engines, transactional idempotency, EF tenant protection on both SQL engines, Redis), plus actual Keycloak/OIDC tests, Docker startup, xUnit and template packaging. The module generator creates Domain/Application/Infrastructure/Contracts, owner metadata and tests; `--with-db` adds an optional context-owned EF shell for either SQL engine. **Not certified:** ungraceful process-kill recovery, poison/dead-letter replay, live tenant membership and DB RLS, external broker, migration rollback/backup plans, load/security audit or production deployment.
+**Current evidence:** [full generic-framework run](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43308144489) verifies 16 real-service scenarios (Wolverine transactional outbox and clean restart on both engines, transactional idempotency, EF tenant protection on both SQL engines, Redis), plus actual Keycloak/OIDC tests, Docker startup, xUnit and template packaging. The module generator creates Domain/Application/Infrastructure/Contracts, owner metadata and tests; `--with-db` adds an optional context-owned EF shell for either SQL engine. **Not certified:** ungraceful process-kill recovery, poison/dead-letter replay, live tenant membership and DB RLS, external broker, migration rollback/backup plans, load/security audit or production deployment.
 
 Setup and connection settings: [generic platform infrastructure guide](templates/aba-api/docs/platform-infrastructure.md). Local optional services: `docker compose -f infra/compose.platform.yaml up -d`. Remaining quality gates: `docs/NEXT-MILESTONES.md`.
 
@@ -41,18 +41,18 @@ Setup and connection settings: [generic platform infrastructure guide](templates
 The **generic .NET 10 API template** is the primary product. This matrix is separate from the
 historical Academy Phase 1 demo below. A feature can be implemented technically while
 its **production release gates remain open**. Evidence refers to the last reviewed baseline:
-[CI run 43305238518](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43305238518)
-(commit `31362d6d8595`). New commits must pass their own CI before being treated as verified.
+[CI run 43308144489](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43308144489)
+(commit `af70d88ecc9c`). New commits must pass their own CI before being treated as verified.
 
-**Tracked: 54** · Implemented: 30 · Partial: 3 · Not implemented: 21.
+**Tracked: 54** · Implemented: 31 · Partial: 2 · Not implemented: 21.
 
 | Area | Parameter / feature | Status | Delivered scope | Remaining task | Priority |
 | --- | --- | --- | --- | --- | --- |
 | API | Domain-neutral .NET 10 HTTP API | **Implemented** | Versioned Minimal API with composition root | No generic framework work outstanding | P0 |
 | API | OpenAPI plus interactive Scalar | **Implemented** | Generated OpenAPI and Development-only Scalar UI | Production API docs need a reviewed access policy | P1 |
-| API | Problem Details and HTTP errors | **Partial** | ProblemDetails and exception middleware registered; error-response payload still lacks a focused HTTP test | Add deterministic HTTP exception fixture and assert safe RFC 7807 response payload | P1 |
+| API | Problem Details and HTTP errors | **Implemented** | RFC 7807 HTTP 500 with nonsecret Production response, validated header/body correlation ID and focused HTTP failure tests | Review validation/client errors, proxy traces and application logging policy per deployment | P1 |
 | API | Request correlation IDs | **Implemented** | Validated X-Correlation-ID response header | Correlate logs, traces and message envelopes across services | P1 |
-| API | Liveness and readiness | **Implemented** | Separate health/live and health/ready with dependency tags | Prove health behavior during dependency outage and at scale | P0 |
+| API | Liveness and readiness | **Implemented** | Independent liveness and ready-tagged dependencies; injected health failure returns live 200 and ready 503 | Prove real database/Redis outage, reconnection and readiness behavior under load | P0 |
 | API | Authenticated per-identity rate limits | **Implemented** | JWT subject + tenant partition; anonymous TCP peer; Health bypass | Multi-node shared quotas require a gateway | P1 |
 | API | Distributed multi-instance rate limits | **Not implemented** | Not implemented | Add shared gateway/quota store with trusted proxy policy | P1 |
 | Security | OIDC/JWT signature, issuer and audience | **Implemented** | ASP.NET JWT bearer validation and fail-closed production OIDC config | External real-user IdP configuration and security operations remain | P0 |
@@ -87,7 +87,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | Observability | Collector pipeline and export integration test | **Not implemented** | Not implemented | Add isolated OTLP receiver/collector to CI and verify trace/metric export | P1 |
 | Observability | Tamper-evident audit trail | **Not implemented** | Not implemented | Define context-owned auditable actions with safe retention/PII policy | P0 |
 | Operations | Production secrets, key rotation and policy | **Not implemented** | Not implemented | Add approved secret store, rotation and least-privilege deployment setup | P0 |
-| Developer | Installable versioned NuGet API template | **Implemented** | Installable versioned NuGet template verified at v0.3.0-preview.1; next v0.3.0-preview.2 package is gated by new CI | Verify v0.3.0-preview.2 packing plus NuGet.org release/signing strategy | P1 |
+| Developer | Installable versioned NuGet API template | **Implemented** | Installable versioned v0.3.0-preview.2 NuGet API template built, installed and tested with 73 xUnit cases in CI | NuGet.org publication, provenance/signing and release automation remain gated | P1 |
 | Developer | Domain/Application/Contracts/Infrastructure generator | **Implemented** | Scaffold real named contexts with ownership docs; no fictional entities | Complete real domain behavior remains owner-dependent | P1 |
 | Governance | ABA ownership and forbidden-edge checks | **Implemented** | Repo and generated-project architecture checks with negative cases | Semantic/IL enforcement still requires human architecture review | P0 |
 | Governance | Portable agent Skill, task plan and verification | **Implemented** | AGENTS, Skill, task-aware reader, PASS/FAIL/NOT_RUN evidence | AI agent adoption varies by platform; semantic review still manual | P1 |
