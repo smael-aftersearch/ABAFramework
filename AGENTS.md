@@ -42,3 +42,14 @@ expose Wolverine's native dead-letter HTTP endpoints or auto-grant
 operator claims. Read template ADR-006/ADR-007 and operations runbook
 before changes; verify each provider with real SQL and a synthetic
 poison envelope before claiming recovery coverage.
+
+## Cache and OCI source-of-truth boundaries
+
+The generic read-through cache has a host-wide per-scoped-key load
+gate, not a distributed lock or tenant permission grant. The isolated
+RedisRestartDrill must only stop its exact CI-provisioned redis:7-alpine
+container and is excluded from standard tests. For release changes,
+the Dockerfile and oci-base-lock.json must agree exactly; both
+upstream and generated CI run fail-closed OCI base-lock tests.
+The root-signed Docker-save archive is not an OCI registry release.
+Read template ADR-010/ADR-011 before altering these assumptions.

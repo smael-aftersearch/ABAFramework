@@ -32,3 +32,11 @@ also read docs/decisions/ADR-008-kill-window-recovery.md and
 docs/decisions/ADR-009-offline-audit-checkpoints.md. The
 CrashDrill category is opt-in and must never kill customer
 processes or target real business databases.
+
+For Redis outage, cache-miss concurrency or container provenance
+read ADR-010-cache-singleflight-redis-restart.md and
+ADR-011-oci-base-and-archive-attestation.md in docs/decisions,
+plus Dockerfile, oci-base-lock.json, tools/oci_base_lock.py
+and the actual source and generated GitHub Actions workflows.
+Never use cache coordination as tenant authorization or treat an
+upstream signed archive as proof of downstream published OCI.

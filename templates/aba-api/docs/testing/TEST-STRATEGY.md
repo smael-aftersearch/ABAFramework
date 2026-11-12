@@ -189,3 +189,33 @@ covers the ACK-loss idempotency invariant for a synthetic
 technical handler, not a domain consumer or external payment.
 
 **Verified execution:** [root CI 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289) passed 26/26 standard real-service tests, 7/7 provider-native recovery cases, and 8/8 separate SIGKILL fault-injection tests. Both SQL engines proved one committed technical effect after an actual pre-ACK crash and subsequent redelivery. The later safety preflight tests require separate CI evidence.
+
+## Real Redis restart and host-wide cache stampede
+
+CacheSingleFlightTests checks 24 concurrent request scopes coalescing
+to one loader, independent tenant/key lanes, cancellation cleanup,
+fault cleanup and TTL expiry. The default cache tests additionally
+exercise valid CLR zero and cached JSON null versus cache miss.
+
+The ordinary external suite tests 12 simultaneous misses on the
+**actual Redis adapter**, requiring one loader and no leaked gates.
+RedisRestartDrillTests runs separately, using a CI-owned Redis
+container ID validated before any Docker stop, and requires
+fail-closed strict outage, explicit authoritative-source fallback,
+real restart/reconnect, healthy readiness and scope isolation.
+The normal integration suite excludes RedisRestartDrill; the
+generated manually dispatched workflow and root CI give it a
+dedicated disposable container. No production Redis restart or
+distributed lock is claimed.
+
+## Immutable Docker base and attested scanned archive
+
+The generated CI executes tools/test_oci_base_lock.py to deliberately
+reject digest changes, floating tags, untrusted registries and
+root processes; tools/oci_base_lock.py checks the actual
+Dockerfile and reviewed JSON manifest before Docker building.
+Root main-branch CI additionally signs the exact Docker-save
+archive of the Trivy-scanned image after verifying docker load
+reproduces its image ID and rejects tampered archive bytes.
+The generated downstream repo inherits the pin check and scan,
+not the upstream signature.

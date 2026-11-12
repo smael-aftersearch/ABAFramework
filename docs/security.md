@@ -82,3 +82,15 @@ external checkpoint store or offline signing credentials are bundled.
 Keep the external key out of the application and ordinary CI logs.
 
 **Real fail-closed fault execution:** [CI 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289) confirmed that the technical process-kill fixture cannot target a remote/production database and that a separately committed synthetic effect survives lost ACK redelivery without duplication. This does not establish live operator identities, authenticated business memberships or KMS/WORM custody.
+
+## OCI base locking and scanned artifact provenance
+
+Immutable multi-platform .NET 10 SDK/runtime base digests now have a
+reviewed lock and fail-closed source/generated CI validation.
+The root main-branch pipeline signs and verifies the **Docker-save
+archive of the scanned runtime image**, including an intentionally
+modified archive that MUST fail provenance validation. This is not an
+OCI registry signature or Production approval, and does not replace
+fresh vulnerability scans as the pinned base ages. Generated products
+must individually sign their actual published digest. See
+docs/release-integrity.md and the template's ADR-011.

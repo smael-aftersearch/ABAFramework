@@ -189,3 +189,30 @@ probe is CI-only and is not a Production business-handler
 guarantee; check the latest run's success before relying on it.
 
 **Verified technical crash evidence:** [CI 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289) passed all eight CI jobs, including 8 actual SIGKILL cases across both SQL providers and signed historical audit checkpoint checks. The new tests do not authorize Production process-kill, business side effects or shipping signing keys in appsettings.
+
+## Single-flight read-through cache and live Redis failure drill
+
+ReadThroughQueryCache now coalesces simultaneous misses for the SAME
+authorized tenant/module scope and cache key **within one host**.
+AbaCacheLoadGate releases per-key entries after completion, failure
+and cancelled waiters; valid 0/false and JSON null entries are
+distinguished from absent keys. Redis is still optional.
+The generated Run workflow integration suite now includes an
+**isolated redis-restart job** that stops/restarts only its own CI
+redis:7-alpine container, checks strict failure and explicit fresh
+authoritative query fallback, and proves reconnection. Default
+Fast tests never stop Redis. Neither cross-replica locks nor
+cache-backed authorization are supplied.
+
+## Immutable OCI base images and signed upstream test archive
+
+The generated Dockerfile uses reviewed immutable multiarch
+manifest digests for the Microsoft .NET 10 Noble SDK and runtime,
+declared in oci-base-lock.json. Both workflows enforce the
+lock via tools/oci_base_lock.py plus negative Python tests.
+The upstream framework additionally attests the Docker-save
+archive of its scanned image on main pushes. Downstream
+products MUST sign their own published OCI digest; this
+template does not publish an image or commit registry credentials.
+See docs/decisions/ADR-010-cache-singleflight-redis-restart.md
+and ADR-011-oci-base-and-archive-attestation.md.

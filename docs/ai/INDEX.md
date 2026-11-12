@@ -82,3 +82,11 @@ do not establish actual Production process supervision, legal
 immutability, operator key custody or consumer ACK semantics.
 
 **Latest source verification for CI-only process death:** [GitHub run 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289) passed three technical SIGKILL fault boundaries (8/8 cases) on PostgreSQL and SQL Server, plus offline audit checkpoint negative tests. Do not infer a production business Outbox ACK guarantee.
+
+For current cache-miss coalescing and Redis restart tests read
+the template ADR-010-cache-singleflight-redis-restart.md.
+For immutable .NET bases and signed scanned Docker archives
+read the template ADR-011-oci-base-and-archive-attestation.md,
+oci-base-lock.json and docs/release-integrity.md.
+Production multi-node cache coordination, actual OCI registry
+signing and automatic release approval remain unsupported.

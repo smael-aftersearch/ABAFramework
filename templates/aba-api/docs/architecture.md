@@ -122,3 +122,19 @@ original worker is killed before its Wolverine acknowledgement,
 even when the next host reprocesses the durable envelope.
 Neither the probe nor its receipt belongs to a business owner;
 real transactions and external effects still need their own tests.
+
+## Cache coordination and image release integrity
+
+The technical Platform's singleton AbaCacheLoadGate prevents one-host
+cache-miss fanout for the same hashed scope/key. It never overrides
+bounded-context data authority or tenant membership. The independent
+Redis restart fixture verifies fallback/reconnect on a disposable
+Docker service without affecting unrelated SQL test containers.
+Read ADR-010.
+
+The template Dockerfile locks trusted .NET 10 multi-architecture
+build/runtime base digests in oci-base-lock.json. Both generated and
+upstream CI reject mismatched locks; upstream main builds, scans
+and cryptographically attests a Docker-save image archive. These
+are release engineering controls, not a business context
+deployment workflow. Read ADR-011.

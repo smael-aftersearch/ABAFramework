@@ -192,3 +192,38 @@ new-host re-delivery with an unchanged single effect receipt.
 The template does not expose this probe through an HTTP endpoint
 or invoke a real business provider. Actual multi-context,
 broker ACK and external side-effect guarantees remain open.
+
+## Host-wide single-flight cache misses and real Redis restart
+
+AbaCacheLoadGate is a singleton per generated application host. It
+uses a reference-counted per-key SemaphoreSlim keyed by the existing
+hashed ScopedJsonCache scope/key and removes the entry on final
+release, including cancellation/failure. ReadThroughQueryCache
+takes this gate and re-reads the cache *inside* the lock; healthy
+concurrent misses across scoped service instances share one
+authoritative query load instead of producing a stampede.
+TryGetAsync<T> distinguishes an absent cache entry from valid
+default(T) or JSON null data.
+
+The isolated RedisRestartDrill CI job provisions its own official
+Redis 7 container, stops it, demands default FailClosed without
+a source read and opt-in UseAuthoritativeSource with exactly one
+fresh read, then restarts it and proves reconnect, cache hit and
+tenant-scoped isolation with the same Redis client. Docker stops
+are never permitted without CI=true, a separately enabled drill,
+one loopback Redis endpoint, an exact service-container ID and
+an official redis:7-alpine image check. See ADR-010.
+
+The gate is in-process and does not prevent cross-replica cache
+stampedes or simultaneous source reads while Redis is down.
+Never depend on cache fallback for authorization, financial
+decisions, idempotent commands or tenant membership.
+
+## Reproducible reviewed OCI base digests
+
+The multi-stage Dockerfile uses immutable .NET 10 Noble build and
+runtime digest pins. tools/oci_base_lock.py and its negative tests
+guard the Dockerfile/oci-base-lock.json pair; the root CI attests
+the exact Docker-save archive after real Trivy scanning and a
+Docker load identity check. This is not a published OCI manifest
+signature. Read ADR-011 and upstream docs/release-integrity.md.

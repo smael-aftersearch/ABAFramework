@@ -165,7 +165,9 @@
       "docs": [
         "docs/security.md",
         "docs/KNOWN-LIMITATIONS.md",
-        "templates/aba-api/docs/decisions/ADR-009-offline-audit-checkpoints.md"
+        "templates/aba-api/docs/decisions/ADR-009-offline-audit-checkpoints.md",
+        "templates/aba-api/docs/decisions/ADR-011-oci-base-and-archive-attestation.md",
+        "docs/release-integrity.md"
       ]
     },
     "persistence": {
@@ -200,7 +202,9 @@
       ],
       "docs": [
         "docs/architecture.md",
-        "docs/NEXT-MILESTONES.md"
+        "docs/NEXT-MILESTONES.md",
+        "templates/aba-api/docs/decisions/ADR-010-cache-singleflight-redis-restart.md",
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/RedisRestartDrillTests.cs"
       ]
     },
     "api": {
@@ -269,7 +273,9 @@
         "scripts/task_protocol.py",
         "scripts/test_task_protocol.py",
         ".agents/skills/aba-engineering/references/testing-and-evidence.md",
-        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbruptCrashWindowTests.cs"
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbruptCrashWindowTests.cs",
+        "templates/aba-api/tools/test_oci_base_lock.py",
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/CacheSingleFlightTests.cs"
       ]
     }
   }
