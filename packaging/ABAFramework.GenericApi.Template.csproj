@@ -18,7 +18,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="**/*.cs" />
-    <Content Include="../templates/aba-api/**/*" Exclude="../templates/aba-api/**/bin/**;../templates/aba-api/**/obj/**;../templates/aba-api/**/.vs/**;../templates/aba-api/**/artifacts/**">
+    <Content Include="content/aba-api/**/*" Exclude="content/aba-api/**/bin/**;content/aba-api/**/obj/**;content/aba-api/**/.vs/**;content/aba-api/**/artifacts/**">
       <Pack>true</Pack>
       <PackagePath>content/aba-api/%(RecursiveDir)</PackagePath>
     </Content>
