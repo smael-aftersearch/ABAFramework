@@ -158,7 +158,8 @@ def check():
             for ref in refs:
                 dest = (ROOT / rel.parent / ref.attrib["Include"]).resolve()
                 other = ROOT / "src/Modules"
-                if dest.is_relative_to(other) and not dest.is_relative_to(other / name):
+                if (dest.is_relative_to(other) and not dest.is_relative_to(other / name)
+                        and dest.parent.name != "Contracts"):
                     raise ValueError(f"Forbidden cross-context implementation dependency: {rel}")
         for filename in ("ownership.yaml", "context-map.yaml", "ai-rules.yaml"):
             info = json.loads((ROOT / "src/Modules" / name / "_Docs" / filename).read_text())
