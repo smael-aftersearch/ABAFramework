@@ -236,6 +236,21 @@ class GenericTemplateTests(unittest.TestCase):
                      'docs/operations/audit-deadletters.md'):
             self.assertTrue((TEMPLATE / path).is_file())
 
+    def test_abrupt_sigkill_crash_drills_are_explicitly_gated(self):
+        code = (TEMPLATE / 'tests/Aba.Starter.Platform.IntegrationTests/AbruptCrashWindowTests.cs').read_text()
+        script = (ROOT / 'scripts/verify-platform-services.sh').read_text()
+        task = (TEMPLATE / 'tools/aba_task.py').read_text()
+        workflow = (TEMPLATE / '.github/workflows/integration.yml').read_text()
+        for required in ('Kill(entireProcessTree: true)',
+                         'CrashChildWorker', 'ABA_ENABLE_DESTRUCTIVE_CI_DRILLS',
+                         'Category", "CrashDrill', 'aba-sigkill-uncommitted',
+                         'AbaDurabilityProbe'):
+            self.assertIn(required, code)
+        self.assertIn("Category!=RecoveryDrill&Category!=CrashDrill", script)
+        self.assertIn("Category!=RecoveryDrill&Category!=CrashDrill", task)
+        self.assertIn("Category=CrashDrill", workflow)
+        self.assertIn("Category=CrashDrill", script)
+
     def test_xunit_and_companion_script_exist(self):
         proj = (TEMPLATE / 'tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj').read_text()
         self.assertIn('PackageReference Include="xunit"', proj)

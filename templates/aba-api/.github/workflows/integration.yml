@@ -60,6 +60,16 @@ jobs:
           dotnet test tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj \
             -c Release --no-build --filter 'Category=RecoveryDrill' \
             --logger 'console;verbosity=normal'
+      - name: Kill real disposable .NET child processes at crash boundaries
+        env:
+          CI: "true"
+          ABA_ENABLE_DESTRUCTIVE_CI_DRILLS: "yes"
+          ABA_TEST_POSTGRESQL: "Host=localhost;Port=5432;Database=aba_ci;Username=aba_ci;Password=aba-ci-local-only"
+          ABA_TEST_SQLSERVER: "Server=localhost,1433;Database=aba_ci;User Id=sa;Password=Aba_CiOnly_2026!;TrustServerCertificate=True"
+        run: |
+          dotnet test tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj \
+            -c Release --no-build --filter 'Category=CrashDrill' \
+            --logger 'console;verbosity=normal'
       - name: Upload integration verification evidence
         if: always()
         uses: actions/upload-artifact@v4
