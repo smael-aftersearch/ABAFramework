@@ -66,8 +66,11 @@ public sealed class DeadLetterOperatorIntegrationTests
         await app.StartAsync();
         try
         {
-            var bus = app.Services.GetRequiredService<IMessageBus>();
-            await bus.SendAsync(new AbaPoisonProbe(probeId));
+            await using (var sender = app.Services.CreateAsyncScope())
+            {
+                var bus = sender.ServiceProvider.GetRequiredService<IMessageBus>();
+                await bus.SendAsync(new AbaPoisonProbe(probeId));
+            }
             var store = app.Services.GetRequiredService<IMessageStore>();
             DeadLetterEnvelope? dead = null;
             for (var i = 0; i < 120; i++)
