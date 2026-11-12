@@ -29,9 +29,10 @@ builder.Services
         options.Audience = audience;
         // HTTP discovery must be an explicit Development-only opt-in for
         // local identity-provider smoke tests. Production always requires HTTPS.
-        options.RequireHttpsMetadata = !(builder.Environment.IsDevelopment()
-            && builder.Configuration.GetValue<bool>(
-                "Authentication:AllowHttpMetadataInDevelopment"));
+        options.RequireHttpsMetadata = StartupSecurityGuard.RequireHttpsMetadata(
+            builder.Environment.IsDevelopment(),
+            builder.Configuration.GetValue<bool>("Authentication:AllowHttpMetadataInDevelopment"),
+            authority);
     });
 // A tenant is trusted only when taken from a validated JWT claim. Anonymous
 // infrastructure routes remain explicitly marked AllowAnonymous.

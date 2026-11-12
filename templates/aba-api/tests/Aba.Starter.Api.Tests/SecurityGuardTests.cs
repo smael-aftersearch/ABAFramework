@@ -23,7 +23,7 @@ public sealed class SecurityGuardTests
             host.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(
                 new Dictionary<string, string?>
                 {
-                    ["Authentication:Authority"] = "https://identity.example.invalid",
+                    ["Authentication:Authority"] = "http://localhost:8180",
                     ["Authentication:Audience"] = "aba-api",
                     ["Authentication:AllowHttpMetadataInDevelopment"] = allowHttp.ToString()
                 }));
@@ -31,6 +31,19 @@ public sealed class SecurityGuardTests
         var options = factory.Services.GetRequiredService<IOptionsMonitor<JwtBearerOptions>>()
             .Get(JwtBearerDefaults.AuthenticationScheme);
         Assert.Equal(expectedHttps, options.RequireHttpsMetadata);
+    }
+
+    [Theory]
+    [InlineData("http://localhost:8180", false)]
+    [InlineData("http://127.0.0.1:8180", false)]
+    [InlineData("http://identity.example.invalid", true)]
+    [InlineData("http://user:pass@localhost:8180", true)]
+    [InlineData("https://identity.example.invalid", true)]
+    public void DevelopmentOptInNeverAllowsRemoteOrCredentialedHttpDiscovery(
+        string authority, bool expectedRequireHttps)
+    {
+        Assert.Equal(expectedRequireHttps,
+            StartupSecurityGuard.RequireHttpsMetadata(true, true, authority));
     }
 
     [Fact]
