@@ -74,7 +74,7 @@ its **production release gates remain open**. Evidence refers to the last review
 **Tracked: 54** · Implemented: 31 · Partial: 4 · Not implemented: 19.
 
 | Area | Parameter / feature | Status | Delivered scope | Remaining task | Priority |
-| --- | --- | --- | --- | --- | --- | --- |
+| --- | --- | --- | --- | --- | --- |
 | API | Domain-neutral .NET 10 HTTP API | **Implemented** | Versioned Minimal API with composition root | No generic framework work outstanding | P0 |
 | API | OpenAPI plus interactive Scalar | **Implemented** | Generated OpenAPI and Development-only Scalar UI | Production API docs need a reviewed access policy | P1 |
 | API | Problem Details and HTTP errors | **Implemented** | RFC 7807 HTTP 500 with nonsecret Production response, validated header/body correlation ID and focused HTTP failure tests | Review validation/client errors, proxy traces and application logging policy per deployment | P1 |
