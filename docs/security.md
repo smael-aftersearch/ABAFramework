@@ -10,7 +10,7 @@ The generated API implements ASP.NET JWT bearer middleware, fails closed outside
 
 ## Generic API supply-chain boundary
 
-The framework and new default generated-project CI now have authored
+The framework and new default generated-project CI now have verified
 fail-closed NuGet direct/transitive vulnerability checks and SPDX 2.3
 resolved-package inventories. Missing advisory sources and missing
 project/restore evidence must fail. The optional external integration

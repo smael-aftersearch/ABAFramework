@@ -29,3 +29,24 @@ No live Production database CA rotation/managed secret configuration, tenant SQL
 - Container startup, Keycloak OIDC/JWKS, architecture/governance, generated API build, NuGet packaging/installation all passed. This confirms the template **artifact**, not a NuGet.org publication or a production release.
 
 Open release gates remain: actual provider-disconnect/load readiness drills, organization membership, database RLS/raw SQL, process-kill and poison replay, backups, secrets, external telemetry and deployment security.
+
+## 2026-11-13 — NuGet advisory gate and SPDX inventory
+
+[Six passing jobs in run 43311281662](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43311281662)
+on commit `73423678333d0c7d21b429652f0f349f8e7f5618` verified the new P0 supply-chain slice.
+
+- **PASS:** 13 offline Python positive/negative tests in
+  `templates/aba-api/tools/test_supply_chain.py`, including direct
+  and transitive vulnerabilities, missing advisory sources, malformed audit,
+  missing restore graph, empty and omitted framework lists, and unsafe paths.
+- **PASS:** .NET 10 `dotnet package list --vulnerable --include-transitive
+  --format json --output-version 1 --no-restore` scanned the
+  three-project default API starter solution; no known advisories were returned.
+- **PASS:** `tools/supply_chain.py` exported an SPDX 2.3 NuGet
+  inventory with **161 resolved package name/version combinations**.
+- **PASS:** Default generated API, installable NuGet template, Keycloak,
+  non-root Docker startup and 16 SQL/Redis/Wolverine real-service tests.
+- **Still incomplete:** NuGet audit for the separate optional integration test
+  project, container image scanning/pinning, signed release attestations,
+  publication controls and production security operations. A vulnerability
+  scan is not a general supply-chain trust or production-readiness certificate.

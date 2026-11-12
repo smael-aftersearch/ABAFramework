@@ -30,11 +30,12 @@ The authoritative, maintained **54-feature status table** and prioritized open-t
 
 ## Supply-chain work (partial, P0)
 
-- Authored a new fail-closed direct/transitive NuGet vulnerability scan
-  and SPDX 2.3 resolved-package inventory for the default generic API
-  solution in both repository CI and generated-project CI.
-- Mandatory next gates: verify the fresh pipeline, add dependency audit
-  for the isolated integration tests, scan and pin container image digests,
+- **Verified:** fail-closed direct/transitive NuGet audit and SPDX 2.3
+  resolved-package inventory for the default generic API solution in both
+  repository and generated-project CI; [run 43311281662](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43311281662)
+  passed 13 negative/positive tests and produced a 161-package NuGet inventory.
+- Mandatory next gates: audit the isolated integration-test project,
+  scan and pin container image digests,
   and implement verifiable release signing/attestations and publication policy.
 
 ## Release gates
