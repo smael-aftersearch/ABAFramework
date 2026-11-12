@@ -1,3 +1,22 @@
+# شروع سریع پروژه عمومی API
+
+برای ساخت یک پروژه جدید **بدون مثال Academy و بدون هیچ دامنه تجاری فرضی**، از ریشه مخزن اجرا کنید:
+
+```bash
+dotnet new install ./templates/aba-api
+dotnet new aba-api -n MyCompany.MyApi -o ../MyCompany.MyApi
+cd ../MyCompany.MyApi
+dotnet run --project src/MyCompany.MyApi.Api
+```
+
+در محیط Development به `http://127.0.0.1:5174/scalar` بروید تا رابط گرافیکی و تعاملی تست API را ببینید. `/openapi/v1.json` سند OpenAPI تولیدشده و `/health/live` سلامت سرویس است. هر پروژه جدید فایل‌های `AGENTS.md`، `.agents/skills/aba-engineering/SKILL.md`، نقشه مستندات و تست xUnit دارد.
+
+تست واقعی قالب: `bash scripts/verify-starter.sh`، با [.NET 10 CI موفق](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43286946630). تست‌های واقعی PostgreSQL/Redis/Wolverine و استقرار Production هنوز کامل نشده‌اند.
+
+---
+
+## راهنمای نمونه قدیمی و ابزارهای توسعه
+
 # راهنمای کوتاه فارسی: استفاده از ایجنت و Skill معماری ABA
 
 این مخزن دو نوع راهنمای هوش مصنوعی دارد: `AGENTS.md` برای قواعد ثابت در سطح پروژه، و `.agents/skills/aba-engineering/SKILL.md` برای روند اجرای تسک. `docs/ai/INDEX.md` نقشه مستندات و `docs/ai/knowledge-map.json` فهرست ماشین‌خوان آنهاست. قوانین معماری فقط متنی نیستند؛ `scripts/governance.py` و `scripts/ai_check.py` در CI اجرا می‌شوند.

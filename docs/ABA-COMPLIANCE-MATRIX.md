@@ -1,3 +1,5 @@
+> **Current CI evidence (2026-11-12):** [Generic API starter run](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43286946630) confirms real .NET 10 generated-solution compilation, 10 xUnit tests, health, generated OpenAPI and Scalar HTTP. The original matrix below was written before CI execution and covers the *Academy sample*, not the new default domain-neutral starter. Architecture ownership rules remain enforced by Python governance. New bounded contexts must declare their own owners.
+
 # ABA compliance matrix: Phase 1 evidence
 
 > Evidence is **code presence and executed Python governance**, except where explicitly marked **not verified in runtime**. All rows should be rechecked after `dotnet build` and the C# smoke suite run in an environment with the .NET 10 SDK. The authoritative book is `docs/reference/ABA_Adaptive_Business_Architecture_English_Edition.pdf`.

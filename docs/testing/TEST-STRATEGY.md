@@ -1,3 +1,5 @@
+> **Current additional test suite:** The generic `templates/aba-api` template now ships a genuine xUnit/WebApplicationFactory project (`tests/Aba.Starter.Api.Tests` *inside the template*), whereas the optional original Academy suite remains a console smoke runner. [GitHub Actions](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43286946630) generated a brand-new `Pilot.QuickStart` solution and verified **10 xUnit cases passed**, generated OpenAPI, local health and interactive Scalar UI. The existing “Phase 1” historical table below describes the Academy sample only. See `docs/verification/2026-11-12-generic-starter.md`.
+
 # ABA .NET 10 testing strategy and agent contract
 
 **Status:** policy for the current starter and target testing architecture, last reviewed 2026-11-12. A planned test is **not** an implemented or executed test.

@@ -1,3 +1,5 @@
+> **Status note, 2026-11-12:** The original author's machine lacked .NET, but [GitHub CI](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43286946630) now verifies both the Academy C# smoke suite and a freshly generated domain-neutral API, including 10 xUnit tests and HTTP/Scalar/OpenAPI. Historical authoring-environment limitations below remain documented. **Unimplemented in generic starter:** PostgreSQL, Wolverine, Redis, tenant isolation, real provider integrations, deployment and production assurance. Academy-specific risks apply only to the optional sample.
+
 # Known limitations and security warnings
 
 1. **C# not compiled in authoring environment:** .NET 10 SDK is absent, network DNS unavailable. Source has been authored and checked by Python structural validation only. Do not interpret the ZIP as a verified build.

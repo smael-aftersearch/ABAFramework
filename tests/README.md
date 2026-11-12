@@ -1,3 +1,9 @@
+## New default API starter test suite (verified)
+
+`templates/aba-api/tests/Aba.Starter.Api.Tests` is a **real xUnit project**, copied into each fresh API. Run `dotnet test` in the generated solution. The [2026-11-12 CI run](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43286946630) verified 10 cases and the generated app's HTTP/Scalar/OpenAPI. The older `Aba.SmokeTests` console tests below belong solely to the optional Academy sample.
+
+---
+
 # Tests in this repository
 
 Read `docs/testing/TEST-STRATEGY.md` before changing behavior. It defines the **current test inventory**, target layout, change-to-test matrix, and mandatory AI test-evidence protocol.

@@ -1,3 +1,5 @@
+> **Current GitHub CI update (2026-11-12):** Generic API starter is **verified** in [CI](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43286946630): fresh named `dotnet new aba-api` generation, .NET 10 Release build (0 warnings/errors), 10 passing xUnit tests, and actual HTTP health, dynamic OpenAPI and Scalar UI checks. See `docs/verification/2026-11-12-generic-starter.md`. The historical report below describes the original authoring environment, where .NET was unavailable. It must not be read as the current CI status.
+
 # Verification report — source authoring environment
 
 **Prepared:** 2026-11-12
