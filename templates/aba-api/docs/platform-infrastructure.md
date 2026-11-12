@@ -73,3 +73,7 @@ Set `Platform__Observability__Enabled=true` to enable ASP.NET Core and outgoing 
 ## Optional tenant claim safety
 
 `Platform__Tenancy__Enabled=true` requires a nonempty authenticated `tenant_id` claim for protected API routes; customize `Platform__Tenancy__ClaimType` when your trusted IdP has a different claim. `IRequestTenant` reads only validated JWT principals and never trusts `X-Tenant-ID` from an untrusted caller. This is a technical guardrail, **not** a complete multitenancy authorization or EF Core row-level data isolation system.
+
+## EF tenant guards for new real bounded contexts
+
+In the owning context's Infrastructure project, derive its EF `DbContext` from `AbaTenantDbContext`, inject `IRequestTenant`, and mark **infrastructure row models** with `ITenantOwnedRow`. Do **not** put EF-specific concerns on pure Domain aggregates. Its query filter prevents accidental cross-tenant reads and SaveChanges guards updates/deletes. Requests without authenticated tenant context fail writes. This is a defense-in-depth convention, not database row-level security, global `ExecuteUpdate` protection, or proof of Identity membership; the owning context must enforce those separately.

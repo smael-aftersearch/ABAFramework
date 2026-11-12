@@ -34,3 +34,7 @@ Each feature needs relevant success, negative and invariant tests, and updated A
 ## Tenant identity baseline
 
 `AbaPlatformTests` verifies tenant claim extraction requires an authenticated principal, rejects missing/malformed values, keeps tenancy opt-in, and evaluates the default policy. This does **not** demonstrate OIDC signature verification against an actual identity provider nor database row isolation. Add those end-to-end tests before enabling real multitenant storage.
+
+## Tenant persistence negative cases
+
+`TenantPersistenceTests.cs` exercises `AbaTenantDbContext` with relational SQLite: per-instance query filtering, automatic owner stamping, malicious `IgnoreQueryFilters` mutation, forged tenant insert and missing authenticated tenant. These are application-level unit/integration tests; independent PostgreSQL and SQL Server store-level tenant tests and RLS are still required for a public multi-tenant service.

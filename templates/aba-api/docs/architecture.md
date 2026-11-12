@@ -39,3 +39,9 @@ The default xUnit suite injects a disposable test-only key into the actual ASP.N
 ## Container build and runtime boundary
 
 `Dockerfile` is multi-stage (.NET 10 SDK build and ASP.NET runtime) and uses the non-root `APP_UID`. `compose.yaml` provides an ergonomic **loopback-only Development** API, not a public deployment. The root repository's `scripts/verify-container-starter.sh` generates a fresh named API, builds the OCI image, confirms Production rejects missing OIDC configuration, verifies a non-root process and tests Health, OpenAPI and Scalar through the actual container. A production release must still configure trusted HTTPS OIDC, TLS termination, secrets, service accounts, firewall, migrations, resource limits and an appropriately secured deployment target.
+
+## Reusable EF tenant-owned model guard
+
+`AbaTenantDbContext` can be used as the base class for context-owned EF Infrastructure models implementing `ITenantOwnedRow`. It applies per-context-instance tenant query filtering, populates the tenant column for new records, and rejects cross-tenant inserts, modifications and deletions even if an administrative EF query bypasses the read filter. The tenant source is `IRequestTenant`, which is derived only from a validated authenticated JWT claim in HTTP requests. Tests use isolated SQLite to verify tenant A cannot read tenant B's data or mutate it through `IgnoreQueryFilters`.
+
+**This is application-level EF protection, not full tenant isolation or authorization:** bulk SQL, `ExecuteUpdate`, raw DB connections, administrative accounts, actual Identity memberships, tenant-specific migrations, and database RLS remain outside this abstraction and need separate release gates. Each real business context must opt in and perform its own tenant validation.
