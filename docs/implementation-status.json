@@ -121,8 +121,8 @@
       "status": "partial",
       "owner": "Operations",
       "priority": "P1",
-      "delivered": "Opt-in atomic Redis fixed-window HTTP quota verified with two independent in-process hosts, concurrent spoofed headers, namespace isolation and fail-closed outage (CI 43344790754); non-Development opt-in now enforces TLS configuration at startup; production rollout not approved",
-      "remaining": "Verify distinct-process/deployment scale and approve trusted proxy/gateway policy, Redis certificate validation/ACLs, monitoring and production load controls",
+      "delivered": "Opt-in atomic Redis quota with two in-process hosts (CI 43344790754), non-Development TLS config guard (CI 43347945447), and CI-gated distinct-OS-process HTTP quota/bypass probe; not deployed",
+      "remaining": "Prove new OS-process drill on exact-head CI and approve gateway trust, Redis certificate identity/ACLs, monitoring and production load controls; disposable processes do not certify real replicas",
       "acceptance": "Verify one limit across two replicas under concurrent load",
       "evidence": [
         "templates/aba-api/src/Aba.Starter.Api/Platform/AbaSharedRateLimit.cs",
@@ -130,7 +130,9 @@
       ],
       "tests": [
         "templates/aba-api/tests/Aba.Starter.Api.Tests/RateLimitTests.cs",
-        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/SharedRedisRateLimitTests.cs"
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/SharedRedisRateLimitTests.cs",
+        "scripts/verify_shared_rate_limit_processes.py",
+        "scripts/test_shared_rate_limit_processes.py"
       ]
     },
     {

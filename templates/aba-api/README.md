@@ -127,6 +127,9 @@ Redis failure returns 503 instead of silently relaxing a cross-replica quota;
 quota denial is 429, liveness is exempt, and readiness probes Redis.
 Only the authenticated JWT subject and tenant or the actual anonymous TCP peer
 define a quota partition; client forwarding and tenant headers are untrusted.
+An explicit CI-only fixture further exercises separate API OS processes
+sharing disposable loopback Redis and rejects hostile tenant/proxy headers;
+this does not certify production topology.
 An owner-reviewed proxy/Redis security policy is still required for production.
 This does not implement membership or business authorization. See
 [ADR-012](docs/decisions/ADR-012-shared-redis-rate-limits.md).

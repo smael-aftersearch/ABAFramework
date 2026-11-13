@@ -23,6 +23,8 @@ jobs:
           git diff --exit-code -- README.md docs/IMPLEMENTATION-STATUS.md
           python3 scripts/test_status_matrix.py
           python3 scripts/status_matrix.py --check
+      - name: Reject unsafe shared quota process fixtures
+        run: python3 scripts/test_shared_rate_limit_processes.py
       - name: Prove CI-only collector opt-in refuses unsafe execution
         run: python3 scripts/test_otel_collector_gate.py
       - name: Regressions for AI planner/QA runner
@@ -88,6 +90,7 @@ jobs:
           ABA_TEST_POSTGRESQL: "Host=localhost;Port=5432;Database=aba_ci;Username=aba_ci;Password=aba-ci-local-only"
           ABA_TEST_SQLSERVER: "Server=localhost,1433;Database=aba_ci;User Id=sa;Password=Aba_CiOnly_2026!;TrustServerCertificate=True"
           ABA_TEST_REDIS: "localhost:6379,abortConnect=false"
+          ABA_ENABLE_SHARED_RATE_LIMIT_PROCESS_DRILL: "yes"
           ABA_ENABLE_DESTRUCTIVE_CI_DRILLS: "yes"
         run: |
           bash scripts/verify-platform-services.sh
