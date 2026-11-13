@@ -207,3 +207,30 @@ source permits are released. The existing strict failure semantics remain.
 This is host-local cancellation safety, **not** signed tenant membership,
 distributed invalidation or an approved Production cache policy.
 The technical source/test HEAD passed [CI 43391409289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43391409289); review the final [PR #30 HEAD checks](https://github.com/smael-aftersearch/ABAFramework/pull/30/checks) independently before merge.
+
+
+## Revalidate shared settings after Redis key loss (post-PR #31 hardening)
+
+Previously a replica cached its first successful namespace settings check for
+its entire process lifetime. If Redis evicted the `settings` key or lost it
+during failover, a replica with incompatible budgets could claim the same
+namespace while the first replica continued issuing source loads without
+another compatibility check. That can defeat aggregate load limits even
+when each process has individually valid startup configuration.
+
+The coordinator now executes a single atomic Redis compare-or-establish
+script **before every shared miss lease acquisition, source-load permit and
+readiness check**. Recreating a missing key with identical settings allows
+existing replicas to continue. A different value causes the old replica
+to fail closed before any new authorized source loader is invoked. The
+script uses no `KEYS`, `FLUSHDB` or other unscoped operation; it reads or
+reestablishes only one named settings key for the opted-in namespace.
+
+This adds one Redis round-trip to each coordination gate and does **not**
+turn best-effort leases into correctness locks. An already-running loader
+may finish across a Redis failover; active lease fencing, tenant authorization
+and an owner-approved production Redis eviction policy remain necessary.
+The disposable integration regression removes only its unique test namespace
+settings key, then exercises compatible recovery, incompatible replacement,
+fail-closed source denial/readiness and preservation of both tenant caches.
+The new regression is AUTHORED and counts as PASS only on exact PR-head CI.

@@ -28,6 +28,19 @@ public sealed class AbaRedisCacheMissCoordinator(
         return 0
         """;
 
+    // Redis settings can be evicted or replaced after a successful startup
+    // check. Compare-and-establish on every coordinated operation rather than
+    // caching a one-time validation for the entire host lifetime.
+    private const string VerifySharedSettings = """
+        local current = redis.call('GET', KEYS[1])
+        if not current then
+            redis.call('SET', KEYS[1], ARGV[1])
+            return 1
+        end
+        if current == ARGV[1] then return 1 end
+        return 0
+        """;
+
     private const string IncrementSourceBudget = """
         local window = tonumber(ARGV[1])
         local limit = tonumber(ARGV[2])
@@ -42,8 +55,6 @@ public sealed class AbaRedisCacheMissCoordinator(
     private readonly TimeSpan _leaseDuration = TimeSpan.FromSeconds(options.LeaseDurationSeconds);
     private readonly long _acquireTimeoutMilliseconds =
         (long)TimeSpan.FromSeconds(options.AcquireTimeoutSeconds).TotalMilliseconds;
-    private readonly SemaphoreSlim _configurationLock = new(1, 1);
-    private bool _configurationValidated;
 
     public async Task VerifyReadinessAsync(CancellationToken ct)
     {
@@ -176,40 +187,35 @@ public sealed class AbaRedisCacheMissCoordinator(
 
     private async Task EnsureSharedConfigurationAsync(CancellationToken ct)
     {
-        if (Volatile.Read(ref _configurationValidated))
-            return;
-        await _configurationLock.WaitAsync(ct).ConfigureAwait(false);
+        ct.ThrowIfCancellationRequested();
+        var key = new RedisKey(
+            $"aba:cache-coordination:v1:{options.ApplicationNamespace}:settings");
+        var expected = string.Join(':', options.MaxConcurrentSourceLoads,
+            options.MaxSourceLoadsPerWindow, options.SourceLoadWindowSeconds,
+            options.AcquireTimeoutSeconds, options.LeaseDurationSeconds);
+
         try
         {
-            if (_configurationValidated)
-                return;
-            var key = new RedisKey(
-                $"aba:cache-coordination:v1:{options.ApplicationNamespace}:settings");
-            var expected = string.Join(':', options.MaxConcurrentSourceLoads,
-                options.MaxSourceLoadsPerWindow, options.SourceLoadWindowSeconds,
-                options.AcquireTimeoutSeconds, options.LeaseDurationSeconds);
-            try
-            {
-                var created = await _database.StringSetAsync(
-                    key, expected, when: When.NotExists).ConfigureAwait(false);
-                if (!created && !string.Equals(
-                        await _database.StringGetAsync(key).ConfigureAwait(false),
-                        expected, StringComparison.Ordinal))
-                    throw new AbaCacheCoordinationConfigurationMismatchException();
-                Volatile.Write(ref _configurationValidated, true);
-            }
-            catch (AbaCacheCoordinationConfigurationMismatchException)
-            {
-                throw;
-            }
-            catch (Exception ex) when (ex is RedisException or TimeoutException)
-            {
-                throw new AbaCacheMissCoordinationUnavailableException();
-            }
+            // An atomic Redis script prevents two replicas from both claiming
+            // a missing settings key during failover/restart. It also detects
+            // incompatible replacement settings on already-running hosts.
+            var compatible = await _database.ScriptEvaluateAsync(
+                VerifySharedSettings, [key], [(RedisValue)expected]).ConfigureAwait(false);
+            ct.ThrowIfCancellationRequested();
+            if ((long)compatible != 1)
+                throw new AbaCacheCoordinationConfigurationMismatchException();
         }
-        finally
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            _configurationLock.Release();
+            throw;
+        }
+        catch (AbaCacheCoordinationConfigurationMismatchException)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is RedisException or TimeoutException)
+        {
+            throw new AbaCacheMissCoordinationUnavailableException();
         }
     }
 

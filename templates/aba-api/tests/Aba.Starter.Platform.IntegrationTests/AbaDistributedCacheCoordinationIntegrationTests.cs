@@ -2,6 +2,7 @@ using Aba.Starter.Platform.Caching;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using StackExchange.Redis;
 using Xunit;
 
 namespace Aba.Starter.Platform.IntegrationTests;
@@ -196,6 +197,82 @@ public sealed class AbaDistributedCacheCoordinationIntegrationTests
 
         Assert.Equal(1, firstLoads);
         Assert.Equal(0, mismatchedLoads);
+    }
+
+    [Fact]
+    [Trait("Category", "RedisIntegration")]
+    public async Task PreviouslyValidatedHostRejectsSettingsDriftAfterNamespaceKeyIsRecreated()
+    {
+        // A Redis settings key can be evicted or lost during failover. Existing
+        // hosts must not cache their original compatibility check indefinitely.
+        var connection = RequiredEnvironment("ABA_TEST_REDIS");
+        var appNamespace = "drift-" + Guid.NewGuid().ToString("N")[..20];
+        var tenantA = "tenant-a-" + Guid.NewGuid().ToString("N");
+        var tenantB = "tenant-b-" + Guid.NewGuid().ToString("N");
+        await using var firstHost = BuildRedisHost(connection, appNamespace,
+            maxConcurrent: 4, maxPerWindow: 30);
+        await using var matchingHost = BuildRedisHost(connection, appNamespace,
+            maxConcurrent: 4, maxPerWindow: 30);
+        await using var incompatibleHost = BuildRedisHost(connection, appNamespace,
+            maxConcurrent: 4, maxPerWindow: 31);
+
+        var first = firstHost.GetRequiredService<ReadThroughQueryCache>();
+        var matching = matchingHost.GetRequiredService<ReadThroughQueryCache>();
+        var incompatible = incompatibleHost.GetRequiredService<ReadThroughQueryCache>();
+        var redis = firstHost.GetRequiredService<IConnectionMultiplexer>().GetDatabase();
+        var settingsKey = (RedisKey)$"aba:cache-coordination:v1:{appNamespace}:settings";
+
+        Assert.Equal("tenant-a-unchanged", await first.GetOrLoadAsync(
+            tenantA, "initial", TimeSpan.FromMinutes(1),
+            _ => Task.FromResult("tenant-a-unchanged")));
+
+        try
+        {
+            // Positive: a recreated key with identical configuration allows
+            // the original process to continue loading authorized query data.
+            Assert.True(await redis.KeyDeleteAsync(settingsKey));
+            Assert.Equal("tenant-b-unchanged", await matching.GetOrLoadAsync(
+                tenantB, "matching", TimeSpan.FromMinutes(1),
+                _ => Task.FromResult("tenant-b-unchanged")));
+            Assert.Equal("revalidated", await first.GetOrLoadAsync(
+                tenantA, "same-config", TimeSpan.FromMinutes(1),
+                _ => Task.FromResult("revalidated")));
+
+            // Negative: another replica reestablishes the same namespace
+            // with a different source-load budget after key eviction.
+            Assert.True(await redis.KeyDeleteAsync(settingsKey));
+            Assert.Equal("new-config", await incompatible.GetOrLoadAsync(
+                tenantB, "new-config", TimeSpan.FromMinutes(1),
+                _ => Task.FromResult("new-config")));
+
+            var originalReadiness = new AbaCacheDistributedCoordinationHealthCheck(
+                firstHost.GetRequiredService<AbaCacheDistributedCoordinationOptions>(), firstHost);
+            Assert.Equal(HealthStatus.Unhealthy,
+                (await originalReadiness.CheckHealthAsync(new HealthCheckContext())).Status);
+
+            var blockedSourceLoads = 0;
+            await Assert.ThrowsAsync<AbaCacheCoordinationConfigurationMismatchException>(() =>
+                first.GetOrLoadAsync(tenantA, "must-deny", TimeSpan.FromMinutes(1), _ =>
+                {
+                    blockedSourceLoads++;
+                    return Task.FromResult("wrongly-loaded");
+                }));
+            Assert.Equal(0, blockedSourceLoads);
+
+            // Invariant: settings drift does not invalidate or overwrite
+            // cached query values that belong to either tenant.
+            Assert.Equal("tenant-a-unchanged",
+                await firstHost.GetRequiredService<ScopedJsonCache>()
+                    .GetAsync<string>(tenantA, "initial"));
+            Assert.Equal("tenant-b-unchanged",
+                await matchingHost.GetRequiredService<ScopedJsonCache>()
+                    .GetAsync<string>(tenantB, "matching"));
+        }
+        finally
+        {
+            // Only this test's GUID-scoped settings key is touched.
+            await redis.KeyDeleteAsync(settingsKey);
+        }
     }
 
     [Fact]
