@@ -33,6 +33,9 @@ The [hourly delivery control issue](https://github.com/smael-aftersearch/ABAFram
 
 The table records *verified feature closures*, not speculative percentage-complete estimates. For exact feature IDs, acceptance criteria, owners and evidence, follow [the generated backlog](docs/IMPLEMENTATION-STATUS.md). After each substantive code change, update the README and source status JSON only to reflect actual tested changes, regenerate the status matrix, and record the PR/CI evidence in the relevant issue. Automated merge is allowed only after real tests, review and branch-policy gates. Business-owner approvals, production secrets, release policy, and deployment decisions remain outside the authority of these tasks.
 
+
+**Queue A source verification (13 November 2026):** [main CI 43335432195](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43335432195) passed **9/9 jobs** at commit `8ba76cd8285f4101a70c35271f43d4e5a400e7a9`, including both signed NuGet and Docker-save OCI archive attestations and altered-artifact rejection. This closes the OCI token incident in [#3](https://github.com/smael-aftersearch/ABAFramework/issues/3), **not** the published-registry release gate: `dev-release-sbom` remains **partial**, with Queue A capability closures still **0/7 (0%)**. The next scoped change consolidates both verifier steps into [one fail-closed script](scripts/verify_attested_artifact.sh) and adds a deliberate wrong-source-SHA rejection with [positive/negative tests](scripts/test_release_attestation.py). These additional checks are not considered release-verified until the new PR checks and main-only provenance job pass.
+
 ## Supply-chain audit and SBOM
 
 The latest eight-job GitHub CI verifies the fail-closed NuGet direct/transitive
