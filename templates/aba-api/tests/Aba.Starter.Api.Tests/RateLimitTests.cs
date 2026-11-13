@@ -236,6 +236,46 @@ public sealed class RateLimitTests
     }
 
     [Fact]
+    public async Task Ipv4MappedPeerCannotResetAnonymousQuotaOrSpoofTenant()
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Path = "/api/v1/system/status";
+        context.Connection.RemoteIpAddress = IPAddress.Parse("192.0.2.25");
+        // Unauthenticated claims and headers never provide quota authority.
+        context.User = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim("sub", "forged"), new Claim("tenant_id", "foreign")]));
+        var options = new AbaRateLimitOptions(PermitLimit: 1, WindowSeconds: 300);
+        using var limiter = PartitionedRateLimiter.Create<HttpContext, string>(options.ForRequest);
+        Assert.Equal("ip:192.0.2.25", AbaRateLimitOptions.PartitionKey(context));
+        using var first = await limiter.AcquireAsync(context, 1);
+        Assert.True(first.IsAcquired);
+
+        // Re-present the same TCP peer through a dual-stack IPv6 listener.
+        // Local and shared Redis gates consume this same partition key.
+        context.Connection.RemoteIpAddress = IPAddress.Parse("::ffff:192.0.2.25");
+        context.Request.Headers["X-Tenant-ID"] = "another-tenant";
+        context.Request.Headers["X-Forwarded-For"] = "203.0.113.9";
+        Assert.Equal("ip:192.0.2.25", AbaRateLimitOptions.PartitionKey(context));
+        using var denied = await limiter.AcquireAsync(context, 1);
+        Assert.False(denied.IsAcquired);
+
+        // Genuinely distinct native IPv6 peers retain independent quotas.
+        context.Connection.RemoteIpAddress = IPAddress.Parse("2001:db8::55");
+        Assert.Equal("ip:2001:db8::55", AbaRateLimitOptions.PartitionKey(context));
+        using var other = await limiter.AcquireAsync(context, 1);
+        Assert.True(other.IsAcquired);
+
+        // A unique authenticated JWT subject is independent of peer encoding.
+        context.User = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim("sub", "valid"), new Claim("tenant_id", "tenant-a")], "Bearer"));
+        var trusted = AbaRateLimitOptions.PartitionKey(context);
+        Assert.StartsWith("jwt:", trusted);
+        context.Connection.RemoteIpAddress = IPAddress.Parse("::ffff:192.0.2.25");
+        Assert.Equal(trusted, AbaRateLimitOptions.PartitionKey(context));
+        Assert.True(AbaRateLimitOptions.IsHealthPath("/health/live"));
+    }
+
+    [Fact]
     public void AnonymousPartitionUsesPeerIpNotSpoofedForwardedHeaders()
     {
         var context = new DefaultHttpContext();

@@ -56,8 +56,15 @@ public sealed record AbaRateLimitOptions(int PermitLimit, int WindowSeconds)
         return PeerPartition(context);
     }
 
-    private static string PeerPartition(HttpContext context) =>
-        "ip:" + (context.Connection.RemoteIpAddress?.ToString() ?? "unknown");
+    private static string PeerPartition(HttpContext context)
+    {
+        // Dual-stack listeners can expose the SAME IPv4 TCP peer as either
+        // 192.0.2.25 or ::ffff:192.0.2.25. Never grant two quota budgets.
+        var address = context.Connection.RemoteIpAddress;
+        if (address?.IsIPv4MappedToIPv6 == true)
+            address = address.MapToIPv4();
+        return "ip:" + (address?.ToString() ?? "unknown");
+    }
 
     public static bool IsHealthPath(PathString path) =>
         path.Equals("/health/live", StringComparison.OrdinalIgnoreCase) ||

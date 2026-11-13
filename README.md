@@ -135,6 +135,22 @@ Queue C statuses remain `api-shared-limits=partial`, `auth-membership=not_starte
 
 [PR #21](https://github.com/smael-aftersearch/ABAFramework/pull/21) ([exact-head CI](https://github.com/smael-aftersearch/ABAFramework/pull/21/checks)) hardens `api-shared-limits` without inventing any business membership or tenant role: a validated principal with repeated `sub` or mapped subject identifiers now falls back to the actual TCP peer, not the first signed value. Local and opt-in Redis quotas use the same partition key. Authored xUnit tests cover the legitimate single-identifier happy path, malicious duplicate/reordered subjects and forged tenant/forwarded headers sharing one exhausted quota, and health/identifier-alias invariants. **Exact-head CI is pending; no new test is claimed PASS.** All statuses remain `api-shared-limits=partial`, `auth-membership=not_started`, `auth-sql-rls=partial`, `auth-raw-sql=partial`, `biz-contracts=partial`, `biz-contract-tests=not_started`, `biz-endpoints=not_started`; verified full closures **0/7 (0%)**. Production gateway/Redis certificate and ACL approvals, Identity owner/membership model, DBA/Security production RLS and business Contracts/endpoints are BLOCKED.
 
+### Queue C — dual-stack anonymous peer quota normalization (execution 8/10; 2026-11-13)
+
+`api-shared-limits` now canonicalizes IPv4-mapped IPv6 TCP peers to the same IPv4 quota identity. An unauthenticated peer cannot obtain separate local/Redis budgets by appearing as `192.0.2.25` versus `::ffff:192.0.2.25`; forged tenant/forwarded headers and unsigned subject claims remain irrelevant. Generated xUnit acceptance covers budget exhaustion across the two address forms (negative), a legitimate native IPv6 peer budget (positive), unambiguous JWT subject and health exemption (invariants). **New patch is AUTHORED / NOT RUN until exact-head CI.** The [previous main CI 43370628443](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43370628443) passed 10/10 jobs including NuGet and scanned OCI-archive signed source identity/tamper rejection on prior `4dadc6d0`, not the new HEAD. [PR #24 diff and exact-head CI checks](https://github.com/smael-aftersearch/ABAFramework/pull/24/checks) requires PR review and its own exact-head checks.
+
+| Queue C feature ID | Status | Unresolved acceptance / blocker |
+| --- | --- | --- |
+| `api-shared-limits` | partial | Gateway trust, Redis server certificate/ACLs, deployment/load approval |
+| `auth-membership` | not_started (BLOCKED) | Named Identity owner and real member/role model |
+| `auth-sql-rls` | partial (BLOCKED for production) | Context owner/DBA-approved migration and least-privilege roles |
+| `auth-raw-sql` | partial (BLOCKED for production) | Session-spoof defense, approved SQL usage and Security review |
+| `biz-contracts` | partial (BLOCKED) | Owner-specified versioned business schemas |
+| `biz-contract-tests` | not_started (BLOCKED) | Defined producers/consumers and contract assertions |
+| `biz-endpoints` | not_started (BLOCKED) | Business requirements and authorization policy |
+
+**Fully verified C capability closures: 0/7 (0%)**. Technical Platform code does not create real membership, new business Contracts, production RLS, secrets or deployments.
+
 **Queue C fully closed: 0/7 (0%)**. Evidence: [Queue C #5](https://github.com/smael-aftersearch/ABAFramework/issues/5)
 and [central #6](https://github.com/smael-aftersearch/ABAFramework/issues/6).
 No new tests are described as PASS until their exact-commit workflow completes.
@@ -317,7 +333,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | API | Request correlation IDs | **Implemented** | Validated X-Correlation-ID response header | Correlate logs, traces and message envelopes across services | P1 |
 | API | Liveness and readiness | **Implemented** | Independent liveness and ready-tagged dependencies; injected health failure returns live 200 and ready 503 | Prove real database/Redis outage, reconnection and readiness behavior under load | P0 |
 | API | Authenticated per-identity rate limits | **Implemented** | JWT subject + tenant partition; anonymous TCP peer; Health bypass | Multi-node shared quotas require a gateway | P1 |
-| API | Distributed multi-instance rate limits | **Partial** | Opt-in atomic Redis quota with live two-host and distinct-OS-process HTTP probes (CI 43352559984), non-Development TLS guard (CI 43347945447) and single-authenticated-identity quota partition guard (CI 43357853144); duplicate-subject quota hardening authored (exact-head CI pending); not deployed | Approve gateway trust, Redis certificate identity/ACLs, monitoring and production load controls; disposable processes do not certify deployed replicas | P1 |
+| API | Distributed multi-instance rate limits | **Partial** | Opt-in atomic Redis quota with live two-host and distinct-OS-process HTTP probes (CI 43352559984), non-Development TLS guard (CI 43347945447) and single-authenticated-identity quota partition guard (CI 43357853144); duplicate-subject quota denial (PR #21 CI 43366589618 PASS), plus dual-stack IPv4-mapped peer canonicalization authored (new exact-head CI pending); not deployed | Approve gateway trust, Redis certificate identity/ACLs, monitoring and production load controls; disposable processes do not certify deployed replicas | P1 |
 | Security | OIDC/JWT signature, issuer and audience | **Implemented** | ASP.NET JWT bearer validation and fail-closed production OIDC config | External real-user IdP configuration and security operations remain | P0 |
 | Security | Real Keycloak OIDC/JWKS test | **Implemented** | Ephemeral Keycloak CI verifies signed 204, missing/malformed 401, tenant 403 | Real IdP key rotation and organization policy not validated | P0 |
 | Security | Trusted tenant claim required when enabled | **Implemented** | JWT tenant claim fallback/default authorization; ignores raw tenant header | Prove organization membership in actual IdP | P0 |

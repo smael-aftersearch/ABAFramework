@@ -121,7 +121,7 @@
       "status": "partial",
       "owner": "Operations",
       "priority": "P1",
-      "delivered": "Opt-in atomic Redis quota with live two-host and distinct-OS-process HTTP probes (CI 43352559984), non-Development TLS guard (CI 43347945447) and single-authenticated-identity quota partition guard (CI 43357853144); duplicate-subject quota hardening authored (exact-head CI pending); not deployed",
+      "delivered": "Opt-in atomic Redis quota with live two-host and distinct-OS-process HTTP probes (CI 43352559984), non-Development TLS guard (CI 43347945447) and single-authenticated-identity quota partition guard (CI 43357853144); duplicate-subject quota denial (PR #21 CI 43366589618 PASS), plus dual-stack IPv4-mapped peer canonicalization authored (new exact-head CI pending); not deployed",
       "remaining": "Approve gateway trust, Redis certificate identity/ACLs, monitoring and production load controls; disposable processes do not certify deployed replicas",
       "acceptance": "Verify one limit across two replicas under concurrent load",
       "evidence": [

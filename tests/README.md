@@ -157,3 +157,14 @@ keeps HTTPS paths and the off-by-default invariant. The existing HTTP-in-
 Development/HTTPS-only-in-production test remains. Run the generated .NET 10
 xUnit suite via `bash scripts/verify-starter.sh` in CI; authored cases are
 not evidence of PASS until that exact PR HEAD finishes successfully.
+
+## Queue C — dual-stack anonymous quota identity regression
+
+`RateLimitTests.Ipv4MappedPeerCannotResetAnonymousQuotaOrSpoofTenant`
+checks the actual local fixed-window limiter with one TCP peer expressed
+as IPv4 and IPv4-mapped IPv6. Forged `X-Tenant-ID`, forwarded address and
+unauthenticated claims must not open a second slot. Native IPv6 and
+validated unique JWT subjects remain distinct; health stays exempt.
+The optional shared Redis gate consumes the same partition function;
+Gateway/Redis ACL and Production approvals remain separate. Exact-head .NET 10
+CI must pass before declaring the new test verified.
