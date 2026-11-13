@@ -148,3 +148,23 @@ Review exact PR-head checks at
 https://github.com/smael-aftersearch/ABAFramework/pull/29/checks .
 This does not deliver distributed invalidation, query authorization,
 data-schema migration or production cache topology approval.
+
+## Cancellation-blind provider/source guard (Queue B final run 10)
+
+Provider adapters and callers are asked to honor `CancellationToken`, but an
+external cache driver or authorized query loader may complete even after
+cancellation. `ReadThroughQueryCache` now checks the token **after** a
+provider cache read, before returning a cached value, and **after** a source
+load, before cache writes or returning an outage fallback. This prevents a
+known post-cancellation result or write when a driver/callback ignores the
+token; it does not promise to undo a cache write that has already begun.
+
+`CacheSourceBudgetTests` uses a deliberately cancellation-blind in-memory
+`IDistributedCache` to prove a normal authorized retry succeeds, negative
+read/loader cancellation is observed, and no cancelled source result is
+written to either tenant namespace. Per-host gate registrations and opt-in
+source permits are released. The existing strict failure semantics remain.
+This is host-local cancellation safety, **not** signed tenant membership,
+distributed invalidation or an approved Production cache policy.
+[PR #30 exact-head CI](https://github.com/smael-aftersearch/ABAFramework/pull/30/checks)
+must be reviewed before treating authored tests as executed evidence.
