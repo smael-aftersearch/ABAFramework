@@ -277,6 +277,89 @@ public sealed class AbaDistributedCacheCoordinationIntegrationTests
 
     [Fact]
     [Trait("Category", "RedisIntegration")]
+    public async Task RevokedRedisLeaseCannotOverwriteNewReplicaResultEvenIfOldSourceIgnoresCancellation()
+    {
+        var connection = RequiredEnvironment("ABA_TEST_REDIS");
+        var appNamespace = "lease-" + Guid.NewGuid().ToString("N")[..20];
+        var tenant = "tenant-" + Guid.NewGuid().ToString("N");
+        var neighboringTenant = "neighbor-" + Guid.NewGuid().ToString("N");
+        var key = "reload-" + Guid.NewGuid().ToString("N");
+        await using var firstHost = BuildRedisHost(connection, appNamespace,
+            maxConcurrent: 4, maxPerWindow: 30);
+        await using var secondHost = BuildRedisHost(connection, appNamespace,
+            maxConcurrent: 4, maxPerWindow: 30);
+
+        var cache = firstHost.GetRequiredService<ScopedJsonCache>();
+        var secondCache = secondHost.GetRequiredService<ScopedJsonCache>();
+        var firstLoaderEntered = new TaskCompletionSource<bool>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var firstLoaderTokenCancelled = new TaskCompletionSource<bool>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseStaleLoader = new TaskCompletionSource<string>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var redis = firstHost.GetRequiredService<IConnectionMultiplexer>().GetDatabase();
+        var leaseKey = (RedisKey)$"aba:cache-coordination:v1:{appNamespace}:load:{ScopedJsonCache.KeyFor(tenant, key)}";
+        Task<string>? staleLoad = null;
+
+        try
+        {
+            await cache.PutAsync(neighboringTenant, key, "unrelated-tenant", TimeSpan.FromMinutes(1));
+            staleLoad = firstHost.GetRequiredService<ReadThroughQueryCache>().GetOrLoadAsync(
+                tenant, key, TimeSpan.FromMinutes(1), async ct =>
+                {
+                    using var registration = ct.Register(() => firstLoaderTokenCancelled.TrySetResult(true));
+                    firstLoaderEntered.TrySetResult(true);
+                    // Simulate an external source callback that ignores its
+                    // cancellation token and returns a late stale result.
+                    return await releaseStaleLoader.Task;
+                }, CacheOutagePolicy.UseAuthoritativeSource);
+            await firstLoaderEntered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+            // In this disposable fixture, explicitly revoke only the unique
+            // hashed-key lease owned by the first process.
+            Assert.True(await redis.KeyDeleteAsync(leaseKey));
+
+            var newLoads = 0;
+            Assert.Equal("newer-authoritative-value", await secondHost
+                .GetRequiredService<ReadThroughQueryCache>()
+                .GetOrLoadAsync(tenant, key, TimeSpan.FromMinutes(1), _ =>
+                {
+                    newLoads++;
+                    return Task.FromResult("newer-authoritative-value");
+                }, CacheOutagePolicy.UseAuthoritativeSource));
+            Assert.Equal(1, newLoads);
+
+            // The first replica detects lost ownership on its next Redis
+            // renewal, then must reject its cancellation-blind callback.
+            await firstLoaderTokenCancelled.Task.WaitAsync(TimeSpan.FromSeconds(9));
+            releaseStaleLoader.TrySetResult("stale-value-must-not-overwrite");
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                staleLoad.WaitAsync(TimeSpan.FromSeconds(10)));
+
+            // Invariants: the replacement value and adjacent tenant scope
+            // remain unchanged. No stale value is returned or written.
+            Assert.Equal("newer-authoritative-value",
+                await cache.GetAsync<string>(tenant, key));
+            Assert.Equal("unrelated-tenant",
+                await secondCache.GetAsync<string>(neighboringTenant, key));
+        }
+        finally
+        {
+            releaseStaleLoader.TrySetResult("cleanup");
+            if (staleLoad is not null)
+            {
+                try { await staleLoad.WaitAsync(TimeSpan.FromSeconds(5)); }
+                catch (OperationCanceledException) { }
+                catch (TimeoutException) { }
+            }
+            await redis.KeyDeleteAsync(leaseKey);
+            await cache.RemoveAsync(tenant, key);
+            await cache.RemoveAsync(neighboringTenant, key);
+        }
+    }
+
+    [Fact]
+    [Trait("Category", "RedisIntegration")]
     public async Task DistributedFallbackFailsClosedWhenRedisCannotGrantCoordination()
     {
         using var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
