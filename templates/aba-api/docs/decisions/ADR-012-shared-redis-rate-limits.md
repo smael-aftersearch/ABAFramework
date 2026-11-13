@@ -10,6 +10,11 @@ No business membership or trusted gateway policy is inferred. The default is OFF
 - Redis server `TIME` and one atomic Lua `INCR`/`EXPIRE` operation protect
   the shared budget from lost updates and per-replica clock skew.
   A fixed window allows up to twice the quota across adjacent window boundaries.
+- Outside Development, enabling the shared limiter requires `ssl=true` in
+  the Redis connection string; an insecure opt-in configuration fails at
+  startup before a request is accepted. Development-only plaintext Redis
+  continues to support disposable CI and local tests. TLS alone does not
+  prove certificate trust, authentication, tenant membership or ACL approval.
 - Redis timeout/unavailability returns 503, never a permissive independent
   per-host fallback; quota exhaustion is 429. Liveness is exempt, readiness
   reports the shared Redis dependency when enabled.
