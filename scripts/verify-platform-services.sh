@@ -27,6 +27,12 @@ dotnet restore "$PROJECT"
 dotnet build "$PROJECT" -c Release --no-restore
 dotnet restore "$INTEGRATION"
 dotnet build "$INTEGRATION" -c Release --no-restore
+# Keep normal developer integration tests unchanged; the process drill is
+# explicitly opted in and independently refuses non-CI / off-host execution.
+if [[ "${ABA_ENABLE_SHARED_RATE_LIMIT_PROCESS_DRILL:-}" == "yes" ]]; then
+  python3 "$ROOT/scripts/verify_shared_rate_limit_processes.py" \
+    --dll "$DIR/generic/src/Pilot.Backends.Api/bin/Release/net10.0/Pilot.Backends.Api.dll"
+fi
 dotnet test "$INTEGRATION" -c Release --no-build --filter 'Category!=RecoveryDrill&Category!=CrashDrill&Category!=RedisRestartDrill' --logger 'console;verbosity=normal'
 if [[ "${ABA_ENABLE_DESTRUCTIVE_CI_DRILLS:-}" == "yes" ]]; then
   # Both providers receive disposable, uniquely named databases. Never run

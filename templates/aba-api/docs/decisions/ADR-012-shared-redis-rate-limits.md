@@ -23,6 +23,13 @@ No business membership or trusted gateway policy is inferred. The default is OFF
   anonymous requests use the actual TCP peer (usually the gateway).
 - A quota partition is not tenant membership, RBAC or SQL authorization.
 
+**CI-only distinct-process verification:** `scripts/verify_shared_rate_limit_processes.py`
+starts independent generated API OS processes on loopback against disposable
+Redis. A 3-permit shared quota must reject concurrent forged `X-Tenant-ID`
+and `X-Forwarded-For` bypasses while health and application namespaces remain
+isolated. Explicit CI opt-in and loopback-only Redis guards refuse external
+execution. This is not evidence for a real deployed cluster or gateway policy.
+
 **Evidence required:** real multi-replica HTTP test against disposable Redis
 with concurrent requests, hostile headers, namespace isolation, 429/503
 and liveness/readiness; config negative tests. Review exact CI result.

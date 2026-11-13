@@ -82,6 +82,20 @@ policy. Statuses remain `api-shared-limits=partial`, `auth-membership=not_starte
 `biz-contract-tests=not_started`, `biz-endpoints=not_started`.
 **Verified Queue C closures: 0/7 (0%); no production approvals inferred.**
 
+**Queue C — distinct-process quota validation (execution 4/10, 2026-11-13):**
+`api-shared-limits` now includes a CI-only fixture launching separate generated
+.NET HTTP API processes on random loopback ports to verify one atomic quota,
+deny forged tenant/forwarded-header bypass and preserve health plus namespace
+isolation. Its own safety tests refuse non-CI and off-host Redis.
+[Queue C #5](https://github.com/smael-aftersearch/ABAFramework/issues/5)
+and [PR #14 exact-head checks](https://github.com/smael-aftersearch/ABAFramework/pull/14/checks)
+provide review/evidence; new tests are **NOT RUN until this PR head passes CI**.
+`api-shared-limits` remains **partial**, pending Redis certificate/ACL,
+gateway and production-scale approvals. Other C statuses stay
+`auth-membership=not_started`, `auth-sql-rls=partial`, `auth-raw-sql=partial`,
+`biz-contracts=partial`, `biz-contract-tests=not_started`,
+`biz-endpoints=not_started`; verified closures **0/7 (0%)**.
+
 The table records *verified feature closures*, not speculative percentage-complete estimates. For exact feature IDs, acceptance criteria, owners and evidence, follow [the generated backlog](docs/IMPLEMENTATION-STATUS.md). After each substantive code change, update the README and source status JSON only to reflect actual tested changes, regenerate the status matrix, and record the PR/CI evidence in the relevant issue. Automated merge is allowed only after real tests, review and branch-policy gates. Business-owner approvals, production secrets, release policy, and deployment decisions remain outside the authority of these tasks.
 
 
@@ -237,7 +251,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | API | Request correlation IDs | **Implemented** | Validated X-Correlation-ID response header | Correlate logs, traces and message envelopes across services | P1 |
 | API | Liveness and readiness | **Implemented** | Independent liveness and ready-tagged dependencies; injected health failure returns live 200 and ready 503 | Prove real database/Redis outage, reconnection and readiness behavior under load | P0 |
 | API | Authenticated per-identity rate limits | **Implemented** | JWT subject + tenant partition; anonymous TCP peer; Health bypass | Multi-node shared quotas require a gateway | P1 |
-| API | Distributed multi-instance rate limits | **Partial** | Opt-in atomic Redis fixed-window HTTP quota verified with two independent in-process hosts, concurrent spoofed headers, namespace isolation and fail-closed outage (CI 43344790754); non-Development opt-in now enforces TLS configuration at startup; production rollout not approved | Verify distinct-process/deployment scale and approve trusted proxy/gateway policy, Redis certificate validation/ACLs, monitoring and production load controls | P1 |
+| API | Distributed multi-instance rate limits | **Partial** | Opt-in atomic Redis quota with two in-process hosts (CI 43344790754), non-Development TLS config guard (CI 43347945447), and CI-gated distinct-OS-process HTTP quota/bypass probe; not deployed | Prove new OS-process drill on exact-head CI and approve gateway trust, Redis certificate identity/ACLs, monitoring and production load controls; disposable processes do not certify real replicas | P1 |
 | Security | OIDC/JWT signature, issuer and audience | **Implemented** | ASP.NET JWT bearer validation and fail-closed production OIDC config | External real-user IdP configuration and security operations remain | P0 |
 | Security | Real Keycloak OIDC/JWKS test | **Implemented** | Ephemeral Keycloak CI verifies signed 204, missing/malformed 401, tenant 403 | Real IdP key rotation and organization policy not validated | P0 |
 | Security | Trusted tenant claim required when enabled | **Implemented** | JWT tenant claim fallback/default authorization; ignores raw tenant header | Prove organization membership in actual IdP | P0 |
