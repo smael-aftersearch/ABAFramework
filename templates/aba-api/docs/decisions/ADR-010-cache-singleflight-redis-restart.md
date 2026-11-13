@@ -166,5 +166,4 @@ written to either tenant namespace. Per-host gate registrations and opt-in
 source permits are released. The existing strict failure semantics remain.
 This is host-local cancellation safety, **not** signed tenant membership,
 distributed invalidation or an approved Production cache policy.
-[PR #30 exact-head CI](https://github.com/smael-aftersearch/ABAFramework/pull/30/checks)
-must be reviewed before treating authored tests as executed evidence.
+The technical source/test HEAD passed [CI 43391409289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43391409289); review the final [PR #30 HEAD checks](https://github.com/smael-aftersearch/ABAFramework/pull/30/checks) independently before merge.
