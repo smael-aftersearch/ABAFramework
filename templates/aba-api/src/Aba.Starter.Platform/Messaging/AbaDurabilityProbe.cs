@@ -14,7 +14,11 @@ public sealed record AbaDurabilityProbe(Guid Id, Guid PublishNonce = default);
 
 public static class AbaDurabilityProbeHandler
 {
-    public static async Task Handle(AbaDurabilityProbe message, AbaPlatformDbContext db)
+    public static async Task Handle(
+        AbaDurabilityProbe message,
+        AbaPlatformDbContext db,
+        EfIdempotencyStore idempotencyStore,
+        CancellationToken ct)
     {
         // A broker may redeliver after a lost ACK. Keep the technical effect
         // idempotent under the same durable EF transaction as the receipt.
@@ -25,16 +29,11 @@ public static class AbaDurabilityProbeHandler
             Key = $"{key}:{Guid.NewGuid():N}",
             CreatedUtc = DateTimeOffset.UtcNow
         });
-        if (await db.IdempotencyReceipts.AsNoTracking().AnyAsync(x =>
-            x.Scope == "aba-durability-probe" && x.Key == key))
+        // The unique key is the concurrent claim. A check-then-insert races when
+        // independent broker deliveries start together and would roll back the
+        // per-delivery attempt receipt along with the losing handler transaction.
+        if (!await idempotencyStore.TryClaimAsync("aba-durability-probe", key, ct))
             return;
-
-        db.IdempotencyReceipts.Add(new IdempotencyReceipt
-        {
-            Scope = "aba-durability-probe",
-            Key = key,
-            CreatedUtc = DateTimeOffset.UtcNow
-        });
         // Wolverine EF transactional middleware performs SaveChanges and outbox flushing.
     }
 }
