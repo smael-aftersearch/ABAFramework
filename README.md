@@ -34,9 +34,12 @@ The [hourly delivery control issue](https://github.com/smael-aftersearch/ABAFram
 **Queue B — `cache-stampede` incremental resilience (execution 2/10):** [PR #8](https://github.com/smael-aftersearch/ABAFramework/pull/8) adds a fail-fast, per-host limit for opted-in authoritative reads on cache misses and Redis outages, with failure/cancellation and tenant/key-scope regression tests. At the original code head `cabd2c7`, [CI 43338197320](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43338197320) passed **8/8 applicable jobs**, including **116 generated API xUnit tests**, live SQL/Redis/Wolverine integration and the isolated Redis restart. This is an incremental verified **Partial** improvement, **not a closure** of the distributed `cache-stampede` feature (B **0/9**). No business migrations, broker, multi-replica lock or production authorization is inferred.
 
 **Queue C — technical rate-limit progress (execution 2/10; 2026-11-13):**
-`api-shared-limits` has an opt-in Redis Lua quota patch, two-replica disposable Redis tests,
-denial of forged forwarded/tenant headers, 429 quota and 503 outage cases.
-**Partial / awaiting exact-head CI**, not independently approved for production:
+`api-shared-limits` now has an opt-in Redis Lua quota with **two separately hosted
+in-process HTTP apps** sharing disposable Redis, concurrent forged forwarded/tenant
+headers, namespace separation, 429 quota and 503 outage cases. The exact PR
+head `bae60c60304c432def1287ece9fb5ce4ea242dbf` passed [8/8 PR CI jobs](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43344790754)
+(including 120 API xUnit and 3 new real Redis HTTP cases); later heads require
+independent green checks. **Partial**, not independently approved for production:
 the deployment security owner must approve the proxy, Redis ACL/TLS, and operational policy.
 Remaining queue statuses: `api-shared-limits` partial, `auth-membership` not_started,
 `auth-sql-rls` partial, `auth-raw-sql` partial, `biz-contracts` partial,
@@ -197,7 +200,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | API | Request correlation IDs | **Implemented** | Validated X-Correlation-ID response header | Correlate logs, traces and message envelopes across services | P1 |
 | API | Liveness and readiness | **Implemented** | Independent liveness and ready-tagged dependencies; injected health failure returns live 200 and ready 503 | Prove real database/Redis outage, reconnection and readiness behavior under load | P0 |
 | API | Authenticated per-identity rate limits | **Implemented** | JWT subject + tenant partition; anonymous TCP peer; Health bypass | Multi-node shared quotas require a gateway | P1 |
-| API | Distributed multi-instance rate limits | **Partial** | Opt-in Redis server-time atomic fixed-window quota wired before local limiter; 429/503, application namespace and readiness health check (new PR; CI pending) | Verify cross-replica and outage cases in exact-head CI; approve trusted proxy/gateway policy, Redis ACL/TLS and production load controls | P1 |
+| API | Distributed multi-instance rate limits | **Partial** | Opt-in atomic Redis fixed-window HTTP quota verified with two independent in-process hosts, concurrent spoofed headers, namespace isolation and fail-closed outage (CI 43344790754); production rollout not approved | Verify distinct-process/deployment scale and approve trusted proxy/gateway policy, Redis ACL/TLS, monitoring and production load controls | P1 |
 | Security | OIDC/JWT signature, issuer and audience | **Implemented** | ASP.NET JWT bearer validation and fail-closed production OIDC config | External real-user IdP configuration and security operations remain | P0 |
 | Security | Real Keycloak OIDC/JWKS test | **Implemented** | Ephemeral Keycloak CI verifies signed 204, missing/malformed 401, tenant 403 | Real IdP key rotation and organization policy not validated | P0 |
 | Security | Trusted tenant claim required when enabled | **Implemented** | JWT tenant claim fallback/default authorization; ignores raw tenant header | Prove organization membership in actual IdP | P0 |

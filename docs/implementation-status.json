@@ -121,8 +121,8 @@
       "status": "partial",
       "owner": "Operations",
       "priority": "P1",
-      "delivered": "Opt-in Redis server-time atomic fixed-window quota wired before local limiter; 429/503, application namespace and readiness health check (new PR; CI pending)",
-      "remaining": "Verify cross-replica and outage cases in exact-head CI; approve trusted proxy/gateway policy, Redis ACL/TLS and production load controls",
+      "delivered": "Opt-in atomic Redis fixed-window HTTP quota verified with two independent in-process hosts, concurrent spoofed headers, namespace isolation and fail-closed outage (CI 43344790754); production rollout not approved",
+      "remaining": "Verify distinct-process/deployment scale and approve trusted proxy/gateway policy, Redis ACL/TLS, monitoring and production load controls",
       "acceptance": "Verify one limit across two replicas under concurrent load",
       "evidence": [
         "templates/aba-api/src/Aba.Starter.Api/Platform/AbaSharedRateLimit.cs",
