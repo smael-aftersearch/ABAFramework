@@ -118,14 +118,20 @@
       "id": "api-shared-limits",
       "area": "API",
       "feature": "Distributed multi-instance rate limits",
-      "status": "not_started",
+      "status": "partial",
       "owner": "Operations",
       "priority": "P1",
-      "delivered": "Not implemented",
-      "remaining": "Add shared gateway/quota store with trusted proxy policy",
+      "delivered": "Opt-in atomic Redis fixed-window HTTP quota verified with two independent in-process hosts, concurrent spoofed headers, namespace isolation and fail-closed outage (CI 43344790754); production rollout not approved",
+      "remaining": "Verify distinct-process/deployment scale and approve trusted proxy/gateway policy, Redis ACL/TLS, monitoring and production load controls",
       "acceptance": "Verify one limit across two replicas under concurrent load",
-      "evidence": [],
-      "tests": []
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Api/Platform/AbaSharedRateLimit.cs",
+        "templates/aba-api/docs/decisions/ADR-012-shared-redis-rate-limits.md"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/RateLimitTests.cs",
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/SharedRedisRateLimitTests.cs"
+      ]
     },
     {
       "id": "auth-jwt",

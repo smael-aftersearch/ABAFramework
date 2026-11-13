@@ -30,6 +30,40 @@ public sealed class RateLimitTests
     }
 
     [Fact]
+    public void SharedQuotaOptInRequiresRedisAndApplicationNamespace()
+    {
+        Assert.False(AbaSharedRateLimitOptions.FromConfiguration(Settings()).Enabled);
+        Assert.Throws<InvalidOperationException>(() =>
+            AbaSharedRateLimitOptions.FromConfiguration(Settings(
+                ("Platform:RateLimit:Shared:Enabled", "true"))));
+        Assert.Throws<InvalidOperationException>(() =>
+            AbaSharedRateLimitOptions.FromConfiguration(Settings(
+                ("Platform:RateLimit:Shared:Enabled", "true"),
+                ("ConnectionStrings:AbaRedis", "127.0.0.1:6379"))));
+        foreach (var invalid in new[] { "../other", "UPPER", "ab", "tenant|escape" })
+            Assert.Throws<InvalidOperationException>(() =>
+                AbaSharedRateLimitOptions.FromConfiguration(Settings(
+                    ("Platform:RateLimit:Shared:Enabled", "true"),
+                    ("Platform:RateLimit:Shared:Namespace", invalid),
+                    ("ConnectionStrings:AbaRedis", "127.0.0.1:6379"))));
+        var settings = AbaSharedRateLimitOptions.FromConfiguration(Settings(
+            ("Platform:RateLimit:Shared:Enabled", "true"),
+            ("Platform:RateLimit:Shared:Namespace", "orders-api"),
+            ("ConnectionStrings:AbaRedis", "127.0.0.1:6379"),
+            ("Platform:RateLimit:PermitLimit", "3")));
+        Assert.True(settings.Enabled);
+        Assert.Equal(3, settings.PermitLimit);
+        Assert.Equal("orders-api", settings.Namespace);
+    }
+
+    [Theory]
+    [InlineData("/health/live", true)]
+    [InlineData("/health/ready", true)]
+    [InlineData("/api/v1/system/status", false)]
+    public void HealthExemptionsMatchSharedAndLocal(string route, bool expected)
+        => Assert.Equal(expected, AbaRateLimitOptions.IsHealthPath(new PathString(route)));
+
+    [Fact]
     public void AuthenticatedUserPartitionDoesNotTrustTenantHeader()
     {
         var context = new DefaultHttpContext();

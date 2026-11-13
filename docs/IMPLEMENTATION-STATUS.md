@@ -14,7 +14,7 @@ its **production release gates remain open**. Evidence refers to the last review
 [CI run 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289)
 (commit `dd77a1c1b0f2`). New commits must pass their own CI before being treated as verified.
 
-**Tracked: 54** · Implemented: 31 · Partial: 10 · Not implemented: 13.
+**Tracked: 54** · Implemented: 31 · Partial: 11 · Not implemented: 12.
 
 | Area | Parameter / feature | Status | Delivered scope | Remaining task | Priority |
 | --- | --- | --- | --- | --- | --- |
@@ -24,7 +24,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | API | Request correlation IDs | **Implemented** | Validated X-Correlation-ID response header | Correlate logs, traces and message envelopes across services | P1 |
 | API | Liveness and readiness | **Implemented** | Independent liveness and ready-tagged dependencies; injected health failure returns live 200 and ready 503 | Prove real database/Redis outage, reconnection and readiness behavior under load | P0 |
 | API | Authenticated per-identity rate limits | **Implemented** | JWT subject + tenant partition; anonymous TCP peer; Health bypass | Multi-node shared quotas require a gateway | P1 |
-| API | Distributed multi-instance rate limits | **Not implemented** | Not implemented | Add shared gateway/quota store with trusted proxy policy | P1 |
+| API | Distributed multi-instance rate limits | **Partial** | Opt-in atomic Redis fixed-window HTTP quota verified with two independent in-process hosts, concurrent spoofed headers, namespace isolation and fail-closed outage (CI 43344790754); production rollout not approved | Verify distinct-process/deployment scale and approve trusted proxy/gateway policy, Redis ACL/TLS, monitoring and production load controls | P1 |
 | Security | OIDC/JWT signature, issuer and audience | **Implemented** | ASP.NET JWT bearer validation and fail-closed production OIDC config | External real-user IdP configuration and security operations remain | P0 |
 | Security | Real Keycloak OIDC/JWKS test | **Implemented** | Ephemeral Keycloak CI verifies signed 204, missing/malformed 401, tenant 403 | Real IdP key rotation and organization policy not validated | P0 |
 | Security | Trusted tenant claim required when enabled | **Implemented** | JWT tenant claim fallback/default authorization; ignores raw tenant header | Prove organization membership in actual IdP | P0 |
@@ -117,7 +117,7 @@ Run `python3 scripts/status_matrix.py --check` to fail CI on mismatched tables.
 | `biz-contracts` | Business owners (TBD) | P0 | Partial | V1 consumers stay compatible; private implementation edges rejected |
 | `biz-contract-tests` | Business owners (TBD) | P0 | Not implemented | A breaking V1 change fails CI and requires an explicit V2 |
 | `biz-endpoints` | Actual business owner (TBD) | P0 | Not implemented | Owner-specific happy/negative/invariant and provider integration tests pass |
-| `api-shared-limits` | Operations | P1 | Not implemented | Verify one limit across two replicas under concurrent load |
+| `api-shared-limits` | Operations | P1 | Partial | Verify one limit across two replicas under concurrent load |
 | `db-concurrency` | Actual context owner (TBD) | P1 | Not implemented | Two updates cannot silently overwrite the same business aggregate |
 | `msg-broker` | Platform | P1 | Not implemented | Broker outage, retry and duplicate-delivery integration scenarios pass |
 | `cache-multinode` | Platform + business owners | P1 | Not implemented | Two API replicas observe invalidations without cross-tenant leakage |
@@ -136,6 +136,7 @@ Run `python3 scripts/status_matrix.py --check` to fail CI on mismatched tables.
 | `api-correlation` | `templates/aba-api/src/Aba.Starter.Api/Program.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/ApiSmokeTests.cs` |
 | `api-health` | `templates/aba-api/src/Aba.Starter.Api/Program.cs`, `templates/aba-api/src/Aba.Starter.Platform/AbaPlatformSetup.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/ApiSmokeTests.cs`, `scripts/verify-container-starter.sh`, `templates/aba-api/tests/Aba.Starter.Api.Tests/ReadinessTests.cs` |
 | `api-rate-limits` | `templates/aba-api/src/Aba.Starter.Api/Platform/AbaRateLimitOptions.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/RateLimitTests.cs` |
+| `api-shared-limits` | `templates/aba-api/src/Aba.Starter.Api/Platform/AbaSharedRateLimit.cs`, `templates/aba-api/docs/decisions/ADR-012-shared-redis-rate-limits.md` | `templates/aba-api/tests/Aba.Starter.Api.Tests/RateLimitTests.cs`, `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/SharedRedisRateLimitTests.cs` |
 | `auth-jwt` | `templates/aba-api/src/Aba.Starter.Api/Program.cs`, `templates/aba-api/src/Aba.Starter.Api/Platform/StartupSecurityGuard.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/SignedJwtAuthenticationTests.cs`, `templates/aba-api/tests/Aba.Starter.Api.Tests/SecurityGuardTests.cs` |
 | `auth-keycloak` | `scripts/verify-keycloak-oidc.sh`, `infra/keycloak/aba-ci-realm.json` | `scripts/verify-keycloak-oidc.sh` |
 | `auth-tenant-claim` | `templates/aba-api/src/Aba.Starter.Platform/Security/AbaTenantClaims.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/AbaPlatformTests.cs`, `scripts/verify-keycloak-oidc.sh` |

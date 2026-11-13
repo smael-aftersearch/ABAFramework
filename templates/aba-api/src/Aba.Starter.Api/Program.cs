@@ -17,6 +17,7 @@ StartupSecurityGuard.Validate(builder.Environment.IsDevelopment(), authority, au
 builder.Services.AddAbaErrorHandling();
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
+builder.Services.AddAbaSharedRateLimiting();
 // Data, cache and Wolverine are opt-in; a blank project never needs an external service.
 builder.AddAbaPlatform();
 
@@ -58,6 +59,7 @@ var app = builder.Build();
 app.UseAbaErrorHandling();
 // Evaluate validated JWT identity before assigning a user's rate-limit bucket.
 app.UseAuthentication();
+app.UseMiddleware<AbaSharedRateLimitMiddleware>();
 app.UseRateLimiter();
 app.UseAuthorization();
 

@@ -45,10 +45,13 @@ public sealed record AbaRateLimitOptions(int PermitLimit, int WindowSeconds)
         return "ip:" + (context.Connection.RemoteIpAddress?.ToString() ?? "unknown");
     }
 
+    public static bool IsHealthPath(PathString path) =>
+        path.Equals("/health/live", StringComparison.OrdinalIgnoreCase) ||
+        path.Equals("/health/ready", StringComparison.OrdinalIgnoreCase);
+
     public RateLimitPartition<string> ForRequest(HttpContext context)
     {
-        if (context.Request.Path.Equals("/health/live", StringComparison.OrdinalIgnoreCase)
-            || context.Request.Path.Equals("/health/ready", StringComparison.OrdinalIgnoreCase))
+        if (IsHealthPath(context.Request.Path))
             return RateLimitPartition.GetNoLimiter("health");
 
         return RateLimitPartition.GetFixedWindowLimiter(PartitionKey(context),
