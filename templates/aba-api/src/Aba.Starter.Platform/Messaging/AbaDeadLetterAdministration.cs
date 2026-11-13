@@ -29,7 +29,12 @@ public sealed class AbaDeadLetterAdministration(IMessageStore store, AbaAuditLed
             !authenticated[0].HasClaim(PermissionClaim, permission))
             throw new UnauthorizedAccessException("An authenticated, explicitly authorized operator is required.");
 
-        var actor = authenticated[0].FindFirst("sub")?.Value;
+        // A single authenticated identity can still contain conflicting sub
+        // claims. Never choose the first one for a signed operator audit.
+        var subjects = authenticated[0].FindAll("sub").ToArray();
+        if (subjects.Length != 1)
+            throw new UnauthorizedAccessException("Exactly one operator subject claim is required.");
+        var actor = subjects[0].Value;
         AbaAuditLedger.ValidateIdentifier(actor, "operator subject");
         AbaAuditLedger.ValidateIdentifier(ticket, "change ticket");
         if (ticket.Length < 6)

@@ -15,7 +15,7 @@ operation is rejected until an Identity owner implements tenant-aware
 message-store permissions and tests them.
 
 Only **exactly one authenticated claims identity** with both the subject and
-operation permission is allowed. Anonymous claims cannot augment an otherwise
+operation permission **and exactly one `sub` claim** is allowed. Anonymous claims cannot augment an otherwise
 authenticated principal, and multiple authenticated identities fail closed
 rather than ambiguously authorizing a replay. The upstream verified issuer
 must normalize principal identity; this does **not** itself issue IdP roles or
@@ -43,3 +43,17 @@ denied anonymous/mismatched requests, repair a dependency and explicitly
 replay. Test-only claims are not proof of a real IdP operator role:
 Production requires signed permission issuer, human two-person change
 approval, rate controls, tenant isolation, retention and monitoring.
+
+## Additional subject-claim ambiguity denial (Queue B run 6)
+
+Even a single authenticated claims identity can contain two `sub` claims
+(with different or repeated values). Dead-letter inspection and replay now
+reject that ambiguity **before reading the message store or appending audit**;
+selecting the first claim could misattribute the operator who requested a
+signed replay. The existing signed single-subject happy path is unchanged.
+The disposable PostgreSQL and SQL Server poison-replay integration test covers
+conflicting and repeated subject claims, denies both inspect and replay,
+asserts the dead-letter envelope stays non-replayable and verifies the audit
+ledger record count is unchanged. These tests require the exact new PR-head
+CI before being called executed. No real operator IdP issuance, tenant-store
+permissions, bulk replay or Production approval is implied.
