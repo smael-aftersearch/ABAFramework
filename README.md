@@ -403,11 +403,24 @@ revalidates opt-in cross-host namespace settings before each Redis
 coordination operation instead of permanently trusting the first check.
 A disposable Redis regression exercises same-settings recreation, conflicting
 replacement (no source loader runs), unhealthy readiness and preservation
-of two tenants' cached results. Source/test/ADR are **AUTHORED; exact-head
-PR CI must pass before this is counted as verified evidence**. The feature
-remains **partial**, while `cache-multinode` remains **not started**; no
+of two tenants' cached results. [Exact-head CI 43498016241](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43498016241)
+passed **10/10 applicable jobs**, including the new real Redis integration
+regression; [PR #33](https://github.com/smael-aftersearch/ABAFramework/pull/33)
+was squash-merged as `0eef067738d23231e09435ecb3415576bff545ce`.
+The feature remains **partial**, while `cache-multinode` remains **not started**; no
 business invalidation protocol or Production failover/eviction policy is
 implied. See [next-phase issue #32](https://github.com/smael-aftersearch/ABAFramework/issues/32).
+
+**Further real Redis lease-loss safety (incremental):** an independent
+disposable two-replica regression now revokes only a generated hashed
+cache-miss lease while an intentionally cancellation-blind source is running.
+It requires the first replica to reject its late stale value, the new
+replica's authorized query value to persist, and another tenant's data to
+remain unchanged. The renewer also stops extending a source slot after
+its per-key lease is lost. Source/test/ADR are authored in a separate
+small change; **exact-HEAD CI is required before calling this PASS**.
+No Production failover or business tenant scope is certified, and
+`cache-stampede` remains `partial`.
 
 <!-- ABA-STATUS:START -->
 
