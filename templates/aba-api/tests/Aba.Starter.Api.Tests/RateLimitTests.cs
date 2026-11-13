@@ -153,6 +153,30 @@ public sealed class RateLimitTests
     }
 
     [Fact]
+    public void AmbiguousTenantClaimsCannotCreateMultipleQuotaPartitions()
+    {
+        var context = new DefaultHttpContext();
+        context.Connection.RemoteIpAddress = IPAddress.Parse("192.0.2.25");
+        context.User = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim("sub", "alpha"), new Claim("tenant_id", "tenant-a"),
+             new Claim("tenant_id", "tenant-b")], "Bearer"));
+        var first = AbaRateLimitOptions.PartitionKey(context);
+        context.User = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim("sub", "alpha"), new Claim("tenant_id", "tenant-b"),
+             new Claim("tenant_id", "tenant-a")], "Bearer"));
+        context.Request.Headers["X-Tenant-ID"] = "tenant-c";
+        context.Request.Headers["X-Forwarded-For"] = "203.0.113.22";
+        Assert.StartsWith("jwt:", first);
+        Assert.Equal(first, AbaRateLimitOptions.PartitionKey(context));
+
+        // Local and shared Redis quotas derive their key from this same partition.
+        // Invalid tenant claims cannot create an additional valid tenant quota.
+        context.User = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim("sub", "alpha")], "Bearer"));
+        Assert.Equal(first, AbaRateLimitOptions.PartitionKey(context));
+    }
+
+    [Fact]
     public void AnonymousPartitionUsesPeerIpNotSpoofedForwardedHeaders()
     {
         var context = new DefaultHttpContext();
