@@ -200,6 +200,29 @@ public sealed class AbruptCrashWindowTests
                 ?? throw new InvalidOperationException("No parent synchronization pipe.");
             await using var brokerHost = await StartHostAsync(
                 provider, connection, rabbitConnection, queue);
+
+            // WebApplication.StartAsync is not a RabbitMQ readiness barrier.
+            // Prove that this unique queue can publish and consume before
+            // the parent pauses its disposable broker. Otherwise a pending
+            // auto-provisioned topology can block the outbox invocation and
+            // falsely report a missing SQL commit.
+            var warmupId = Guid.NewGuid();
+            await using (var warmupScope = brokerHost.Services.CreateAsyncScope())
+            {
+                var warmupBus = warmupScope.ServiceProvider.GetRequiredService<IMessageBus>();
+                await warmupBus.PublishAsync(new AbaDurabilityProbe(warmupId));
+            }
+
+            var warmupDeadline = DateTimeOffset.UtcNow.AddSeconds(45);
+            while (await ReceiptCountAsync(
+                       provider, connection, "aba-durability-probe", warmupId.ToString("N")) != 1)
+            {
+                if (DateTimeOffset.UtcNow >= warmupDeadline)
+                    throw new TimeoutException(
+                        "RabbitMQ warmup did not commit its isolated technical receipt before broker pause.");
+                await Task.Delay(250);
+            }
+
             await using var pipe = new NamedPipeClientStream(
                 ".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
             await pipe.ConnectAsync(60_000);
