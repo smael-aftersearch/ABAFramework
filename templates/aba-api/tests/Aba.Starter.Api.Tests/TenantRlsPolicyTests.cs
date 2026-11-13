@@ -1,6 +1,7 @@
 using Aba.Starter.Platform.Persistence;
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics.CodeAnalysis;
 using Xunit;
 
 namespace Aba.Starter.Api.Tests;
@@ -112,6 +113,7 @@ public sealed class TenantRlsPolicyTests
         private ConnectionState _state = ConnectionState.Closed;
         public int OpenCalls { get; private set; }
         public int CloseCalls { get; private set; }
+        [AllowNull]
         public override string ConnectionString { get; set; } = "";
         public override string Database => "disposable";
         public override string DataSource => "disposable";
