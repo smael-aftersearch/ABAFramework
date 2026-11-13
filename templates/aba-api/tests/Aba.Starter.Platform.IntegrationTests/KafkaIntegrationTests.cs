@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Confluent.Kafka;
 using Wolverine;
 using Wolverine.Kafka;
 using Xunit;
@@ -55,7 +56,8 @@ public sealed class KafkaIntegrationTests
             }
 
             Assert.True(deliveryAttempts >= 2,
-                "Kafka did not deliver both published envelopes to the durable inbox.");
+                $"Kafka did not deliver both published envelopes to the durable inbox. " +
+                $"Observed {deliveryAttempts} attempts and {effects} committed effects.");
             Assert.Equal(1, effects);
         }
         finally
@@ -94,7 +96,11 @@ public sealed class KafkaIntegrationTests
                 .UseDurableOutbox();
             options.ListenToKafkaTopic(topic)
                 .UseDurableInbox()
-                .ConfigureConsumer(consumer => consumer.GroupId = groupId);
+                .ConfigureConsumer(consumer =>
+                {
+                    consumer.GroupId = groupId;
+                    consumer.AutoOffsetReset = AutoOffsetReset.Earliest;
+                });
         });
 
         var app = builder.Build();

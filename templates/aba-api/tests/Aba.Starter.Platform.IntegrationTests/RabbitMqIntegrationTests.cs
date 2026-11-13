@@ -58,7 +58,8 @@ public sealed class RabbitMqIntegrationTests
             }
 
             Assert.True(deliveryAttempts >= 2,
-                "RabbitMQ did not deliver both published envelopes to the durable inbox.");
+                $"RabbitMQ did not deliver both published envelopes to the durable inbox. " +
+                $"Observed {deliveryAttempts} attempts and {effects} committed effects.");
             Assert.Equal(1, effects);
         }
         finally

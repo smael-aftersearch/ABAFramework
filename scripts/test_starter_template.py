@@ -65,6 +65,7 @@ class GenericTemplateTests(unittest.TestCase):
         fast_tests = (TEMPLATE / 'tests/Aba.Starter.Api.Tests/AbaMessagingOptionsTests.cs').read_text()
         broker_tests = (TEMPLATE / 'tests/Aba.Starter.Platform.IntegrationTests/RabbitMqIntegrationTests.cs').read_text()
         kafka_tests = (TEMPLATE / 'tests/Aba.Starter.Platform.IntegrationTests/KafkaIntegrationTests.cs').read_text()
+        redis_coordination_tests = (TEMPLATE / 'tests/Aba.Starter.Platform.IntegrationTests/AbaDistributedCacheCoordinationIntegrationTests.cs').read_text()
         workflow = (TEMPLATE / '.github/workflows/integration.yml').read_text()
         compose = (ROOT / 'infra/compose.platform.yaml').read_text()
         starter_compose = (TEMPLATE / 'compose.yaml').read_text()
@@ -88,6 +89,11 @@ class GenericTemplateTests(unittest.TestCase):
         self.assertIn('127.0.0.1:56729:5672', compose)
         self.assertIn('WolverineFx.Kafka', (TEMPLATE / 'src/Aba.Starter.Platform/Aba.Starter.Platform.csproj').read_text())
         self.assertIn('KafkaDurableDeliveryHandlesDuplicatePayloadOnce', kafka_tests)
+        self.assertIn('AutoOffsetReset.Earliest', kafka_tests)
+        self.assertIn('Observed {deliveryAttempts} attempts', kafka_tests)
+        self.assertIn('Observed {deliveryAttempts} attempts', broker_tests)
+        self.assertIn('var cacheScope = "tenant-" + Guid.NewGuid()', redis_coordination_tests)
+        self.assertNotIn('"tenant-a"', redis_coordination_tests)
         self.assertIn('apache/kafka:4.4.0', workflow)
         self.assertIn('ABA_TEST_KAFKA', workflow)
         self.assertIn('KAFKA', compose)
@@ -107,6 +113,8 @@ class GenericTemplateTests(unittest.TestCase):
             'KAFKA_CONTROLLER_LISTENER_NAMES',
             'KAFKA_LISTENER_SECURITY_PROTOCOL_MAP',
             'KAFKA_ADVERTISED_LISTENERS',
+            'KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS',
+            'KAFKA_TRANSACTION_STATE_LOG_NUM_PARTITIONS',
         )
         for config in kafka_configs:
             for setting in required_kafka_settings:

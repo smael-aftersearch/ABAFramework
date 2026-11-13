@@ -14,6 +14,7 @@ public sealed class AbaDistributedCacheCoordinationIntegrationTests
     {
         var connection = RequiredEnvironment("ABA_TEST_REDIS");
         var appNamespace = "cache-" + Guid.NewGuid().ToString("N")[..20];
+        var cacheScope = "tenant-" + Guid.NewGuid().ToString("N");
         await using var firstHost = BuildRedisHost(connection, appNamespace, maxConcurrent: 4, maxPerWindow: 30);
         await using var secondHost = BuildRedisHost(connection, appNamespace, maxConcurrent: 4, maxPerWindow: 30);
         var readyCheck = new AbaCacheDistributedCoordinationHealthCheck(
@@ -28,7 +29,7 @@ public sealed class AbaDistributedCacheCoordinationIntegrationTests
         var sharedKey = "query-" + Guid.NewGuid().ToString("N");
         Task<string> Request(IServiceProvider host) =>
             host.GetRequiredService<ReadThroughQueryCache>().GetOrLoadAsync(
-                "tenant-a", sharedKey, TimeSpan.FromSeconds(30), async ct =>
+                cacheScope, sharedKey, TimeSpan.FromSeconds(30), async ct =>
                 {
                     Interlocked.Increment(ref sourceCalls);
                     entered.TrySetResult(true);
@@ -53,12 +54,13 @@ public sealed class AbaDistributedCacheCoordinationIntegrationTests
     {
         var connection = RequiredEnvironment("ABA_TEST_REDIS");
         var appNamespace = "budget-" + Guid.NewGuid().ToString("N")[..20];
+        var cacheScope = "tenant-" + Guid.NewGuid().ToString("N");
         await using var firstHost = BuildRedisHost(connection, appNamespace, maxConcurrent: 2, maxPerWindow: 1);
         await using var secondHost = BuildRedisHost(connection, appNamespace, maxConcurrent: 2, maxPerWindow: 1);
         var loads = 0;
 
         var first = await firstHost.GetRequiredService<ReadThroughQueryCache>().GetOrLoadAsync(
-            "tenant-a", "first-key", TimeSpan.FromMinutes(1), _ =>
+            cacheScope, "first-key", TimeSpan.FromMinutes(1), _ =>
             {
                 loads++;
                 return Task.FromResult("first");
@@ -67,7 +69,7 @@ public sealed class AbaDistributedCacheCoordinationIntegrationTests
 
         await Assert.ThrowsAsync<AbaDistributedCacheSourceLoadLimitExceededException>(() =>
             secondHost.GetRequiredService<ReadThroughQueryCache>().GetOrLoadAsync(
-                "tenant-a", "different-key", TimeSpan.FromMinutes(1), _ =>
+                cacheScope, "different-key", TimeSpan.FromMinutes(1), _ =>
                 {
                     loads++;
                     return Task.FromResult("must-be-rate-limited");
@@ -82,6 +84,7 @@ public sealed class AbaDistributedCacheCoordinationIntegrationTests
     {
         var connection = RequiredEnvironment("ABA_TEST_REDIS");
         var appNamespace = "concurrent-" + Guid.NewGuid().ToString("N")[..16];
+        var cacheScope = "tenant-" + Guid.NewGuid().ToString("N");
         await using var firstHost = BuildRedisHost(connection, appNamespace,
             maxConcurrent: 1, maxPerWindow: 30, acquireTimeoutSeconds: 1);
         await using var secondHost = BuildRedisHost(connection, appNamespace,
@@ -91,7 +94,7 @@ public sealed class AbaDistributedCacheCoordinationIntegrationTests
         var secondLoads = 0;
 
         var first = firstHost.GetRequiredService<ReadThroughQueryCache>().GetOrLoadAsync(
-            "tenant-a", "first-key", TimeSpan.FromSeconds(30), async ct =>
+            cacheScope, "first-key", TimeSpan.FromSeconds(30), async ct =>
             {
                 entered.TrySetResult(true);
                 return await finish.Task.WaitAsync(ct);
@@ -100,7 +103,7 @@ public sealed class AbaDistributedCacheCoordinationIntegrationTests
 
         await Assert.ThrowsAsync<AbaCacheMissCoordinationUnavailableException>(() =>
             secondHost.GetRequiredService<ReadThroughQueryCache>().GetOrLoadAsync(
-                "tenant-a", "other-key", TimeSpan.FromSeconds(30), _ =>
+                cacheScope, "other-key", TimeSpan.FromSeconds(30), _ =>
                 {
                     secondLoads++;
                     return Task.FromResult("must-wait-for-shared-slot");
@@ -110,7 +113,7 @@ public sealed class AbaDistributedCacheCoordinationIntegrationTests
         finish.TrySetResult("first-completed");
         Assert.Equal("first-completed", await first.WaitAsync(TimeSpan.FromSeconds(10)));
         Assert.Equal("second-admitted", await secondHost.GetRequiredService<ReadThroughQueryCache>()
-            .GetOrLoadAsync("tenant-a", "other-key", TimeSpan.FromSeconds(30), _ =>
+            .GetOrLoadAsync(cacheScope, "other-key", TimeSpan.FromSeconds(30), _ =>
             {
                 secondLoads++;
                 return Task.FromResult("second-admitted");
@@ -124,13 +127,14 @@ public sealed class AbaDistributedCacheCoordinationIntegrationTests
     {
         var connection = RequiredEnvironment("ABA_TEST_REDIS");
         var appNamespace = "config-" + Guid.NewGuid().ToString("N")[..18];
+        var cacheScope = "tenant-" + Guid.NewGuid().ToString("N");
         await using var firstHost = BuildRedisHost(connection, appNamespace,
             maxConcurrent: 4, maxPerWindow: 30);
         await using var mismatchedHost = BuildRedisHost(connection, appNamespace,
             maxConcurrent: 4, maxPerWindow: 31);
         var firstLoads = 0;
         Assert.Equal("configured", await firstHost.GetRequiredService<ReadThroughQueryCache>()
-            .GetOrLoadAsync("tenant-a", "first-key", TimeSpan.FromMinutes(1), _ =>
+            .GetOrLoadAsync(cacheScope, "first-key", TimeSpan.FromMinutes(1), _ =>
             {
                 firstLoads++;
                 return Task.FromResult("configured");
@@ -144,7 +148,7 @@ public sealed class AbaDistributedCacheCoordinationIntegrationTests
         var mismatchedLoads = 0;
         await Assert.ThrowsAsync<AbaCacheCoordinationConfigurationMismatchException>(() =>
             mismatchedHost.GetRequiredService<ReadThroughQueryCache>().GetOrLoadAsync(
-                "tenant-a", "second-key", TimeSpan.FromMinutes(1), _ =>
+                cacheScope, "second-key", TimeSpan.FromMinutes(1), _ =>
                 {
                     mismatchedLoads++;
                     return Task.FromResult("must-fail-closed");
@@ -165,6 +169,7 @@ public sealed class AbaDistributedCacheCoordinationIntegrationTests
         var deadEndpoint = $"127.0.0.1:{port},abortConnect=false,connectTimeout=500,asyncTimeout=500,syncTimeout=500";
         await using var host = BuildRedisHost(deadEndpoint,
             "offline-" + Guid.NewGuid().ToString("N")[..16], maxConcurrent: 1, maxPerWindow: 30);
+        var cacheScope = "tenant-" + Guid.NewGuid().ToString("N");
         var loads = 0;
         var readyCheck = new AbaCacheDistributedCoordinationHealthCheck(
             host.GetRequiredService<AbaCacheDistributedCoordinationOptions>(), host);
@@ -173,7 +178,7 @@ public sealed class AbaDistributedCacheCoordinationIntegrationTests
 
         await Assert.ThrowsAsync<AbaCacheMissCoordinationUnavailableException>(() =>
             host.GetRequiredService<ReadThroughQueryCache>().GetOrLoadAsync(
-                "tenant-a", "offline-key", TimeSpan.FromMinutes(1), _ =>
+                cacheScope, "offline-key", TimeSpan.FromMinutes(1), _ =>
                 {
                     loads++;
                     return Task.FromResult("must-fail-closed");
