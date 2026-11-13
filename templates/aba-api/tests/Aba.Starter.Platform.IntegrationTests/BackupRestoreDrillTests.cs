@@ -147,6 +147,10 @@ public sealed class BackupRestoreDrillTests
         string executable, NpgsqlConnectionStringBuilder settings,
         string database, string archive, bool restore)
     {
+        var host = settings.Host
+            ?? throw new InvalidOperationException("PostgreSQL host is required for the recovery drill.");
+        var username = settings.Username
+            ?? throw new InvalidOperationException("PostgreSQL username is required for the recovery drill.");
         // Use exact PostgreSQL server major from the CI service image
         // rather than whichever pg_dump/pg_restore version is on the runner.
         // No Docker shell interpolation: each argument is independently passed.
@@ -166,11 +170,11 @@ public sealed class BackupRestoreDrillTests
         start.ArgumentList.Add("postgres:16-alpine");
         start.ArgumentList.Add(executable);
         start.ArgumentList.Add("--host");
-        start.ArgumentList.Add(settings.Host);
+        start.ArgumentList.Add(host);
         start.ArgumentList.Add("--port");
         start.ArgumentList.Add(settings.Port.ToString());
         start.ArgumentList.Add("--username");
-        start.ArgumentList.Add(settings.Username);
+        start.ArgumentList.Add(username);
         start.ArgumentList.Add("--dbname");
         start.ArgumentList.Add(database);
         if (restore)

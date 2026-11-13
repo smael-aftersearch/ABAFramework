@@ -39,7 +39,7 @@ public sealed class SignedJwtAuthenticationTests
                         // No network call to OIDC discovery: tokens still undergo real
                         // signature, issuer, audience and expiration validation.
                         options.Authority = null;
-                        options.MetadataAddress = null;
+                        options.MetadataAddress = $"{Issuer}/.well-known/openid-configuration";
                         options.ConfigurationManager = null;
                         options.TokenValidationParameters = new TokenValidationParameters
                         {

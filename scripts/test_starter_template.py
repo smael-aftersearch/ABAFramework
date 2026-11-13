@@ -15,6 +15,8 @@ class GenericTemplateTests(unittest.TestCase):
         self.assertEqual("0.3.0-preview.2", version)
         script = (ROOT / "scripts/pack-template.sh").read_text()
         self.assertIn("PackageVersion=" + version, script)
+        self.assertIn("-p:PackageVersion=" + version, script)
+        self.assertNotIn("/p:PackageVersion=", script)
         self.assertIn("ABAFramework.GenericApi.Template." + version + ".nupkg", script)
         self.assertIn('PACKAGE_ID="ABAFramework.GenericApi.Template"', script)
         self.assertIn('dotnet new uninstall "$PACKAGE_ID"', script)
