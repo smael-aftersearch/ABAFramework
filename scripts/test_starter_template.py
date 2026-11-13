@@ -94,6 +94,23 @@ class GenericTemplateTests(unittest.TestCase):
         self.assertIn('127.0.0.1:9092:9092', compose)
         self.assertIn('profiles: [kafka]', starter_compose)
         self.assertIn('apache/kafka:4.4.0', starter_compose)
+        kafka_configs = (
+            workflow,
+            (ROOT / '.github/workflows/verify.yml').read_text(),
+            compose,
+            starter_compose,
+        )
+        required_kafka_settings = (
+            'KAFKA_NODE_ID',
+            'KAFKA_PROCESS_ROLES',
+            'KAFKA_CONTROLLER_QUORUM_VOTERS',
+            'KAFKA_CONTROLLER_LISTENER_NAMES',
+            'KAFKA_LISTENER_SECURITY_PROTOCOL_MAP',
+            'KAFKA_ADVERTISED_LISTENERS',
+        )
+        for config in kafka_configs:
+            for setting in required_kafka_settings:
+                self.assertIn(setting, config)
 
     def test_infrastructure_tests_fail_closed_and_are_separate(self):
         default_project = TEMPLATE / 'tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj'
