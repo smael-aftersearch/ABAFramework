@@ -124,7 +124,7 @@ shared Redis rate limit partitioner uses the same rule for subject and tenant,
 falling back to the actual TCP peer if no unambiguous subject exists. This
 avoids a forged secondary identity creating extra quota partitions. A genuine
 signed JWT with its tenant claim remains valid; unsigned forwarded/tenant
-headers and unrelated claims are not authority.
+headers and unrelated claims are not authority. A single authenticated identity must also have exactly one subject claim across `sub` and the mapped name-identifier claim to receive a JWT-partitioned quota. Duplicate or conflicting identifiers use the actual TCP peer for both local and shared Redis quotas, not an arbitrary first subject. This is conservative rate limiting, not membership authorization.
 
 [The focused tenant-policy and quota tests](../templates/aba-api/tests/Aba.Starter.Api.Tests/AbaPlatformTests.cs)
 and [quota partition tests](../templates/aba-api/tests/Aba.Starter.Api.Tests/RateLimitTests.cs)

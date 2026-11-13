@@ -74,6 +74,10 @@ These operations are excluded from regular xUnit runs and require
 See [the disaster-recovery runbook](docs/disaster-recovery.md) for limitations,
 run commands and the independent production operations checklist.
 
+## Authenticated quota subject ambiguity
+
+The per-host and opt-in shared Redis quotas accept a single authenticated `sub` or mapped name identifier. Two subject claims, including duplicate identical ones or a `sub` plus name identifier, fall back to the actual TCP peer rather than choosing the first. Forged `X-Forwarded-For` and `X-Tenant-ID` never affect this fallback. This is a conservative technical rate-limit rule, not an authorization or tenant-membership policy; gateway and Redis approvals remain required.
+
 ## PostgreSQL / SQL Server Row-Level Security
 
 The Platform includes migration-time `AbaTenantRlsPolicies.Install` DDL

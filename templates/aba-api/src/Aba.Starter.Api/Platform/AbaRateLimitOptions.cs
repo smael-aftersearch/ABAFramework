@@ -31,8 +31,17 @@ public sealed record AbaRateLimitOptions(int PermitLimit, int WindowSeconds)
         var identity = Aba.Starter.Platform.Security.AbaTenantClaims.TrustedIdentity(context.User);
         if (identity is not null)
         {
-            var subject = identity.FindFirst("sub")?.Value ??
-                identity.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            // Repeated/conflicting signed subject identifiers must not be
+            // selected by first match to create additional quota buckets.
+            string? subject = null;
+            foreach (var claim in identity.Claims)
+            {
+                if (claim.Type != "sub" && claim.Type != ClaimTypes.NameIdentifier)
+                    continue;
+                if (subject is not null)
+                    return PeerPartition(context);
+                subject = claim.Value;
+            }
             if (!string.IsNullOrWhiteSpace(subject))
             {
                 var tenant = Aba.Starter.Platform.Security.AbaTenantClaims.Resolve(context.User, "tenant_id") ?? "";
@@ -44,8 +53,11 @@ public sealed record AbaRateLimitOptions(int PermitLimit, int WindowSeconds)
 
         // Only the actual connection peer is used. Reverse proxy trust must
         // be configured explicitly in a controlled gateway; never use headers.
-        return "ip:" + (context.Connection.RemoteIpAddress?.ToString() ?? "unknown");
+        return PeerPartition(context);
     }
+
+    private static string PeerPartition(HttpContext context) =>
+        "ip:" + (context.Connection.RemoteIpAddress?.ToString() ?? "unknown");
 
     public static bool IsHealthPath(PathString path) =>
         path.Equals("/health/live", StringComparison.OrdinalIgnoreCase) ||
