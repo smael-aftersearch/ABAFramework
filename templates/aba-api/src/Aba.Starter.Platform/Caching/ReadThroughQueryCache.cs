@@ -1,4 +1,5 @@
 using System.Net.Sockets;
+using System.Text.Json;
 using Aba.Starter.Platform.Caching;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
@@ -56,6 +57,16 @@ public sealed class ReadThroughQueryCache(
             var cached = await cache.TryGetAsync<T>(scope, key, ct);
             if (cached.Found)
                 return cached.Value!;
+        }
+        catch (JsonException ex) when (
+            outagePolicy == CacheOutagePolicy.UseAuthoritativeSource && !ct.IsCancellationRequested)
+        {
+            // A corrupt cached query payload is not a Redis connectivity outage:
+            // explicitly opted-in callers can repair this one scoped key by
+            // loading fresh authorized data and writing it back below.
+            // Strict callers continue to fail closed without source access.
+            logger?.LogWarning(ex,
+                "Invalid cached query JSON; refreshing from the authoritative source.");
         }
         catch (Exception ex) when (CanBypass(ex, outagePolicy, ct))
         {
