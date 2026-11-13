@@ -159,3 +159,7 @@ p50/p95 and throughput are diagnostics only: they cannot establish production
 load SLOs, real business endpoints, multi-replica failover, traffic shaping,
 capacity forecasts or recovery objectives. Operations must set these with a
 real approved environment before `ops-load` can be complete.
+The disposable load script now refuses arbitrary `--output` paths and preserves
+prior evidence using exclusive `0600` JSON creation under `artifacts/load`;
+this does not provide authenticated artifact retention, offsite immutability or
+protection against a malicious runner administrator.
