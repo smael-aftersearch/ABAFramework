@@ -237,12 +237,13 @@ public sealed class AbruptCrashWindowTests
                 throw new InvalidOperationException("The parent did not release the broker crash probe.");
             await writer.WriteLineAsync("outbox-started");
 
-            // A direct InvokeAsync handler can wait on the unavailable broker
-            // before the local invocation returns. This drill explicitly uses
-            // Wolverine's documented EF Core transactional outbox outside a
-            // message handler, so the SQL row and durable outbound envelope
-            // commit together *without* waiting for a RabbitMQ acknowledgement.
-            // The separate BrokerOutageDrill still covers handler middleware.
+            // An inline invocation waits on a paused broker. Even Wolverine's
+            // scoped EF Core outbox flushes its *already committed* messages to
+            // transports after SaveChanges/Commit, so awaiting the whole flush
+            // can also block on an AMQP publisher confirmation. We must
+            // observe the SQL COMMIT via an independent DbContext instead.
+            // The broker-offline command/handler path remains covered by the
+            // separate BrokerOutageDrill.
             await using (var scope = brokerHost.Services.CreateAsyncScope())
             {
                 var outbox = scope.ServiceProvider.GetRequiredService<
@@ -256,24 +257,43 @@ public sealed class AbruptCrashWindowTests
                 });
                 await outbox.PublishAsync(new AbaDurabilityProbe(id));
                 await writer.WriteLineAsync("outbox-published");
-                await outbox.SaveChangesAndFlushMessagesAsync();
-                await writer.WriteLineAsync("outbox-flushed");
+
+                // This documented API saves the receipt and durable envelope
+                // in one SQL transaction BEFORE post-commit transport flushing.
+                // Start that work, but do not wait for the stopped broker.
+                var postCommitFlush = outbox.SaveChangesAndFlushMessagesAsync();
+                await writer.WriteLineAsync("outbox-flush-started");
+                var commitDeadline = DateTimeOffset.UtcNow.AddSeconds(45);
+                while (await ReceiptCountAsync(provider, connection,
+                           "aba-outbox-transaction", id.ToString("N")) != 1)
+                {
+                    // Failure before COMMIT must never be mistaken for a
+                    // successful crash-window marker.
+                    if (postCommitFlush.IsFaulted || postCommitFlush.IsCanceled)
+                        await postCommitFlush;
+                    if (DateTimeOffset.UtcNow >= commitDeadline)
+                        throw new TimeoutException(
+                            "A separate PostgreSQL connection could not verify the transactional outbox commit.");
+                    await Task.Delay(250);
+                }
+                await writer.WriteLineAsync("outbox-committed");
+                if (await ReceiptCountAsync(provider, connection,
+                        "aba-durability-probe", id.ToString("N")) != 0)
+                    throw new InvalidOperationException(
+                        "The paused broker delivered a technical effect before recovery.");
+                await writer.WriteLineAsync("outbox-verified");
+
+                AbaCrashAckProbeHandler.WriteIsolatedCrashMarker(marker,
+                    "outbox-committed-broker-paused",
+                    Environment.GetEnvironmentVariable("CI") == "true",
+                    Environment.GetEnvironmentVariable("ABA_ENABLE_DESTRUCTIVE_CI_DRILLS") == "yes",
+                    atomic: true);
+
+                // Keep the scoped outbox and child alive while the transport
+                // flush is pending; the parent kills only this owned process.
+                // The recovered host must deliver the persisted envelope.
+                await Task.Delay(Timeout.InfiniteTimeSpan);
             }
-
-            if (await ReceiptCountAsync(provider, connection,
-                    "aba-outbox-transaction", id.ToString("N")) != 1 ||
-                await ReceiptCountAsync(provider, connection,
-                    "aba-durability-probe", id.ToString("N")) != 0)
-                throw new InvalidOperationException(
-                    "The broker-outage child did not reach the committed-outbox/no-effect boundary.");
-            await writer.WriteLineAsync("outbox-verified");
-
-            AbaCrashAckProbeHandler.WriteIsolatedCrashMarker(marker,
-                "outbox-committed-broker-paused",
-                Environment.GetEnvironmentVariable("CI") == "true",
-                Environment.GetEnvironmentVariable("ABA_ENABLE_DESTRUCTIVE_CI_DRILLS") == "yes",
-                atomic: true);
-            await Task.Delay(Timeout.InfiniteTimeSpan);
             return;
         }
 
