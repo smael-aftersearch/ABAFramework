@@ -268,9 +268,18 @@ public sealed class AbaRedisCacheMissCoordinator(
                     var milliseconds = (long)_leaseDuration.TotalMilliseconds;
                     var lockRenewed = await _database.ScriptEvaluateAsync(
                         RenewOwnedLease, [_lockKey], [_token, milliseconds]).ConfigureAwait(false);
+                    if ((long)lockRenewed != 1)
+                    {
+                        // After a revoked per-key lease, do not extend its
+                        // stale cluster-wide source slot for another TTL.
+                        // The caller's linked source token must fail closed.
+                        _leaseLost.Cancel();
+                        return;
+                    }
+
                     var sourceRenewed = await _database.ScriptEvaluateAsync(
                         RenewOwnedLease, [_sourceKey], [_token, milliseconds]).ConfigureAwait(false);
-                    if ((long)lockRenewed != 1 || (long)sourceRenewed != 1)
+                    if ((long)sourceRenewed != 1)
                     {
                         _leaseLost.Cancel();
                         return;
