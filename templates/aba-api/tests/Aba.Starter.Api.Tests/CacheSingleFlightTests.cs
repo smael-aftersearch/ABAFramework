@@ -164,6 +164,7 @@ public sealed class CacheSingleFlightTests
         Assert.Equal(2, await Get());
         Assert.Equal(2, count);
     }
+
     [Fact]
     public async Task FullHostGateRejectsCrossTenantWaitersAndCancellationRestoresCapacity()
     {
