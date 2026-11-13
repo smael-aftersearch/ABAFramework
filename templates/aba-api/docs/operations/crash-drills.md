@@ -52,10 +52,13 @@ generated `--level full` task runner exclude it.
    If the warmup does not commit its unique receipt within 45 seconds,
    the drill fails before any broker pause or process kill.
    The parent validates and pauses
-   only the exact disposable RabbitMQ container, then lets the child invoke a
-   synthetic technical outbox command. The child confirms the SQL command
-   receipt committed and no consumer effect exists, writes the existing
-   restricted crash marker, and blocks. The parent SIGKILLs that exact
+   only the exact disposable RabbitMQ container, then lets the child enroll
+   an EF Core row and technical message in Wolverine's explicitly scoped
+   IDbContextOutbox<AbaPlatformDbContext> and commit them together. This
+   uses the documented transactional outbox API rather than an inline
+   InvokeAsync call that can wait for a paused broker. The child confirms
+   the SQL command receipt committed and no consumer effect exists, writes
+   the existing restricted crash marker, and blocks. The parent SIGKILLs that exact
    producer, verifies the SQL receipt and absent effect, unpauses RabbitMQ,
    and starts a fresh host using the same SQL database and queue. The outbox
    message must recover into one effect; an intentional duplicate logical
