@@ -49,6 +49,21 @@ Remaining queue statuses: `api-shared-limits` partial, `auth-membership` not_sta
 and [PR #10](https://github.com/smael-aftersearch/ABAFramework/pull/10) · [exact-head checks](https://github.com/smael-aftersearch/ABAFramework/pull/10/checks)
 contain proposed diff and the required CI/review evidence; do not infer a PASS before checks complete.
 
+**Queue C — shared quota transport safety (execution 3/10; 2026-11-13):**
+[PR #11](https://github.com/smael-aftersearch/ABAFramework/pull/11) adds an
+opt-in fail-closed non-Development Redis transport guard to `api-shared-limits`.
+Positive: `ssl=true` is accepted without contacting Redis; negative: plaintext
+and explicit `ssl=false` are rejected; tenant-bypass negative: forged
+`X-Tenant-ID`/unsigned claims cannot create a second anonymous identity;
+invariant: disabled shared quotas need no Redis. Existing live two-host
+429/503/spoofing tests remain required. [Exact-head CI and review](https://github.com/smael-aftersearch/ABAFramework/pull/11/checks)
+must be green before merge; local .NET checks are **NOT RUN**. This still does not
+verify distinct OS processes, production certificate trust/ACLs or gateway
+policy. Statuses remain `api-shared-limits=partial`, `auth-membership=not_started`,
+`auth-sql-rls=partial`, `auth-raw-sql=partial`, `biz-contracts=partial`,
+`biz-contract-tests=not_started`, `biz-endpoints=not_started`.
+**Verified Queue C closures: 0/7 (0%); no production approvals inferred.**
+
 The table records *verified feature closures*, not speculative percentage-complete estimates. For exact feature IDs, acceptance criteria, owners and evidence, follow [the generated backlog](docs/IMPLEMENTATION-STATUS.md). After each substantive code change, update the README and source status JSON only to reflect actual tested changes, regenerate the status matrix, and record the PR/CI evidence in the relevant issue. Automated merge is allowed only after real tests, review and branch-policy gates. Business-owner approvals, production secrets, release policy, and deployment decisions remain outside the authority of these tasks.
 
 
