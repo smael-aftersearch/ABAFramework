@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using StackExchange.Redis;
 
@@ -13,7 +14,7 @@ namespace Aba.Starter.Api.Platform;
 public sealed record AbaSharedRateLimitOptions(
     bool Enabled, string? Namespace, int PermitLimit, int WindowSeconds, string? RedisConnection)
 {
-    public static AbaSharedRateLimitOptions FromConfiguration(IConfiguration config)
+    public static AbaSharedRateLimitOptions FromConfiguration(IConfiguration config, bool isDevelopment)
     {
         var local = AbaRateLimitOptions.FromConfiguration(config);
         var enabled = config.GetValue<bool>("Platform:RateLimit:Shared:Enabled");
@@ -29,6 +30,12 @@ public sealed record AbaSharedRateLimitOptions(
                 throw new InvalidOperationException(
                     "Platform:RateLimit:Shared:Namespace must be an explicit lowercase application scope (3..48 characters).");
         }
+        // An opted-in cross-replica security control must never send quotas over
+        // plaintext Redis outside an isolated Development host. TLS alone does
+        // not replace operator approval of server identity, ACLs and gateway.
+        if (enabled && !isDevelopment && !ConfigurationOptions.Parse(connection!).Ssl)
+            throw new InvalidOperationException(
+                "Shared Redis rate limiting requires ssl=true outside Development.");
         return new AbaSharedRateLimitOptions(
             enabled, scope, local.PermitLimit, local.WindowSeconds, connection);
     }
@@ -75,7 +82,8 @@ public static class AbaSharedRateLimitRegistration
     {
         // Resolve after host/test configuration overrides; disabled uses no Redis.
         services.AddSingleton(sp => AbaSharedRateLimitOptions.FromConfiguration(
-            sp.GetRequiredService<IConfiguration>()));
+            sp.GetRequiredService<IConfiguration>(),
+            sp.GetRequiredService<IHostEnvironment>().IsDevelopment()));
         services.AddSingleton(sp =>
         {
             var settings = sp.GetRequiredService<AbaSharedRateLimitOptions>();
