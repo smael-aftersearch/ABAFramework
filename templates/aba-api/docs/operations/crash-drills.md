@@ -49,6 +49,10 @@ generated `--level full` task runner exclude it.
    publishes and consumes a distinct technical warmup envelope on the newly
    provisioned queue before signalling over a private local named pipe.
    This verifies broker topology readiness, not merely web-host startup.
+   The same private named pipe carries only fixed, non-secret worker phases
+   (started, resolved, published, flushed, verified); the parent includes
+   completed phases in timeout diagnostics. A missing committed marker is
+   still a FAIL and cannot be reclassified as a successful crash recovery.
    If the warmup does not commit its unique receipt within 45 seconds,
    the drill fails before any broker pause or process kill.
    The parent validates and pauses
