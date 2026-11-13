@@ -30,9 +30,15 @@ public static class AbaCachingServices
         else
             throw new InvalidOperationException("Platform:Cache:Provider must be Memory or Redis.");
 
-        // One load gate per host, not per request. Does not claim distributed
-        // Redis locks or authoritative scope/tenant authorization.
-        services.AddSingleton<AbaCacheLoadGate>();
+        // Host-wide, bounded registrations include both running and waiting
+        // cache loads. This is not a distributed Redis lock or authorization.
+        var inFlightLimit = AbaCacheLoadGate.DefaultMaxInFlightRequests;
+        if (config["Platform:Cache:MaxInFlightRequests"] is { } configuredInFlight &&
+            (!int.TryParse(configuredInFlight, out inFlightLimit) ||
+             inFlightLimit is < 1 or > AbaCacheLoadGate.HardLimit))
+            throw new InvalidOperationException(
+                "Platform:Cache:MaxInFlightRequests must be an integer from 1 to 4096.");
+        services.AddSingleton(new AbaCacheLoadGate(inFlightLimit));
         var sourceLimit = AbaCacheSourceLoadBudget.DefaultMaxConcurrentLoads;
         if (config["Platform:Cache:OptInSourceLoadMaxConcurrent"] is { } configuredLimit &&
             (!int.TryParse(configuredLimit, out sourceLimit) ||
