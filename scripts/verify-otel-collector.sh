@@ -93,6 +93,11 @@ done
   exit 1
 }
 
+# Bounded, opt-in CI-only liveness baseline on this disposable generated API.
+# This measures a single loopback process, never a production SLO or multi-node load.
+ABA_ENABLE_LOOPBACK_LOAD_DRILL=yes python3 scripts/ci_loopback_load.py \
+  --url http://127.0.0.1:5193/health/live
+
 # A synthetic sensitive header is an exposure sentinel, NEVER a real credential.
 SENTINEL="ABA_CI_SENTINEL_NOT_A_REAL_CREDENTIAL"
 for ((i=0; i<6; i++)); do

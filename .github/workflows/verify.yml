@@ -27,6 +27,8 @@ jobs:
         run: python3 scripts/test_shared_rate_limit_processes.py
       - name: Prove CI-only collector opt-in refuses unsafe execution
         run: python3 scripts/test_otel_collector_gate.py
+      - name: Prove bounded loopback load happy/negative/security invariants
+        run: python3 scripts/test_ci_loopback_load.py
       - name: Regressions for AI planner/QA runner
         run: python3 scripts/test_task_protocol.py
       - name: Recorded QA gates (includes architecture, AI checks, .NET build and C# smoke)
@@ -184,6 +186,13 @@ jobs:
           CI: "true"
           ABA_ENABLE_OTEL_COLLECTOR_DRILL: "yes"
         run: bash scripts/verify-otel-collector.sh
+      - name: Preserve bounded disposable loopback baseline
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aba-loopback-load-baseline
+          path: artifacts/load/loopback.json
+          if-no-files-found: warn
 
   supply-chain:
     runs-on: ubuntu-latest

@@ -105,6 +105,23 @@ The table records *verified feature closures*, not speculative percentage-comple
 
 **Queue A run 4/10 — `otel-collector` + `otel-instrument` ([PR #12](https://github.com/smael-aftersearch/ABAFramework/pull/12), [exact-head CI runs](https://github.com/smael-aftersearch/ABAFramework/actions/workflows/verify.yml) pending):** an opt-in, loopback-only genuine OpenTelemetry Collector is added to the real GitHub Actions gate; a fresh API must export attributed HTTP traces and metrics, reject collector execution without CI opt-in and not leak a synthetic credential. This is an authored integration patch, **not** a passing-HEAD claim until its PR checks complete; both IDs remain **partial** and Queue A completed capabilities remain **0/7 (0%)**. Evidence: [collector runner](scripts/verify-otel-collector.sh), [negative/invariant gate tests](scripts/test_otel_collector_gate.py), [CI workflow](.github/workflows/verify.yml), [Queue A ledger](https://github.com/smael-aftersearch/ABAFramework/issues/3).
 
+
+### Queue A — bounded CI loopback baseline (`ops-load`, run 6/10)
+
+A new [CI-only load probe](scripts/ci_loopback_load.py) sends **40 liveness GETs** at at most **4 concurrent workers** to the disposable, generated API loopback listener, recording status failures, throughput, p50 and p95 in a downloadable artifact. [Negative/invariant tests](scripts/test_ci_loopback_load.py) reject non-loopback hosts, redirects, credentials, query strings, unbounded counts and execution without CI opt-in. The probe is a deliberately small single-process diagnostic, **not** a published performance SLO, provider failover test or production traffic authorization; exact new PR-head CI must pass before calling it independently verified.
+
+| Queue A ID | Verified completion | Residual work |
+| --- | --- | --- |
+| `dev-release-sbom` | partial | Actual published OCI digest and NuGet release provenance/approval |
+| `ops-audit` | partial | Immutable off-DB custody, keys and context policy |
+| `ops-prod-secrets` | not_started | Owner-approved secret store and rotation |
+| `dev-prod-deploy` | not_started | Approved target and rollback |
+| `otel-instrument` | partial | Production PII/sampling/correlation |
+| `otel-collector` | partial | Production TLS/mTLS/export/retention |
+| `ops-load` | partial (CI-only probe authored) | Two-replica load/failover, SLO and capacity approval |
+
+**Fully closed Queue A features: 0/7 (0%)**. Latest previously verified `main` signed NuGet and scanned OCI-archive [CI 43353408323](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43353408323) at `21ae453072bc634ba10dabedc4d13179232c116a`; the new `ops-load` probe is subject to its *own* PR-head checks. [Queue A ledger](https://github.com/smael-aftersearch/ABAFramework/issues/3) · [central ledger](https://github.com/smael-aftersearch/ABAFramework/issues/6).
+
 ## Supply-chain audit and SBOM
 
 The latest eight-job GitHub CI verifies the fail-closed NuGet direct/transitive
@@ -241,7 +258,7 @@ its **production release gates remain open**. Evidence refers to the last review
 [CI run 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289)
 (commit `dd77a1c1b0f2`). New commits must pass their own CI before being treated as verified.
 
-**Tracked: 54** · Implemented: 31 · Partial: 12 · Not implemented: 11.
+**Tracked: 54** · Implemented: 31 · Partial: 13 · Not implemented: 10.
 
 | Area | Parameter / feature | Status | Delivered scope | Remaining task | Priority |
 | --- | --- | --- | --- | --- | --- |
@@ -280,8 +297,8 @@ its **production release gates remain open**. Evidence refers to the last review
 | Caching | Read-through fallback when Redis unavailable | **Implemented** | Default fail-closed; explicit fresh authoritative query fallback | Cluster reconnect, authorized workloads and load behavior unverified | P1 |
 | Caching | Cross-instance invalidation and tenant permissions | **Not implemented** | Not implemented | Add versioned invalidation events with authorized namespace boundaries | P1 |
 | Caching | Cache stampede and Redis restart resilience | **Partial** | Host-wide per-tenant/key single-flight read-through with 24-concurrent-call and real 12-caller Redis tests, TTL/cancellation/miss-value fixes; actual CI Redis stop/restart with strict/explicit fallback and reconnect (isolated 2-case drill); CI-verified opt-in per-host concurrency ceiling (default 8, configurable 1..256) for authoritative query loads on cache misses/outage; PR #8 CI 43338197320 PASS 8/8 at cabd2c7; authored per-host capped in-flight cache-miss registrations (default 1024, configurable 1..4096) with fail-fast cross-tenant queue admission and cancellation cleanup; exact-head PR CI pending | Verify bounded in-flight queue tests on exact PR-head CI; Add distributed multi-replica miss budget/locking, authorize query scopes, bound total/serial source load across replicas during full Redis outage and verify production Redis topology/TTL race policies | P1 |
-| Observability | OpenTelemetry ASP.NET/HTTP traces and metrics | **Partial** | Optional tracing/metrics instrumentation and OTLP exporter wiring | Verify exact-head collector trace/metric export and approve production PII/sampling/correlation policy | P1 |
-| Observability | Collector pipeline and export integration test | **Partial** | Authored an isolated CI-only OTLP/gRPC Collector receiver and debug-export pipeline with a generated API trace/metric smoke probe; exact-head CI verification pending | Pass the new real collector CI and select/approve production collector routing, HTTPS/mTLS, PII controls, sampling and retention | P1 |
+| Observability | OpenTelemetry ASP.NET/HTTP traces and metrics | **Partial** | Optional tracing/metrics instrumentation and OTLP exporter wiring | Approve production PII/sampling/correlation policy and prove deployed collector end-to-end; isolated main CI 43353408323 proves only generated-API export | P1 |
+| Observability | Collector pipeline and export integration test | **Partial** | CI-verified isolated OTLP/gRPC Collector with real generated API trace and metric export, 5 fail-closed gate tests (main CI 43353408323) | Approve production collector routing, HTTPS/mTLS, PII controls, sampling and retention; no published telemetry destination | P1 |
 | Observability | Tamper-evident audit trail | **Partial** | CI-verified HMAC-SHA256 per-tenant ledger, serializable dual SQL append, tamper/rotation tests plus separately signed offline checkpoint codec and historical-prefix verification on both SQL engines | Deploy independently immutable off-DB checkpoint archive, real signing key custody/rotation and context-owned actor/event/retention rules; audit appender role restrictions and legal policies | P0 |
 | Operations | Production secrets, key rotation and policy | **Not implemented** | Not implemented | Add approved secret store, rotation and least-privilege deployment setup | P0 |
 | Developer | Installable versioned NuGet API template | **Implemented** | Installable versioned v0.3.0-preview.2 NuGet API template built, installed and tested with 73 xUnit cases in CI | NuGet.org publication, provenance/signing and release automation remain gated | P1 |
@@ -295,7 +312,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | Deployment | Non-root OCI image and local Compose | **Implemented** | Multi-stage .NET 10 Dockerfile, localhost-only Development Compose | Production image signing, secrets/TLS/hosting still open | P1 |
 | Deployment | SBOM, vulnerability scans and signed releases | **Partial** | NuGet direct/transitive advisory scans + SPDX; reviewed immutable .NET 10 multiarch SDK/runtime base digests with fail-closed policy/negative tests; Trivy-scanned runtime Docker-save archive keyless SLSA attested, Docker reload ID/tamper rejection; signed tested NuGet template provenance | Approve HIGH/unfixed image severity policy, sign and verify the actual published OCI registry digest and published NuGet package, protected tag promotion and production deployment/change-control | P0 |
 | Deployment | Production deployment with TLS, identity and rollback | **Not implemented** | Not implemented | Choose target hosting, configure DNS/TLS/secrets and deployment rollback | P0 |
-| Operations | Latency/throughput/load and failover baseline | **Not implemented** | Not implemented | Set SLO and run load/chaos tests across two provider deployments | P1 |
+| Operations | Latency/throughput/load and failover baseline | **Partial** | Authored CI-only generated-API loopback liveness baseline (40 requests, 4 workers) with p50/p95, success/failure and throughput evidence; real exact-head CI verification pending | Prove CI-head probe and set owner-approved production SLO/RTO/RPO, provider-backed two-replica load/failover and safe capacity thresholds; loopback liveness is not business-API throughput | P1 |
 | Business | Owner-defined versioned cross-context contracts | **Partial** | Context generator creates Contracts project; no real product Contracts | Specify real public V1 schemas, consumers and compatibility evolution | P0 |
 | Business | Consumer-driven contract compatibility tests | **Not implemented** | Not implemented | Introduce consumer-driven tests for real event/HTTP contracts | P0 |
 | Business | Actual product CRUD/workflows and invariants | **Not implemented** | Not implemented | Implement real domain entities/endpoints only from approved requirements | P0 |

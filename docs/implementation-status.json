@@ -622,7 +622,7 @@
       "owner": "Platform",
       "priority": "P1",
       "delivered": "Optional tracing/metrics instrumentation and OTLP exporter wiring",
-      "remaining": "Verify exact-head collector trace/metric export and approve production PII/sampling/correlation policy",
+      "remaining": "Approve production PII/sampling/correlation policy and prove deployed collector end-to-end; isolated main CI 43353408323 proves only generated-API export",
       "acceptance": "Collector receives correlated spans/metrics without secrets",
       "evidence": [
         "templates/aba-api/src/Aba.Starter.Platform/Observability/AbaObservabilityServices.cs"
@@ -639,8 +639,8 @@
       "status": "partial",
       "owner": "Platform / Operations",
       "priority": "P1",
-      "delivered": "Authored an isolated CI-only OTLP/gRPC Collector receiver and debug-export pipeline with a generated API trace/metric smoke probe; exact-head CI verification pending",
-      "remaining": "Pass the new real collector CI and select/approve production collector routing, HTTPS/mTLS, PII controls, sampling and retention",
+      "delivered": "CI-verified isolated OTLP/gRPC Collector with real generated API trace and metric export, 5 fail-closed gate tests (main CI 43353408323)",
+      "remaining": "Approve production collector routing, HTTPS/mTLS, PII controls, sampling and retention; no published telemetry destination",
       "acceptance": "Collector observes test request traces and identifies service correctly",
       "evidence": [
         "infra/otel-collector-ci.yaml",
@@ -893,14 +893,20 @@
       "id": "ops-load",
       "area": "Operations",
       "feature": "Latency/throughput/load and failover baseline",
-      "status": "not_started",
+      "status": "partial",
       "owner": "Operations / Performance",
       "priority": "P1",
-      "delivered": "Not implemented",
-      "remaining": "Set SLO and run load/chaos tests across two provider deployments",
+      "delivered": "Authored CI-only generated-API loopback liveness baseline (40 requests, 4 workers) with p50/p95, success/failure and throughput evidence; real exact-head CI verification pending",
+      "remaining": "Prove CI-head probe and set owner-approved production SLO/RTO/RPO, provider-backed two-replica load/failover and safe capacity thresholds; loopback liveness is not business-API throughput",
       "acceptance": "SLO and recovery objectives measurable under load",
-      "evidence": [],
-      "tests": []
+      "evidence": [
+        "scripts/ci_loopback_load.py",
+        "scripts/verify-otel-collector.sh"
+      ],
+      "tests": [
+        "scripts/test_ci_loopback_load.py",
+        "scripts/verify-otel-collector.sh"
+      ]
     },
     {
       "id": "biz-contracts",

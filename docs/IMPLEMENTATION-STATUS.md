@@ -14,7 +14,7 @@ its **production release gates remain open**. Evidence refers to the last review
 [CI run 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289)
 (commit `dd77a1c1b0f2`). New commits must pass their own CI before being treated as verified.
 
-**Tracked: 54** · Implemented: 31 · Partial: 12 · Not implemented: 11.
+**Tracked: 54** · Implemented: 31 · Partial: 13 · Not implemented: 10.
 
 | Area | Parameter / feature | Status | Delivered scope | Remaining task | Priority |
 | --- | --- | --- | --- | --- | --- |
@@ -53,8 +53,8 @@ its **production release gates remain open**. Evidence refers to the last review
 | Caching | Read-through fallback when Redis unavailable | **Implemented** | Default fail-closed; explicit fresh authoritative query fallback | Cluster reconnect, authorized workloads and load behavior unverified | P1 |
 | Caching | Cross-instance invalidation and tenant permissions | **Not implemented** | Not implemented | Add versioned invalidation events with authorized namespace boundaries | P1 |
 | Caching | Cache stampede and Redis restart resilience | **Partial** | Host-wide per-tenant/key single-flight read-through with 24-concurrent-call and real 12-caller Redis tests, TTL/cancellation/miss-value fixes; actual CI Redis stop/restart with strict/explicit fallback and reconnect (isolated 2-case drill); CI-verified opt-in per-host concurrency ceiling (default 8, configurable 1..256) for authoritative query loads on cache misses/outage; PR #8 CI 43338197320 PASS 8/8 at cabd2c7; authored per-host capped in-flight cache-miss registrations (default 1024, configurable 1..4096) with fail-fast cross-tenant queue admission and cancellation cleanup; exact-head PR CI pending | Verify bounded in-flight queue tests on exact PR-head CI; Add distributed multi-replica miss budget/locking, authorize query scopes, bound total/serial source load across replicas during full Redis outage and verify production Redis topology/TTL race policies | P1 |
-| Observability | OpenTelemetry ASP.NET/HTTP traces and metrics | **Partial** | Optional tracing/metrics instrumentation and OTLP exporter wiring | Verify exact-head collector trace/metric export and approve production PII/sampling/correlation policy | P1 |
-| Observability | Collector pipeline and export integration test | **Partial** | Authored an isolated CI-only OTLP/gRPC Collector receiver and debug-export pipeline with a generated API trace/metric smoke probe; exact-head CI verification pending | Pass the new real collector CI and select/approve production collector routing, HTTPS/mTLS, PII controls, sampling and retention | P1 |
+| Observability | OpenTelemetry ASP.NET/HTTP traces and metrics | **Partial** | Optional tracing/metrics instrumentation and OTLP exporter wiring | Approve production PII/sampling/correlation policy and prove deployed collector end-to-end; isolated main CI 43353408323 proves only generated-API export | P1 |
+| Observability | Collector pipeline and export integration test | **Partial** | CI-verified isolated OTLP/gRPC Collector with real generated API trace and metric export, 5 fail-closed gate tests (main CI 43353408323) | Approve production collector routing, HTTPS/mTLS, PII controls, sampling and retention; no published telemetry destination | P1 |
 | Observability | Tamper-evident audit trail | **Partial** | CI-verified HMAC-SHA256 per-tenant ledger, serializable dual SQL append, tamper/rotation tests plus separately signed offline checkpoint codec and historical-prefix verification on both SQL engines | Deploy independently immutable off-DB checkpoint archive, real signing key custody/rotation and context-owned actor/event/retention rules; audit appender role restrictions and legal policies | P0 |
 | Operations | Production secrets, key rotation and policy | **Not implemented** | Not implemented | Add approved secret store, rotation and least-privilege deployment setup | P0 |
 | Developer | Installable versioned NuGet API template | **Implemented** | Installable versioned v0.3.0-preview.2 NuGet API template built, installed and tested with 73 xUnit cases in CI | NuGet.org publication, provenance/signing and release automation remain gated | P1 |
@@ -68,7 +68,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | Deployment | Non-root OCI image and local Compose | **Implemented** | Multi-stage .NET 10 Dockerfile, localhost-only Development Compose | Production image signing, secrets/TLS/hosting still open | P1 |
 | Deployment | SBOM, vulnerability scans and signed releases | **Partial** | NuGet direct/transitive advisory scans + SPDX; reviewed immutable .NET 10 multiarch SDK/runtime base digests with fail-closed policy/negative tests; Trivy-scanned runtime Docker-save archive keyless SLSA attested, Docker reload ID/tamper rejection; signed tested NuGet template provenance | Approve HIGH/unfixed image severity policy, sign and verify the actual published OCI registry digest and published NuGet package, protected tag promotion and production deployment/change-control | P0 |
 | Deployment | Production deployment with TLS, identity and rollback | **Not implemented** | Not implemented | Choose target hosting, configure DNS/TLS/secrets and deployment rollback | P0 |
-| Operations | Latency/throughput/load and failover baseline | **Not implemented** | Not implemented | Set SLO and run load/chaos tests across two provider deployments | P1 |
+| Operations | Latency/throughput/load and failover baseline | **Partial** | Authored CI-only generated-API loopback liveness baseline (40 requests, 4 workers) with p50/p95, success/failure and throughput evidence; real exact-head CI verification pending | Prove CI-head probe and set owner-approved production SLO/RTO/RPO, provider-backed two-replica load/failover and safe capacity thresholds; loopback liveness is not business-API throughput | P1 |
 | Business | Owner-defined versioned cross-context contracts | **Partial** | Context generator creates Contracts project; no real product Contracts | Specify real public V1 schemas, consumers and compatibility evolution | P0 |
 | Business | Consumer-driven contract compatibility tests | **Not implemented** | Not implemented | Introduce consumer-driven tests for real event/HTTP contracts | P0 |
 | Business | Actual product CRUD/workflows and invariants | **Not implemented** | Not implemented | Implement real domain entities/endpoints only from approved requirements | P0 |
@@ -124,7 +124,7 @@ Run `python3 scripts/status_matrix.py --check` to fail CI on mismatched tables.
 | `cache-stampede` | Platform / Operations | P1 | Partial | No excessive authoritative DB load during simultaneous cache misses |
 | `otel-instrument` | Platform | P1 | Partial | Collector receives correlated spans/metrics without secrets |
 | `otel-collector` | Platform / Operations | P1 | Partial | Collector observes test request traces and identifies service correctly |
-| `ops-load` | Operations / Performance | P1 | Not implemented | SLO and recovery objectives measurable under load |
+| `ops-load` | Operations / Performance | P1 | Partial | SLO and recovery objectives measurable under load |
 
 ## Implemented or partial: checked-in source / executable tests
 
@@ -172,6 +172,7 @@ Run `python3 scripts/status_matrix.py --check` to fail CI on mismatched tables.
 | `dev-generated-ci` | `templates/aba-api/.github/workflows/ci.yml`, `templates/aba-api/.github/workflows/integration.yml` | `scripts/test_starter_template.py`, `scripts/pack-template.sh` |
 | `dev-container` | `templates/aba-api/Dockerfile`, `templates/aba-api/compose.yaml` | `scripts/verify-container-starter.sh` |
 | `dev-release-sbom` | `templates/aba-api/tools/supply_chain.py`, `.github/workflows/verify.yml`, `templates/aba-api/.github/workflows/ci.yml`, `docs/release-integrity.md`, `templates/aba-api/Dockerfile`, `templates/aba-api/oci-base-lock.json`, `templates/aba-api/tools/oci_base_lock.py`, `templates/aba-api/docs/decisions/ADR-011-oci-base-and-archive-attestation.md` | `templates/aba-api/tools/test_supply_chain.py`, `scripts/test_starter_template.py`, `templates/aba-api/tools/test_oci_base_lock.py` |
+| `ops-load` | `scripts/ci_loopback_load.py`, `scripts/verify-otel-collector.sh` | `scripts/test_ci_loopback_load.py`, `scripts/verify-otel-collector.sh` |
 | `biz-contracts` | `templates/aba-api/tools/new_context.py` | `scripts/verify-starter.sh` |
 
 ## How to record progress without exaggeration
