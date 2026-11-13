@@ -235,6 +235,7 @@ public sealed class AbruptCrashWindowTests
             var release = await reader.ReadLineAsync().WaitAsync(TimeSpan.FromMinutes(2));
             if (release != "invoke-outbox")
                 throw new InvalidOperationException("The parent did not release the broker crash probe.");
+            await writer.WriteLineAsync("outbox-started");
 
             // A direct InvokeAsync handler can wait on the unavailable broker
             // before the local invocation returns. This drill explicitly uses
@@ -246,6 +247,7 @@ public sealed class AbruptCrashWindowTests
             {
                 var outbox = scope.ServiceProvider.GetRequiredService<
                     IDbContextOutbox<AbaPlatformDbContext>>();
+                await writer.WriteLineAsync("outbox-resolved");
                 outbox.DbContext.IdempotencyReceipts.Add(new IdempotencyReceipt
                 {
                     Scope = "aba-outbox-transaction",
@@ -253,7 +255,9 @@ public sealed class AbruptCrashWindowTests
                     CreatedUtc = DateTimeOffset.UtcNow
                 });
                 await outbox.PublishAsync(new AbaDurabilityProbe(id));
+                await writer.WriteLineAsync("outbox-published");
                 await outbox.SaveChangesAndFlushMessagesAsync();
+                await writer.WriteLineAsync("outbox-flushed");
             }
 
             if (await ReceiptCountAsync(provider, connection,
@@ -262,6 +266,7 @@ public sealed class AbruptCrashWindowTests
                     "aba-durability-probe", id.ToString("N")) != 0)
                 throw new InvalidOperationException(
                     "The broker-outage child did not reach the committed-outbox/no-effect boundary.");
+            await writer.WriteLineAsync("outbox-verified");
 
             AbaCrashAckProbeHandler.WriteIsolatedCrashMarker(marker,
                 "outbox-committed-broker-paused",
