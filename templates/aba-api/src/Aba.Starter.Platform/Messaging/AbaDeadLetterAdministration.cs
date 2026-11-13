@@ -21,11 +21,15 @@ public sealed class AbaDeadLetterAdministration(IMessageStore store, AbaAuditLed
 
     private static string Authorize(ClaimsPrincipal principal, string permission, string ticket)
     {
-        if (principal?.Identity?.IsAuthenticated != true ||
-            !principal.HasClaim(PermissionClaim, permission))
+        // Never compose permission and subject from different identities:
+        // ClaimsPrincipal.HasClaim searches even unauthenticated identities.
+        var authenticated = principal?.Identities
+            .Where(identity => identity.IsAuthenticated).ToArray();
+        if (authenticated is not { Length: 1 } ||
+            !authenticated[0].HasClaim(PermissionClaim, permission))
             throw new UnauthorizedAccessException("An authenticated, explicitly authorized operator is required.");
 
-        var actor = principal.FindFirst("sub")?.Value;
+        var actor = authenticated[0].FindFirst("sub")?.Value;
         AbaAuditLedger.ValidateIdentifier(actor, "operator subject");
         AbaAuditLedger.ValidateIdentifier(ticket, "change ticket");
         if (ticket.Length < 6)
