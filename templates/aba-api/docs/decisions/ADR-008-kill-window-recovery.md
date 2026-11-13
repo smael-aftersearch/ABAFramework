@@ -41,9 +41,12 @@ controlled fault boundary.
    labeled disposable RabbitMQ container. After the parent pauses that
    container, the child commits a synthetic technical receipt and
    outbound message together through Wolverine's scoped EF Core
-   IDbContextOutbox (rather than an inline handler invocation that might
-   await a broker acknowledgement), confirms its SQL receipt committed
-   while its consumer effect is absent, and signals the parent. The parent SIGKILLs that producer, unpauses RabbitMQ, starts a new
+   IDbContextOutbox (rather than an inline handler invocation). Wolverine
+   may still await a broker ACK when flushing *after* the SQL COMMIT, so the
+   child starts SaveChangesAndFlushMessagesAsync without awaiting its
+   transport flush and independently queries PostgreSQL for the committed
+   technical receipt. Only after verifying the receipt and absent consumer
+   effect does it signal the parent for SIGKILL. The parent SIGKILLs that producer, unpauses RabbitMQ, starts a new
    Wolverine host against the same SQL store and queue, and requires the
    persisted outbox message to produce one idempotent technical effect. A
    second envelope with the same logical key is then published to assert that
