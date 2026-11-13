@@ -73,6 +73,20 @@ disabling or downgrading the category.
 A generated project must run this on its own explicitly authorized
 ephemeral SQL services before promising equivalent reliability.
 
+## CI-only crash-marker path safety (Queue B execution 8)
+
+The synthetic SIGKILL worker now accepts only a fresh canonical
+`child-ready.marker` directly inside an existing `aba-crash-<GUID-N>`
+directory under the system temp root. Both CI/explicit-drill gates are
+checked before SQL effects. Symlinked directories and pre-existing marker
+files are refused; FileMode.CreateNew prevents clobbering sentinel files,
+and the pre-ACK marker uses an exclusive staged file with a no-overwrite
+move. The independent regression checks a legitimate atomic signal,
+missing opt-in, arbitrary paths, repeated writes and symlink redirects,
+while preserving an unrelated sentinel. This is an authored CI-fixture
+hardening change requiring exact PR-head CI; it adds no production
+message guarantee, business handler or external ACK coverage.
+
 ## First proven CI run
 
 [Run 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289) passed all 8 CrashDrill cases and 8/8 jobs. The SQL Server ACK-recovery case completed in 77 seconds; PostgreSQL in 79 seconds. Neither exercised Production privileges nor a context-owned real message contract.

@@ -94,11 +94,50 @@ public static class AbaCrashAckProbeHandler
     public static void RequireIsolatedCrashMarker(
         string marker, bool ci, bool explicitlyEnabled)
     {
-        if (!ci || !explicitlyEnabled || string.IsNullOrWhiteSpace(marker) ||
-            !Path.GetFullPath(marker).StartsWith(Path.GetFullPath(Path.GetTempPath()),
-                StringComparison.Ordinal))
+        if (!ci || !explicitlyEnabled || string.IsNullOrWhiteSpace(marker))
             throw new InvalidOperationException(
                 "ACK fault injection is forbidden outside an explicit disposable CI drill.");
+
+        // Only the parent drill's fresh, direct child directory under the
+        // system temp path may receive a signal. Reject aliases, arbitrary
+        // temp files and symlink redirects BEFORE any database side effect.
+        var full = Path.GetFullPath(marker);
+        var directory = Path.GetDirectoryName(full);
+        var root = Path.GetFullPath(Path.GetTempPath())
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        const string prefix = "aba-crash-";
+        var name = directory is null ? string.Empty : Path.GetFileName(directory);
+        if (!Path.IsPathFullyQualified(marker) ||
+            !string.Equals(marker, full, StringComparison.Ordinal) ||
+            directory is null ||
+            !string.Equals(Path.GetDirectoryName(directory), root, StringComparison.Ordinal) ||
+            !name.StartsWith(prefix, StringComparison.Ordinal) ||
+            !Guid.TryParseExact(name[prefix.Length..], "N", out _) ||
+            Path.GetFileName(full) != "child-ready.marker" ||
+            !Directory.Exists(directory) ||
+            new DirectoryInfo(directory).LinkTarget is not null ||
+            File.Exists(full) || Directory.Exists(full) ||
+            new FileInfo(full).LinkTarget is not null)
+            throw new InvalidOperationException(
+                "Crash marker must be a new file in a direct disposable aba-crash GUID directory.");
+    }
+
+    /// <summary>
+    /// Never overwrite an existing path (including a symlink). The pre-ACK
+    /// signal is staged and moved only after its content is fully flushed.
+    /// This remains a CI-only synthetic marker, not a business ACK.
+    /// </summary>
+    public static void WriteIsolatedCrashMarker(
+        string marker, string value, bool ci, bool explicitlyEnabled, bool atomic = false)
+    {
+        RequireIsolatedCrashMarker(marker, ci, explicitlyEnabled);
+        var destination = atomic ? marker + ".staged" : marker;
+        using (var stream = new FileStream(destination, FileMode.CreateNew,
+                   FileAccess.Write, FileShare.None))
+        using (var writer = new StreamWriter(stream))
+            writer.Write(value);
+        if (atomic)
+            File.Move(destination, marker); // refuse replacement, even on a racing symlink
     }
 
     public static async Task Handle(
@@ -127,10 +166,11 @@ public static class AbaCrashAckProbeHandler
         // Publish a complete marker atomically: the parent must never
         // observe an empty file and SIGKILL before the commit evidence is
         // fully written to its synthetic control channel.
-        var stagedMarker = marker + ".staged";
-        File.WriteAllText(stagedMarker, first
-            ? "effect-committed-before-ack" : "duplicate-committed-before-ack");
-        File.Move(stagedMarker, marker, overwrite: true);
+        WriteIsolatedCrashMarker(marker,
+            first ? "effect-committed-before-ack" : "duplicate-committed-before-ack",
+            Environment.GetEnvironmentVariable("CI") == "true",
+            Environment.GetEnvironmentVariable("ABA_ENABLE_DESTRUCTIVE_CI_DRILLS") == "yes",
+            atomic: true);
         await Task.Delay(Timeout.InfiniteTimeSpan, ct);
     }
 }

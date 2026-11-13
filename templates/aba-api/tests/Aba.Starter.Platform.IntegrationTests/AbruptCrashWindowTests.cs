@@ -144,9 +144,9 @@ public sealed class AbruptCrashWindowTests
             ?? throw new InvalidOperationException("No child probe ID."));
         var marker = Environment.GetEnvironmentVariable(ChildMarker)
             ?? throw new InvalidOperationException("No child acknowledgement marker.");
-        if (!Path.GetFullPath(marker).StartsWith(Path.GetFullPath(Path.GetTempPath()),
-            StringComparison.Ordinal))
-            throw new InvalidOperationException("Crash marker must be in the ephemeral temp directory.");
+        AbaCrashAckProbeHandler.RequireIsolatedCrashMarker(marker,
+            Environment.GetEnvironmentVariable("CI") == "true",
+            Environment.GetEnvironmentVariable("ABA_ENABLE_DESTRUCTIVE_CI_DRILLS") == "yes");
 
         await using var host = await StartHostAsync(provider, connection);
         if (mode == "uncommitted")
@@ -162,7 +162,9 @@ public sealed class AbruptCrashWindowTests
             });
             // This was FLUSHED to the engine, but is still uncommitted.
             await db.SaveChangesAsync();
-            File.WriteAllText(marker, "flushed-but-not-committed");
+            AbaCrashAckProbeHandler.WriteIsolatedCrashMarker(marker, "flushed-but-not-committed",
+                Environment.GetEnvironmentVariable("CI") == "true",
+                Environment.GetEnvironmentVariable("ABA_ENABLE_DESTRUCTIVE_CI_DRILLS") == "yes");
             await Task.Delay(Timeout.InfiniteTimeSpan);
         }
         else if (mode == "scheduled")
@@ -173,7 +175,9 @@ public sealed class AbruptCrashWindowTests
             // the process is SIGKILLed immediately after durable scheduling.
             await bus.ScheduleAsync(new AbaDurabilityProbe(id),
                 TimeSpan.FromSeconds(12));
-            File.WriteAllText(marker, "durable-schedule-returned");
+            AbaCrashAckProbeHandler.WriteIsolatedCrashMarker(marker, "durable-schedule-returned",
+                Environment.GetEnvironmentVariable("CI") == "true",
+                Environment.GetEnvironmentVariable("ABA_ENABLE_DESTRUCTIVE_CI_DRILLS") == "yes");
             await Task.Delay(Timeout.InfiniteTimeSpan);
         }
         else
@@ -318,6 +322,65 @@ public sealed class AbruptCrashWindowTests
         finally
         {
             Directory.Delete(directory, recursive: true);
+        }
+    }
+
+
+    [Fact]
+    [Trait("Category", "CrashDrill")]
+    public void CrashMarkerCannotEscapeDisposableDirectoryOrOverwriteExistingEvidence()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "aba-crash-" + Guid.NewGuid().ToString("N"));
+        var marker = Path.Combine(directory, "child-ready.marker");
+        var sentinel = Path.Combine(Path.GetTempPath(), "aba-protected-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(sentinel, "untouched");
+        try
+        {
+            // No IO without both gates; no arbitrary temp file or alternate filename.
+            Assert.Throws<InvalidOperationException>(() =>
+                AbaCrashAckProbeHandler.WriteIsolatedCrashMarker(marker, "bad", false, true));
+            Assert.Throws<InvalidOperationException>(() =>
+                AbaCrashAckProbeHandler.WriteIsolatedCrashMarker(marker, "bad", true, false));
+            Assert.Throws<InvalidOperationException>(() =>
+                AbaCrashAckProbeHandler.WriteIsolatedCrashMarker(sentinel, "bad", true, true));
+            Assert.Throws<InvalidOperationException>(() =>
+                AbaCrashAckProbeHandler.WriteIsolatedCrashMarker(
+                    Path.Combine(directory, "other.marker"), "bad", true, true));
+            Assert.False(File.Exists(marker));
+
+            // Valid atomic signal is readable; repeating it must never replace evidence.
+            AbaCrashAckProbeHandler.WriteIsolatedCrashMarker(marker, "ready", true, true,
+                atomic: true);
+            Assert.Equal("ready", File.ReadAllText(marker));
+            Assert.Throws<InvalidOperationException>(() =>
+                AbaCrashAckProbeHandler.WriteIsolatedCrashMarker(marker, "overwrite", true, true,
+                    atomic: true));
+            Assert.Equal("ready", File.ReadAllText(marker));
+            File.Delete(marker);
+
+            if (OperatingSystem.IsLinux())
+            {
+                // An attacker-controlled destination symlink must not redirect writes.
+                File.CreateSymbolicLink(marker, sentinel);
+                Assert.Throws<InvalidOperationException>(() =>
+                    AbaCrashAckProbeHandler.WriteIsolatedCrashMarker(marker, "overwrite", true, true));
+                Assert.Equal("untouched", File.ReadAllText(sentinel));
+                File.Delete(marker);
+
+                // Exclusive staged creation blocks a pre-planted symlink as well.
+                File.CreateSymbolicLink(marker + ".staged", sentinel);
+                Assert.NotNull(Record.Exception(() =>
+                    AbaCrashAckProbeHandler.WriteIsolatedCrashMarker(marker, "overwrite",
+                        true, true, atomic: true)));
+                Assert.False(File.Exists(marker));
+                Assert.Equal("untouched", File.ReadAllText(sentinel));
+            }
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+            File.Delete(sentinel);
         }
     }
 
