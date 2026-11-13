@@ -176,6 +176,65 @@ public sealed class RateLimitTests
         Assert.Equal(first, AbaRateLimitOptions.PartitionKey(context));
     }
 
+
+    [Theory]
+    [InlineData("alpha", "beta")]
+    [InlineData("alpha", "alpha")]
+    public async Task DuplicateSignedSubjectsCannotEvadeLocalOrSharedQuotaByClaimOrder(
+        string firstSubject, string secondSubject)
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Path = "/api/v1/system/status";
+        context.Connection.RemoteIpAddress = IPAddress.Parse("192.0.2.25");
+        context.User = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim("sub", firstSubject), new Claim("sub", secondSubject),
+             new Claim("tenant_id", "tenant-one")], "Bearer"));
+
+        // Both the local limiter and shared Redis middleware consume this key.
+        Assert.Equal("ip:192.0.2.25", AbaRateLimitOptions.PartitionKey(context));
+        var options = new AbaRateLimitOptions(PermitLimit: 1, WindowSeconds: 300);
+        using var limiter = PartitionedRateLimiter.Create<HttpContext, string>(options.ForRequest);
+        using var granted = await limiter.AcquireAsync(context, 1);
+        Assert.True(granted.IsAcquired);
+
+        context.User = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim("sub", secondSubject), new Claim("sub", firstSubject),
+             new Claim("tenant_id", "tenant-two")], "Bearer"));
+        context.Request.Headers["X-Tenant-ID"] = "tenant-three";
+        context.Request.Headers["X-Forwarded-For"] = "203.0.113.22";
+        Assert.Equal("ip:192.0.2.25", AbaRateLimitOptions.PartitionKey(context));
+        using var denied = await limiter.AcquireAsync(context, 1);
+        Assert.False(denied.IsAcquired);
+        Assert.True(AbaRateLimitOptions.IsHealthPath("/health/live"));
+    }
+
+    [Fact]
+    public void SubjectClaimAliasesMustBeUnambiguousToCreateAuthenticatedPartition()
+    {
+        var context = new DefaultHttpContext();
+        context.Connection.RemoteIpAddress = IPAddress.Parse("192.0.2.25");
+        context.User = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim(ClaimTypes.NameIdentifier, "alpha"),
+             new Claim("tenant_id", "tenant-one")], "Bearer"));
+        var valid = AbaRateLimitOptions.PartitionKey(context);
+        Assert.StartsWith("jwt:", valid);
+
+        context.User = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim("sub", "alpha"), new Claim("tenant_id", "tenant-one")], "Bearer"));
+        Assert.Equal(valid, AbaRateLimitOptions.PartitionKey(context));
+
+        // Do not arbitrarily prefer sub over a second identifier, even
+        // when both claims carry identical values.
+        context.User = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim("sub", "alpha"), new Claim(ClaimTypes.NameIdentifier, "other"),
+             new Claim("tenant_id", "tenant-one")], "Bearer"));
+        Assert.Equal("ip:192.0.2.25", AbaRateLimitOptions.PartitionKey(context));
+        context.User = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim("sub", "alpha"), new Claim(ClaimTypes.NameIdentifier, "alpha"),
+             new Claim("tenant_id", "tenant-one")], "Bearer"));
+        Assert.Equal("ip:192.0.2.25", AbaRateLimitOptions.PartitionKey(context));
+    }
+
     [Fact]
     public void AnonymousPartitionUsesPeerIpNotSpoofedForwardedHeaders()
     {

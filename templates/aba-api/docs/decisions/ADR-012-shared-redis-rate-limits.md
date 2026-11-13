@@ -10,6 +10,7 @@ No business membership or trusted gateway policy is inferred. The default is OFF
   authenticated identities cannot be combined to create extra quota partitions
   and instead fall back to the connection peer. Client `X-Tenant-ID` and
   `X-Forwarded-For` do not determine the partition. A unique application namespace must be set.
+- Multiple subject identifiers in one authenticated identity (duplicate `sub`, duplicate mapped name identifier or both forms) are ambiguous: the quota key falls back to the actual TCP peer. This conservatively groups ambiguous tokens rather than selecting the first subject; it does not grant tenant membership. A single valid `sub` or mapped name identifier preserves authenticated partitioning. Local and shared Redis paths use the same key.
 - Redis server `TIME` and one atomic Lua `INCR`/`EXPIRE` operation protect
   the shared budget from lost updates and per-replica clock skew.
   A fixed window allows up to twice the quota across adjacent window boundaries.
