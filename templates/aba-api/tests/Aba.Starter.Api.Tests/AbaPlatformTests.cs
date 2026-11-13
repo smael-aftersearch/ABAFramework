@@ -80,6 +80,33 @@ public sealed class AbaPlatformTests
         Assert.True((await authorization.AuthorizeAsync(trusted, resource: null, policy)).Succeeded);
     }
 
+    [Theory]
+    [InlineData("tenant-a", "tenant-b")]
+    [InlineData("tenant-a", "tenant-a")]
+    public async Task TenantPolicyDeniesDuplicateTenantClaimsEvenInOneAuthenticatedIdentity(
+        string firstTenant, string secondTenant)
+    {
+        var principal = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim("sub", "user-1"),
+             new Claim("tenant_id", firstTenant),
+             new Claim("tenant_id", secondTenant)], "Bearer"));
+        Assert.Null(AbaTenantClaims.Resolve(principal, "tenant_id"));
+
+        var policy = AbaTenantClaims.BuildPolicy(new AbaTenantOptions(true, "tenant_id"), "Bearer");
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddAuthorization();
+        using var provider = services.BuildServiceProvider();
+        var authorization = provider.GetRequiredService<IAuthorizationService>();
+        Assert.False((await authorization.AuthorizeAsync(principal, resource: null, policy)).Succeeded);
+
+        // This is a technical identity guard, not a tenant/role membership grant.
+        var verified = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim("sub", "user-1"), new Claim("tenant_id", firstTenant)], "Bearer"));
+        Assert.Equal(firstTenant, AbaTenantClaims.Resolve(verified, "tenant_id"));
+        Assert.True((await authorization.AuthorizeAsync(verified, resource: null, policy)).Succeeded);
+    }
+
     [Fact]
     public async Task OptInTenancyPolicyRequiresAuthenticatedTenantClaim()
     {

@@ -77,7 +77,11 @@ run commands and the independent production operations checklist.
 ## PostgreSQL / SQL Server Row-Level Security
 
 The Platform includes migration-time `AbaTenantRlsPolicies.Install` DDL
-and a `AbaTenantSqlScope.RunAsync` transaction wrapper. In real SQL tests
+and a `AbaTenantSqlScope.RunAsync` transaction wrapper. Its generic request
+resolver rejects duplicate signed tenant claims, even identical values,
+instead of silently choosing one. The tenant authorization policy fails closed;
+quota partitioning does not create separate tenant buckets from conflicting
+claims. This does not establish real membership authorization. In real SQL tests
 the installed policies protect direct SQL and EF bulk mutations, not just
 tracked EF entities. No default business table or RLS migration is
 auto-installed. An authorized membership claim, reviewed migrations and

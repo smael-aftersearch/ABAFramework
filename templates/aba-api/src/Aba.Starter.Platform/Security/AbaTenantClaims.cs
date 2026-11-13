@@ -64,7 +64,16 @@ public static class AbaTenantClaims
         var identity = TrustedIdentity(principal);
         if (identity is null)
             return null;
-        var value = identity.FindFirst(claimType)?.Value;
+        // A token may carry repeated claims of the same type. Selecting the
+        // first would silently grant a tenant from an ambiguous identity.
+        // Reject even repeated identical values: authorization needs one source.
+        string? value = null;
+        foreach (var claim in identity.FindAll(claimType))
+        {
+            if (value is not null)
+                return null;
+            value = claim.Value;
+        }
         if (string.IsNullOrWhiteSpace(value) || value.Length > 128
             || !value.All(c => char.IsAsciiLetterOrDigit(c) || c is '_' or '-' or '.'))
             return null;

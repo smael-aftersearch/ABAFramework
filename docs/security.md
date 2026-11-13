@@ -116,7 +116,10 @@ The generic tenant-claim resolver now reads only the single authenticated
 `ClaimsIdentity` supplied by a verified authentication middleware pipeline;
 it must never pair a trusted authentication flag with a tenant claim from
 an unauthenticated secondary identity. Multiple authenticated identities are
-treated as ambiguous and rejected for tenant resolution. The local and
+treated as ambiguous and rejected for tenant resolution. Even inside one
+validated identity, two claims of the configured tenant type (including two
+identical values) are rejected rather than selecting the first; signed tenant
+membership is still a separate owner-approved policy. The local and
 shared Redis rate limit partitioner uses the same rule for subject and tenant,
 falling back to the actual TCP peer if no unambiguous subject exists. This
 avoids a forged secondary identity creating extra quota partitions. A genuine

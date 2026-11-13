@@ -248,7 +248,7 @@
       "status": "partial",
       "owner": "Owning business context / Security",
       "priority": "P0",
-      "delivered": "CI-verified tenant-scoped SQL transaction wrapper; direct SQL and EF ExecuteUpdate/ExecuteDelete cross-tenant denial, forged insert rejection and session isolation on both SQL engines; technical tenant claim resolver now refuses split/ambiguous principal claims (PR CI pending)",
+      "delivered": "CI-verified tenant-scoped SQL transaction wrapper with cross-tenant raw SQL/EF bulk denial on both SQL engines; split-identity tenant guard verified in CI 43357853144; duplicate tenant-claim authorization denial and quota invariants authored for PR #20 (requires exact-head CI)",
       "remaining": "Block SQL-injection tenant session spoofing, adopt real owner-context raw SQL authorization, least-privileged production accounts and DBA/Security approvals",
       "acceptance": "Cross-tenant raw SQL and bulk mutation are denied",
       "evidence": [
