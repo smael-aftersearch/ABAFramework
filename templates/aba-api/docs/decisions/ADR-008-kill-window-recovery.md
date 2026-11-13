@@ -39,9 +39,11 @@ controlled fault boundary.
 4. **Committed transactional outbox while RabbitMQ is unavailable:** an
    explicitly gated producer child starts against PostgreSQL and the exact
    labeled disposable RabbitMQ container. After the parent pauses that
-   container, the child invokes a synthetic technical command, confirms its
-   SQL receipt committed while its consumer effect is absent, and signals the
-   parent. The parent SIGKILLs that producer, unpauses RabbitMQ, starts a new
+   container, the child commits a synthetic technical receipt and
+   outbound message together through Wolverine's scoped EF Core
+   IDbContextOutbox (rather than an inline handler invocation that might
+   await a broker acknowledgement), confirms its SQL receipt committed
+   while its consumer effect is absent, and signals the parent. The parent SIGKILLs that producer, unpauses RabbitMQ, starts a new
    Wolverine host against the same SQL store and queue, and requires the
    persisted outbox message to produce one idempotent technical effect. A
    second envelope with the same logical key is then published to assert that
