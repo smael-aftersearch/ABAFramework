@@ -900,7 +900,7 @@
       "status": "partial",
       "owner": "Operations / Performance",
       "priority": "P1",
-      "delivered": "CI-verified disposable generated-API loopback drill (main CI 43356449614): 40 HTTP 200, four workers, p50/p95 and throughput; PR #18 adds exclusive private JSON evidence writes with path/overwrite/symlink rejection and focused negative tests (exact-head CI pending)",
+      "delivered": "CI-verified disposable generated-API loopback drill (main CI 43372751506): 40 HTTP 200, four workers, p50/p95 and throughput; PR #18 guards exclusive private JSON output (CI 43358127202 PASS); Queue A run 10 adds strict canonical loopback URL parsing and control-character rejection (new PR CI pending)",
       "remaining": "Set owner-approved production SLO/RTO/RPO and exercise actual provider-backed two-replica business load/failover, recovery and safe capacity thresholds; loopback liveness does not certify those",
       "acceptance": "SLO and recovery objectives measurable under load",
       "evidence": [

@@ -168,3 +168,12 @@ validated unique JWT subjects remain distinct; health stays exempt.
 The optional shared Redis gate consumes the same partition function;
 Gateway/Redis ACL and Production approvals remain separate. Exact-head .NET 10
 CI must pass before declaring the new test verified.
+
+## Queue A final bounded loopback target regression
+
+`scripts/test_ci_loopback_load.py` exercises canonical `127.0.0.1` input,
+negative raw CR/LF/TAB and noncanonical URL spellings, and the invariant that
+rejected targets send no HTTP requests. The URL parsing guard protects only
+disposable CI loopback diagnostics; it is not a load SLO, production probe or
+an authorization to send traffic to a real deployment. See issue #3 for
+exact-HEAD PR CI and completion evidence.
