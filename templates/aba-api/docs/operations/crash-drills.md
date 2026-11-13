@@ -20,6 +20,12 @@ uses scripts/verify-platform-services.sh after creating and
 building a fresh generated starter. Ordinary tests exclude
 both RecoveryDrill and CrashDrill.
 
+The broker producer crash case is a separate `BrokerCrashDrill` category.
+It requires both `ABA_ENABLE_DESTRUCTIVE_CI_DRILLS=yes` and
+`ABA_ENABLE_BROKER_OUTAGE_DRILL=yes`, PostgreSQL `aba_ci`, and the exact
+loopback disposable RabbitMQ container. Regular integrations and the
+generated `--level full` task runner exclude it.
+
 ## Phases
 
 1. The parent xUnit test starts a new nested dotnet test
@@ -38,6 +44,17 @@ both RecoveryDrill and CrashDrill.
    one matching receipt.
 4. Negative test rejects missing explicit CI flag, wrong
    provider, remote host, and production database names.
+
+5. Broker/outbox phase: a child first starts its RabbitMQ-connected host and
+   signals over a private local named pipe. The parent validates and pauses
+   only the exact disposable RabbitMQ container, then lets the child invoke a
+   synthetic technical outbox command. The child confirms the SQL command
+   receipt committed and no consumer effect exists, writes the existing
+   restricted crash marker, and blocks. The parent SIGKILLs that exact
+   producer, verifies the SQL receipt and absent effect, unpauses RabbitMQ,
+   and starts a fresh host using the same SQL database and queue. The outbox
+   message must recover into one effect; an intentional duplicate logical
+   message must create another attempt without adding an effect.
 
 These tests do not modify arbitrary product state or
 create a business API endpoint. The restored hosts use
@@ -71,6 +88,22 @@ The marker is gated by CI=true, the drill opt-in and the temp
 directory restriction. The test remains outside normal xUnit.
 No real business side effect or callback can be invoked. A failure
 in this case must be investigated, not reclassified as a pass.
+
+## Broker outage plus producer SIGKILL (authored, awaiting exact-head CI)
+
+`BrokerCrashDrill` extends the prior technical outbox outage test with an
+actual producer process kill after SQL commit. It requires both opt-ins,
+validates the loopback endpoint and exact disposable container ID/image/label,
+uses a unique queue and a named pipe for startup synchronization, and always
+unpauses the broker during cleanup. Its happy path is recovery by a fresh
+Wolverine host; the negative boundary is zero consumer effects while the
+broker is paused; the invariant is one idempotent technical effect after
+recovery and intentional duplicate delivery.
+
+This remains synthetic Platform evidence. It does not exercise a business
+Outbox, an owner-approved consumer ACK policy, an external provider effect,
+live cluster failover or production network partitions. Do not use the result
+to claim those cases are closed.
 
 ## Actual reviewed execution
 

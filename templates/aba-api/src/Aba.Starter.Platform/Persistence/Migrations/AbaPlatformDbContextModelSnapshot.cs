@@ -31,5 +31,17 @@ public sealed class AbaPlatformDbContextModelSnapshot : ModelSnapshot
             b.Property(x => x.Key).HasMaxLength(200).IsRequired();
             b.Property(x => x.CreatedUtc).IsRequired();
         });
+        modelBuilder.Entity<AbaDeadLetterInspectionReceipt>(b =>
+        {
+            b.ToTable("aba_deadletter_inspection_receipts");
+            b.HasKey(x => x.EnvelopeId);
+            b.Property(x => x.TokenHash).HasMaxLength(64).IsRequired();
+            b.Property(x => x.MessageType).HasMaxLength(1024).IsRequired();
+            b.Property(x => x.ExceptionType).HasMaxLength(1024).IsRequired();
+            b.Property(x => x.OperatorSubject).HasMaxLength(128).IsRequired();
+            b.Property(x => x.ChangeTicket).HasMaxLength(128).IsRequired();
+            b.Property(x => x.IssuedUtc).IsRequired();
+            b.Property(x => x.ExpiresUtc).IsRequired();
+        });
     }
 }

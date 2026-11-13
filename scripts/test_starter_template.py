@@ -2,6 +2,7 @@
 """No-SDK validation of the reusable, domain-neutral dotnet-new template."""
 import json
 from pathlib import Path
+import re
 import unittest
 from xml.etree import ElementTree as ET
 
@@ -42,10 +43,36 @@ class GenericTemplateTests(unittest.TestCase):
         for path in ('AGENTS.md', 'docs/ai/INDEX.md', 'docs/testing/TEST-STRATEGY.md',
                      'metadata/contexts.json', 'README.md', 'global.json',
                      '.agents/skills/aba-engineering/SKILL.md',
-                     '.agents/skills/aba-engineering/agents/openai.yaml'):
+                     '.agents/skills/aba-engineering/agents/openai.yaml',
+                     '.gitleaks.toml', '.gitleaksignore',
+                     'tools/secret_scan.py', 'tools/test_secret_scan.py'):
             with self.subTest(path=path):
                 self.assertTrue((TEMPLATE / path).is_file())
         self.assertEqual(json.loads((TEMPLATE / 'metadata/contexts.json').read_text())['contexts'], [])
+
+    def test_secret_scan_is_digest_pinned_redacted_and_packaged(self):
+        scanner = (TEMPLATE / 'tools/secret_scan.py').read_text()
+        test_tool = (TEMPLATE / 'tools/test_secret_scan.py').read_text()
+        template_workflow = (TEMPLATE / '.github/workflows/ci.yml').read_text()
+        root_workflow = (ROOT / '.github/workflows/verify.yml').read_text()
+        config = (TEMPLATE / '.gitleaks.toml').read_text()
+        digest = re.search(r'@sha256:([0-9a-f]{64})', scanner)
+        self.assertIsNotNone(digest)
+        self.assertIn('--redact=100', scanner)
+        self.assertIn('--ignore-gitleaks-allow', scanner)
+        self.assertIn('--log-opts=--all', scanner)
+        self.assertIn('capture_output=True', scanner)
+        self.assertNotIn('[allowlists]', config)
+        self.assertEqual((TEMPLATE / '.gitleaksignore').read_text().strip(), '')
+        self.assertIn('test_clean_fixture_passes', test_tool)
+        self.assertIn('test_synthetic_credential_fails_and_is_redacted', test_tool)
+        self.assertIn('secret-scan:', template_workflow)
+        self.assertIn('fetch-depth: 0', template_workflow)
+        self.assertIn('secret-scan:', root_workflow)
+        self.assertIn('secret-scan', root_workflow.split('  template-provenance:', 1)[1])
+        for required in ('tools/secret_scan.py', 'tools/test_secret_scan.py',
+                         '.gitleaks.toml', '.gitleaksignore'):
+            self.assertIn(required, (ROOT / 'scripts/pack-template.sh').read_text())
 
     def test_platform_providers_messaging_and_redis_are_real_packages(self):
         package = (TEMPLATE / 'src/Aba.Starter.Platform/Aba.Starter.Platform.csproj').read_text()
@@ -78,8 +105,10 @@ class GenericTemplateTests(unittest.TestCase):
         self.assertIn('ProductionRequiresTlsAndNonGuestCredentials', fast_tests)
         self.assertIn('RabbitMqDurableDeliveryHandlesDuplicatePayloadOnce', broker_tests)
         self.assertIn('BrokerOutageDrill', broker_tests)
+        self.assertIn('BrokerCrashDrill', broker_tests)
         self.assertIn('job.services.rabbitmq.id', workflow)
         self.assertIn('Category=BrokerOutageDrill', workflow)
+        self.assertIn('Category=BrokerCrashDrill', workflow)
         outage_step = workflow.split(
             '- name: Pause and recover only the disposable CI RabbitMQ service', 1
         )[1].split('- name: Destructive drills only against disposable local CI databases', 1)[0]
@@ -340,8 +369,12 @@ class GenericTemplateTests(unittest.TestCase):
             self.assertIn(required, code)
         self.assertIn("Category!=RecoveryDrill&Category!=CrashDrill", script)
         self.assertIn("Category!=RecoveryDrill&Category!=CrashDrill", task)
+        self.assertIn("Category!=BrokerCrashDrill", script)
+        self.assertIn("Category!=BrokerCrashDrill", task)
         self.assertIn("Category=CrashDrill", workflow)
         self.assertIn("Category=CrashDrill", script)
+        self.assertIn("Category=BrokerCrashDrill", workflow)
+        self.assertIn("ABA_ENABLE_BROKER_OUTAGE_DRILL", workflow)
 
     def test_real_redis_restart_is_isolated_and_fail_closed(self):
         source = (TEMPLATE / 'tests/Aba.Starter.Platform.IntegrationTests/RedisRestartDrillTests.cs').read_text()

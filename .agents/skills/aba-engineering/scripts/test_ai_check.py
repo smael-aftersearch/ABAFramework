@@ -45,7 +45,10 @@ print('PASS: task brief separates generic technical ownership from business cont
 
 with tempfile.TemporaryDirectory(prefix='aba-ai-readiness-') as folder:
     repo = Path(folder) / 'repo'
-    shutil.copytree(ROOT, repo, ignore=shutil.ignore_patterns('bin', 'obj', '.git', 'local-data', '__pycache__'))
+    # Visual Studio's index can be locked while the suite runs on Windows;
+    # it is generated workspace state, not part of the repository fixture.
+    shutil.copytree(ROOT, repo, ignore=shutil.ignore_patterns(
+        'bin', 'obj', '.git', '.vs', 'local-data', '__pycache__'))
 
     target = repo / 'docs/ai/knowledge-map.json'
     original = target.read_text(encoding='utf-8')

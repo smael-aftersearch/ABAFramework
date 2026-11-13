@@ -74,8 +74,7 @@ public sealed record AbaMessagingOptions(
                 if (uri.Scheme != "amqps"
                     || string.IsNullOrWhiteSpace(userName)
                     || string.IsNullOrWhiteSpace(password)
-                    || (userName.Equals("guest", StringComparison.OrdinalIgnoreCase)
-                        && password.Equals("guest", StringComparison.Ordinal)))
+                    || userName.Equals("guest", StringComparison.OrdinalIgnoreCase))
                     throw new InvalidOperationException(
                         "Production RabbitMQ requires amqps:// with a non-guest username and password.");
             }

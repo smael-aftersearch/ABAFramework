@@ -56,8 +56,8 @@ After a successful **runtime image scan**, root CI on `main` exports
 that exact tagged image with `docker save | gzip`, hashes the bytes,
 removes the local tag, loads the archive and requires that the restored
 Docker image ID equal the previously scanned ID. The archive is kept
-as a CI artifact but is **not yet signed**. Only when **all eight**
-independent governance, real-service, Redis restart, Keycloak, image,
+as a CI artifact at this stage; signing is deferred until the final provenance job. Only when **all required**
+governance, secret-scan, real-service, Redis restart, Keycloak, image,
 packaging, vulnerability and container jobs have passed does the final
 `template-provenance` job download that exact artifact, check its
 SHA256 and Docker image ID again, and issue keyless SLSA provenance
@@ -70,6 +70,10 @@ source SHA, for **both** NuGet and Docker-save artifacts. Focused
 to prove the positive/negative control flow; only the main-only GitHub
 job can actually prove cryptographic signature acceptance and denial.
 The shared verifier must be present in that job's checked-out source.
+The final provenance job also requires the digest-pinned, redacted Gitleaks
+scan of the source tree and reachable Git history; the scanner's output is
+captured and is never copied into CI logs. This new prerequisite is not
+verified until the exact changed-head CI completes successfully.
 The artifact, hash, attestation JSON and Trivy report are retained. This is stronger than signing a textual Dockerfile,
 but it does **not** sign a published OCI registry manifest digest.
 

@@ -363,13 +363,15 @@
       "status": "implemented",
       "owner": "Developer tools",
       "priority": "P1",
-      "delivered": "--with-db creates empty context-owned DbContext for both SQL engines",
-      "remaining": "No business entities, actual migrations or policies are invented",
-      "acceptance": "Fresh generated context compiles and provider registration tests pass",
+      "delivered": "--with-db creates an empty context-owned DbContext for both SQL engines and now authors provider-aware EF design-time tooling from ABA_DB_PROVIDER / ABA_DB_CONNECTION; no business entities or migrations are invented",
+      "remaining": "Actual business entities, migrations and policies still require the named context owner",
+      "acceptance": "Fresh generated context compiles; provider registration and design-time configuration tests pass",
       "evidence": [
-        "templates/aba-api/tools/new_context.py"
+        "templates/aba-api/tools/new_context.py",
+        "templates/aba-api/tools/test_aba_task.py"
       ],
       "tests": [
+        "templates/aba-api/tools/test_aba_task.py",
         "scripts/verify-starter.sh"
       ]
     },
@@ -516,17 +518,21 @@
       "status": "partial",
       "owner": "Platform / Operations",
       "priority": "P0",
-      "delivered": "CI-verified opt-in Wolverine poison quarantine, metadata-only inspection and exact-ID audited replay on both SQL providers; single-authenticated-identity binding verified in PR #16 CI 43356676386; exact-one operator sub claim ambiguity denial and audit/replay no-op regressions pass in the generated API suite; DeadLetterOperatorIntegrationTests passed on both SQL providers in exact-head CI 43471120522. Production operator/tenant policy remains open.",
-      "remaining": "Issue real signed operator IdP permission, tenant-scoped message store authorization, replay dedup/business compensation, volume limits and approved production runbook",
+      "delivered": "CI-verified opt-in Wolverine poison quarantine, metadata-only inspection and exact-ID audited replay on both SQL providers; single-authenticated-identity binding verified in PR #16 CI 43356676386; exact-one operator sub claim ambiguity denial and dual-provider replay regressions passed in exact-head CI 43472910020. A persisted five-minute one-use inspection receipt bound to envelope/types/operator/ticket now passes local generated-template unit tests; dual-provider integration remains NOT_RUN locally because Docker is unavailable.",
+      "remaining": "Issue real signed operator IdP permission, tenant-scoped message store authorization, business replay idempotency/compensation, volume and receipt-retention policy, and approved production runbook",
       "acceptance": "Poison message is quarantined, inspected and safely replayed exactly as intended",
       "evidence": [
         "templates/aba-api/src/Aba.Starter.Platform/Messaging/AbaDeadLetterAdministration.cs",
+        "templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaPlatformDbContext.cs",
+        "templates/aba-api/src/Aba.Starter.Platform/Persistence/Migrations/202611130002_DeadLetterInspectionReceipts.cs",
         "templates/aba-api/src/Aba.Starter.Platform/Messaging/AbaDurabilityProbe.cs",
         "templates/aba-api/docs/decisions/ADR-007-wolverine-deadletter-operator.md",
         "docs/testing/evidence/local-sql-integration-baseline.json"
       ],
       "tests": [
         "templates/aba-api/tests/Aba.Starter.Api.Tests/DeadLetterOperatorGuardTests.cs",
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/DeadLetterSummaryRedactionTests.cs",
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/DeadLetterInspectionReceiptTests.cs",
         "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/DeadLetterOperatorIntegrationTests.cs"
       ]
     },
@@ -537,17 +543,21 @@
       "status": "partial",
       "owner": "Platform / Operations",
       "priority": "P0",
-      "delivered": "CI-verified real SIGKILL on both PostgreSQL and SQL Server: uncommitted SQL rollback, durable Wolverine schedule recovery and genuine pre-ACK redelivery after one separately committed idempotent technical effect (8/8 CrashDrill cases); strict CI-only crash-marker path, symlink and no-overwrite guards passed again in exact-head CI 43471120522, including both provider kill drills.",
+      "delivered": "CI-verified real SIGKILL on both PostgreSQL and SQL Server: uncommitted SQL rollback, durable Wolverine schedule recovery and genuine pre-ACK redelivery after one separately committed idempotent technical effect (8/8 CrashDrill cases). The additional disposable PostgreSQL/RabbitMQ crash/recovery drill is authored and the integration project builds locally with zero warnings; live service execution is NOT_RUN locally because Docker is unavailable. Strict crash-marker guards passed in exact-head CI 43471120522.",
       "remaining": "Owner-specific transactional business Outbox COMMIT/publish/consumer ACK fault tests, external provider side-effect deduplication, broker partitions, multi-node fencing and Production recovery approvals",
       "acceptance": "No message loss across abrupt process death and controlled duplicate deliveries",
       "evidence": [
         "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbruptCrashWindowTests.cs",
+    "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/RabbitMqIntegrationTests.cs",
+    "templates/aba-api/.github/workflows/integration.yml",
+    ".github/workflows/verify.yml",
         "scripts/verify-platform-services.sh",
         "templates/aba-api/docs/decisions/ADR-008-kill-window-recovery.md",
         "templates/aba-api/src/Aba.Starter.Platform/Messaging/AbaDurabilityProbe.cs"
       ],
       "tests": [
         "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbruptCrashWindowTests.cs",
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/RabbitMqIntegrationTests.cs",
         "scripts/test_starter_template.py"
       ]
     },
@@ -558,7 +568,7 @@
       "status": "partial",
       "owner": "Platform",
       "priority": "P1",
-      "delivered": "Opt-in Wolverine RabbitMQ with tracked publisher confirms plus opt-in Wolverine Kafka; owner-supplied versioned routes; Development-only topology provisioning; RabbitMQ AMQP TLS and Kafka SASL_SSL production guards; Kafka idempotent producer with acks=all; connection/secret redaction. Local API xUnit 209/209, integration project Release build, verify-starter.sh generation/build/test/HTTP smoke, and pack-template.sh package install/build/test pass. Exact-head CI 43471120522 passed RabbitMQ duplicate delivery on PostgreSQL and SQL Server, Kafka duplicate delivery on both providers (4/4) and the disposable RabbitMQ outage/recovery test. Local live broker cases are NOT_RUN because Docker Desktop is unavailable.",
+      "delivered": "Opt-in Wolverine RabbitMQ with tracked publisher confirms plus opt-in Wolverine Kafka; owner-supplied versioned routes; Development-only topology provisioning; RabbitMQ AMQP TLS and Kafka SASL_SSL production guards; Kafka idempotent producer with acks=all; connection/secret redaction. Production RabbitMQ also rejects the built-in guest username case-insensitively even with a custom password; the regression passes in local API xUnit (215/215). Integration project Release build passes with zero warnings. Exact-head CI 43472910020 passed RabbitMQ duplicate delivery on PostgreSQL and SQL Server, Kafka duplicate delivery on both providers (4/4) and disposable RabbitMQ outage/recovery. Local live broker cases are NOT_RUN because Docker Desktop is unavailable.",
       "remaining": "Review owner-approved Production topology/ACLs, broker membership, retry/dead-letter policy, schema/partition policy and business consumers. Generic full verification outside the dedicated GitHub Actions service job reports NOT_RUN for external services.",
       "acceptance": "Invalid bootstrap/security configuration is rejected before connection without echoing secret values; Production broker security is enforced; duplicate RabbitMQ and Kafka deliveries yield one technical effect against PostgreSQL and SQL Server; the confirmed durable RabbitMQ outbox delivers after a broker pause/recovery.",
       "evidence": [
@@ -673,14 +683,16 @@
       "status": "partial",
       "owner": "Platform",
       "priority": "P1",
-      "delivered": "Optional tracing/metrics instrumentation and OTLP exporter wiring; endpoint URL validation refuses embedded credentials, queries and fragments before OTLP exporter configuration; exact-head CI 43471120522 passed the real generated API OTLP/gRPC collector trace and metrics probe.",
+      "delivered": "Optional tracing/metrics instrumentation and OTLP exporter wiring; endpoint URL validation refuses embedded credentials, queries and fragments before exporter configuration; low-cardinality cache read outcome and source-load count/duration metrics expose no tenant, scope, key or exception dimensions, with local API xUnit regression tests passing (215/215). Exact-head CI 43472910020 passed the prior generated API OTLP/gRPC collector trace and metrics probe.",
       "remaining": "Approve production PII/sampling/correlation policy and prove the deployed collector destination, trust and retention behavior; CI proves only the generated-API disposable collector path.",
       "acceptance": "Collector receives correlated spans/metrics without secrets",
       "evidence": [
-        "templates/aba-api/src/Aba.Starter.Platform/Observability/AbaObservabilityServices.cs"
+        "templates/aba-api/src/Aba.Starter.Platform/Observability/AbaObservabilityServices.cs",
+        "templates/aba-api/src/Aba.Starter.Platform/Caching/AbaCacheTelemetry.cs"
       ],
       "tests": [
         "templates/aba-api/tests/Aba.Starter.Api.Tests/AbaPlatformTests.cs",
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/CacheTelemetryTests.cs",
         "scripts/verify-otel-collector.sh"
       ]
     },
@@ -732,14 +744,22 @@
       "id": "ops-prod-secrets",
       "area": "Operations",
       "feature": "Production secrets, key rotation and policy",
-      "status": "not_started",
+      "status": "partial",
       "owner": "Operations / Security",
       "priority": "P0",
-      "delivered": "Not implemented",
-      "remaining": "Add approved secret store, rotation and least-privilege deployment setup",
+      "delivered": "Root and generated-template CI now use a source/reachable-history Gitleaks scan pinned by immutable OCI digest; the isolated container has no network/write access and scanner output is suppressed. Synthetic-token positive/negative unit tests pass (4 tests, 2 Docker-backed fixture checks skipped); the actual local source/history scan is NOT_RUN because Docker is unavailable, and CI fails closed when its scanner cannot run.",
+      "remaining": "Select and implement the approved production secret store, workload identity, rotation, least-privilege DB/cache/broker accounts, and verify secrets are absent from built images and operational logs",
       "acceptance": "No plaintext production secret in repo/container/CI logs",
-      "evidence": [],
-      "tests": []
+      "evidence": [
+        "templates/aba-api/tools/secret_scan.py",
+        "templates/aba-api/.github/workflows/ci.yml",
+        ".github/workflows/verify.yml",
+        "docs/security.md"
+      ],
+      "tests": [
+        "templates/aba-api/tools/test_secret_scan.py",
+        "scripts/test_starter_template.py"
+      ]
     },
     {
       "id": "dev-dotnetnew",

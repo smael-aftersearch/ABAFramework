@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using System.IO.Pipes;
 using System.Net.Sockets;
+using System.Text;
 using System.Text.RegularExpressions;
 using Aba.Starter.Platform;
 using Aba.Starter.Platform.Messaging;
@@ -125,6 +127,133 @@ public sealed class RabbitMqIntegrationTests
         }
     }
 
+    [Fact]
+    [Trait("Category", "BrokerCrashDrill")]
+    public async Task KilledProducerRecoversCommittedOutboxAfterBrokerReturns()
+    {
+        AbruptCrashWindowTests.RequireBrokerCrashDrill(
+            Environment.GetEnvironmentVariable("CI") == "true",
+            Environment.GetEnvironmentVariable("ABA_ENABLE_DESTRUCTIVE_CI_DRILLS") == "yes",
+            Environment.GetEnvironmentVariable("ABA_ENABLE_BROKER_OUTAGE_DRILL") == "yes");
+
+        var containerId = RequiredEnvironment("ABA_TEST_RABBITMQ_CONTAINER_ID");
+        Assert.Matches(new Regex("^[a-fA-F0-9]{12,64}$", RegexOptions.CultureInvariant), containerId);
+        var rabbitConnection = RequiredEnvironment("ABA_TEST_RABBITMQ");
+        var endpoint = new Uri(rabbitConnection);
+        Assert.True(endpoint.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+            || endpoint.Host == "127.0.0.1" || endpoint.Host == "::1",
+            "The crash-window drill only accepts a loopback RabbitMQ endpoint.");
+        var databaseConnection = RequiredEnvironment("ABA_TEST_POSTGRESQL");
+        AbruptCrashWindowTests.RequireCurrentFixture("PostgreSql", databaseConnection);
+        await VerifyDisposableRabbitContainerAsync(containerId);
+
+        var id = Guid.NewGuid();
+        var queue = "aba.technical.crash-outbox.v1." + Guid.NewGuid().ToString("N");
+        var pipeName = "aba-crash-" + Guid.NewGuid().ToString("N");
+        var directory = Path.Combine(Path.GetTempPath(), "aba-crash-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var marker = Path.Combine(directory, "child-ready.marker");
+        Process? child = null;
+        var brokerPaused = false;
+        try
+        {
+            AbaCrashAckProbeHandler.RequireIsolatedCrashMarker(marker, ci: true, explicitlyEnabled: true);
+            await using var pipe = new NamedPipeServerStream(
+                pipeName, PipeDirection.InOut, 1,
+                PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
+            var childProcess = Process.Start(AbruptCrashWindowTests.CreateCrashWorkerStartInfo(
+                "PostgreSql", "broker-outbox", id, marker, queue, pipeName))
+                ?? throw new InvalidOperationException("Could not launch the broker crash-window worker.");
+            child = childProcess;
+
+            await pipe.WaitForConnectionAsync().WaitAsync(TimeSpan.FromMinutes(2));
+            using var reader = new StreamReader(pipe, Encoding.ASCII,
+                detectEncodingFromByteOrderMarks: false, bufferSize: 1024, leaveOpen: true);
+            using var writer = new StreamWriter(pipe, Encoding.ASCII,
+                bufferSize: 1024, leaveOpen: true) { AutoFlush = true };
+            Assert.Equal("host-ready", await reader.ReadLineAsync().WaitAsync(TimeSpan.FromMinutes(1)));
+
+            await RunDockerAsync("pause", containerId);
+            brokerPaused = true;
+            await writer.WriteLineAsync("invoke-outbox");
+
+            var signalled = false;
+            for (var i = 0; i < 240; i++)
+            {
+                if (File.Exists(marker)) { signalled = true; break; }
+                if (childProcess.HasExited)
+                    throw new InvalidOperationException(
+                        "The broker crash worker exited before the committed-outbox marker.");
+                await Task.Delay(250);
+            }
+            Assert.True(signalled, "Timed out before the producer committed its outbox command.");
+            Assert.Equal("outbox-committed-broker-paused", File.ReadAllText(marker));
+
+            childProcess.Kill(entireProcessTree: true);
+            await childProcess.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(15));
+            Assert.NotEqual(0, childProcess.ExitCode);
+            Assert.Equal(1, await AbruptCrashWindowTests.ReceiptCountAsync(
+                "PostgreSql", databaseConnection, "aba-outbox-transaction", id.ToString("N")));
+            Assert.Equal(0, await AbruptCrashWindowTests.ReceiptCountAsync(
+                "PostgreSql", databaseConnection, "aba-durability-probe", id.ToString("N")));
+
+            await RunDockerAsync("unpause", containerId);
+            brokerPaused = false;
+
+            await using var recovered = await StartMessagingHostAsync(
+                "PostgreSql", databaseConnection, rabbitConnection, queue);
+            await WaitForReceiptAsync(recovered.Services, "aba-durability-probe", id,
+                TimeSpan.FromSeconds(90));
+            await using (var scope = recovered.Services.CreateAsyncScope())
+            {
+                var bus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
+                await bus.PublishAsync(new AbaDurabilityProbe(id, Guid.NewGuid()));
+            }
+
+            var duplicateDelivered = false;
+            for (var i = 0; i < 180; i++)
+            {
+                if (await ReadAttemptReceiptCountAsync(recovered.Services, id) >= 2)
+                {
+                    duplicateDelivered = true;
+                    break;
+                }
+                await Task.Delay(250);
+            }
+            Assert.True(duplicateDelivered,
+                "The intentional duplicate technical envelope did not reach the recovered host.");
+            await Task.Delay(TimeSpan.FromSeconds(2));
+            Assert.Equal(1, await ReadReceiptCountAsync(
+                recovered.Services, "aba-durability-probe", id));
+            Assert.True(await ReadAttemptReceiptCountAsync(recovered.Services, id) >= 2,
+                "Expected the recovered envelope and the deliberate duplicate attempt.");
+        }
+        finally
+        {
+            try
+            {
+                if (brokerPaused)
+                    await RunDockerAsync("unpause", containerId);
+            }
+            finally
+            {
+                try
+                {
+                    if (child is not null && !child.HasExited)
+                    {
+                        child.Kill(entireProcessTree: true);
+                        await child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(15));
+                    }
+                }
+                finally
+                {
+                    child?.Dispose();
+                    Directory.Delete(directory, recursive: true);
+                }
+            }
+        }
+    }
+
     private static async Task<WebApplication> StartMessagingHostAsync(
         string provider, string databaseConnection, string rabbitConnection, string queue)
     {
@@ -205,6 +334,16 @@ public sealed class RabbitMqIntegrationTests
         var db = verification.ServiceProvider.GetRequiredService<AbaPlatformDbContext>();
         return await db.IdempotencyReceipts.AsNoTracking().CountAsync(x =>
             x.Scope == scope && x.Key == messageId.ToString("N"));
+    }
+
+    private static async Task<int> ReadAttemptReceiptCountAsync(
+        IServiceProvider services, Guid messageId)
+    {
+        await using var verification = services.CreateAsyncScope();
+        var db = verification.ServiceProvider.GetRequiredService<AbaPlatformDbContext>();
+        var prefix = messageId.ToString("N") + ":";
+        return await db.IdempotencyReceipts.AsNoTracking().CountAsync(x =>
+            x.Scope == "aba-durability-probe-attempt" && x.Key.StartsWith(prefix));
     }
 
     private static async Task VerifyDisposableRabbitContainerAsync(string id)

@@ -55,10 +55,7 @@ public sealed class ReadThroughQueryCache(
         var readFailed = false;
         try
         {
-            var cached = await cache.TryGetAsync<T>(scope, key, ct);
-            // A cache provider may ignore cancellation during I/O; do not return
-            // a cached value after the caller has withdrawn the request.
-            ct.ThrowIfCancellationRequested();
+            var cached = await ReadCacheAsync<T>(scope, key, ct);
             if (cached.Found)
                 return cached.Value!;
         }
@@ -91,8 +88,7 @@ public sealed class ReadThroughQueryCache(
                 readFailed = false;
                 try
                 {
-                    var cachedAfterCoordination = await cache.TryGetAsync<T>(scope, key, ct);
-                    ct.ThrowIfCancellationRequested();
+                    var cachedAfterCoordination = await ReadCacheAsync<T>(scope, key, ct);
                     if (cachedAfterCoordination.Found)
                         return cachedAfterCoordination.Value!;
                     readFailed = false;
@@ -125,7 +121,7 @@ public sealed class ReadThroughQueryCache(
             if (distributedLease is not null)
                 await distributedCoordinator!.AcquireSourceLoadPermitAsync(sourceToken);
 
-            var fresh = await loadFromSource(sourceToken);
+            var fresh = await AbaCacheTelemetry.MeasureSourceLoadAsync(loadFromSource, sourceToken);
             // A source callback can ignore cancellation. Do not return or cache
             // a result after the caller or a distributed lease has been lost.
             sourceToken.ThrowIfCancellationRequested();
@@ -150,6 +146,35 @@ public sealed class ReadThroughQueryCache(
             coordinatedSource?.Dispose();
             if (distributedLease is not null)
                 await distributedLease.DisposeAsync();
+        }
+    }
+
+    private async Task<(bool Found, T? Value)> ReadCacheAsync<T>(
+        string scope, string key, CancellationToken ct)
+    {
+        try
+        {
+            var cached = await cache.TryGetAsync<T>(scope, key, ct);
+            // A cache provider may ignore cancellation during I/O; do not return
+            // a cached value after the caller has withdrawn the request.
+            ct.ThrowIfCancellationRequested();
+            AbaCacheTelemetry.RecordCacheRead(cached.Found ? "hit" : "miss");
+            return cached;
+        }
+        catch (OperationCanceledException)
+        {
+            AbaCacheTelemetry.RecordCacheRead("cancelled");
+            throw;
+        }
+        catch (JsonException)
+        {
+            AbaCacheTelemetry.RecordCacheRead("corrupt");
+            throw;
+        }
+        catch
+        {
+            AbaCacheTelemetry.RecordCacheRead("error");
+            throw;
         }
     }
 

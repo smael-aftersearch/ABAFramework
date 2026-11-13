@@ -30,8 +30,8 @@ invent auditable business decisions or grant wildcard message replay.
 For process-death and independent audit integrity changes
 also read docs/decisions/ADR-008-kill-window-recovery.md and
 docs/decisions/ADR-009-offline-audit-checkpoints.md. The
-CrashDrill category is opt-in and must never kill customer
-processes or target real business databases.
+CrashDrill and BrokerCrashDrill categories are opt-in and must
+never kill customer processes or target real business databases.
 
 For Redis outage, cache-miss concurrency or container provenance
 read ADR-010-cache-singleflight-redis-restart.md and

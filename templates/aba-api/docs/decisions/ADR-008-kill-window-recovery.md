@@ -8,9 +8,9 @@ Date: 2026-11-13
 
 A graceful ASP.NET shutdown or injected exception is NOT evidence that
 PostgreSQL, SQL Server, EF and Wolverine survive abrupt process death.
-A new independent integration category, CrashDrill, launches an actual
-child dotnet testhost process and kills that process tree after a
-per-case marker confirms one of two exact fault boundaries.
+The independent CrashDrill category launches an actual child dotnet testhost
+process and kills that process tree after a per-case marker confirms a
+controlled fault boundary.
 
 1. **SQL flushed but uncommitted:** child starts a real SQL transaction,
    inserts an idempotency receipt and calls SaveChangesAsync, then
@@ -36,9 +36,21 @@ per-case marker confirms one of two exact fault boundaries.
    a lost consumer ACK after an independently committed effect,
    without using any real business side effects or public route.
 
-All results are verified separately on real PostgreSQL 16 and
-SQL Server 2022 containers. The test uses unique GUID receipts and
-marker paths and never registers a new public HTTP fault route.
+4. **Committed transactional outbox while RabbitMQ is unavailable:** an
+   explicitly gated producer child starts against PostgreSQL and the exact
+   labeled disposable RabbitMQ container. After the parent pauses that
+   container, the child invokes a synthetic technical command, confirms its
+   SQL receipt committed while its consumer effect is absent, and signals the
+   parent. The parent SIGKILLs that producer, unpauses RabbitMQ, starts a new
+   Wolverine host against the same SQL store and queue, and requires the
+   persisted outbox message to produce one idempotent technical effect. A
+   second envelope with the same logical key is then published to assert that
+   delivery does not duplicate that effect.
+
+The original three CrashDrill boundaries are verified separately on real
+PostgreSQL 16 and SQL Server 2022 containers. The broker case uses the
+PostgreSQL fixture only. Tests use unique GUID receipts and marker paths and
+never register a new public HTTP fault route.
 
 ## Fail-closed safety constraints
 
@@ -51,10 +63,17 @@ Only an exact child process created by the test is killed; no
 external or user-provided PID is accepted. Negative cases reject
 remote/production targets, wrong databases and missing opt-in.
 
-Normal external tests explicitly exclude CrashDrill. Root CI
-runs the isolated category after regular infrastructure and native
-backup/restore tests; generated products expose a manually dispatched
-integration workflow with the same fail-closed gate. No auto-killing
+The broker crash-window case additionally requires
+ABA_ENABLE_BROKER_OUTAGE_DRILL=yes, a loopback RabbitMQ endpoint, the
+workflow-provided container ID, exact `rabbitmq:4.4.0-management-alpine`
+image and `aba.test.disposable=true` label. It uses only PostgreSQL's
+disposable `aba_ci` database. The drill always unpauses the verified broker
+and kills the child if cleanup begins while it is still running.
+
+Normal external tests explicitly exclude CrashDrill and BrokerCrashDrill.
+Root CI runs the isolated categories after regular infrastructure and
+native backup/restore tests; generated products expose a manually dispatched
+integration workflow with the same fail-closed gates. No auto-killing
 ordinary developer or Production hosts.
 
 ## Boundaries and next steps
@@ -90,3 +109,20 @@ message guarantee, business handler or external ACK coverage.
 ## First proven CI run
 
 [Run 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289) passed all 8 CrashDrill cases and 8/8 jobs. The SQL Server ACK-recovery case completed in 77 seconds; PostgreSQL in 79 seconds. Neither exercised Production privileges nor a context-owned real message contract.
+
+## Broker outage plus producer SIGKILL (authored, awaiting exact-head CI)
+
+`BrokerCrashDrill` is separate from both the regular integration suite and
+the existing `BrokerOutageDrill`. It starts a RabbitMQ-connected synthetic
+producer, synchronizes over a private local named pipe, pauses only the
+verified disposable broker, and lets the child commit the technical
+transactional-outbox command. The parent observes one command receipt and no
+consumer effect, kills the exact producer child, unpauses RabbitMQ, and starts
+a fresh host. Recovery must create one effect; a deliberately repeated
+logical message must produce another attempt while leaving that effect count
+at one. Both destructive-drill and broker-outage opt-ins are required.
+
+This extends only technical persistence and recovery evidence. It does not
+claim the same outcome for a business Outbox, a live handler, a consumer ACK
+crash window, or an external provider side effect. Code and tests are authored;
+the drill remains unverified until the exact change runs in isolated CI.

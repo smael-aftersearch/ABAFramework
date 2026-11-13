@@ -94,7 +94,7 @@ public sealed class DeadLetterOperatorIntegrationTests
             ]));
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
                 admin.RequestReplayAsync(dead.Id, dead.MessageType, dead.ExceptionType,
-                    anonymous, "ticket-test-123"));
+                    "not-a-receipt", anonymous, "ticket-test-123"));
             var authenticated = new ClaimsPrincipal(new ClaimsIdentity([
                 new Claim("sub", "operator-1"),
                 new Claim(AbaDeadLetterAdministration.PermissionClaim, "deadletters:inspect"),
@@ -141,22 +141,22 @@ public sealed class DeadLetterOperatorIntegrationTests
                 .GetRequiredService<AbaAuditLedger>().VerifyAsync("system");
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
                 admin.RequestReplayAsync(dead.Id, dead.MessageType, dead.ExceptionType,
-                    splitPermission, "ticket-test-123"));
+                    "not-a-receipt", splitPermission, "ticket-test-123"));
             // Missing authenticated sub is an authorization denial, not
             // an argument-shape error, under the new exact-one-sub rule.
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
                 admin.InspectAsync(dead.Id, splitSubject, "ticket-test-123"));
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
                 admin.RequestReplayAsync(dead.Id, dead.MessageType, dead.ExceptionType,
-                    ambiguousAuthenticated, "ticket-test-123"));
+                    "not-a-receipt", ambiguousAuthenticated, "ticket-test-123"));
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
                 admin.InspectAsync(dead.Id, conflictingSubjects, "ticket-test-123"));
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
                 admin.RequestReplayAsync(dead.Id, dead.MessageType, dead.ExceptionType,
-                    conflictingSubjects, "ticket-test-123"));
+                    "not-a-receipt", conflictingSubjects, "ticket-test-123"));
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
                 admin.RequestReplayAsync(dead.Id, dead.MessageType, dead.ExceptionType,
-                    repeatedSubject, "ticket-test-123"));
+                    "not-a-receipt", repeatedSubject, "ticket-test-123"));
             var auditAfterDenials = await scope.ServiceProvider
                 .GetRequiredService<AbaAuditLedger>().VerifyAsync("system");
             Assert.True(auditAfterDenials.Valid, auditAfterDenials.Reason);
@@ -164,21 +164,99 @@ public sealed class DeadLetterOperatorIntegrationTests
             Assert.False((await store.DeadLetters.DeadLetterEnvelopeByIdAsync(dead.Id))!.Replayable);
 
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                admin.RequestReplayAsync(dead.Id, "wrong-message", dead.ExceptionType,
-                    authenticated, "ticket-test-123"));
+                admin.RequestReplayAsync(dead.Id, dead.MessageType, dead.ExceptionType,
+                    "not-a-receipt", authenticated, "ticket-test-123"));
+
             var inspected = await admin.InspectAsync(dead.Id, authenticated, "ticket-test-123");
             Assert.Equal(dead.MessageType, inspected.MessageType);
             Assert.Equal(dead.ExceptionType, inspected.ExceptionType);
+            Assert.False(string.IsNullOrWhiteSpace(inspected.ReplayToken));
+            Assert.Equal(43, inspected.ReplayToken!.Length);
+            var db = scope.ServiceProvider.GetRequiredService<AbaPlatformDbContext>();
+            var persistedReceipt = await db.DeadLetterInspectionReceipts.AsNoTracking()
+                .SingleAsync(x => x.EnvelopeId == dead.Id);
+            Assert.NotEqual(inspected.ReplayToken, persistedReceipt.TokenHash);
+            Assert.Equal(64, persistedReceipt.TokenHash.Length);
+            Assert.Equal("operator-1", persistedReceipt.OperatorSubject);
+            Assert.Equal("ticket-test-123", persistedReceipt.ChangeTicket);
+            Assert.Null(persistedReceipt.ConsumedUtc);
+            Assert.Equal(AbaDeadLetterAdministration.InspectionReceiptLifetime,
+                persistedReceipt.ExpiresUtc - persistedReceipt.IssuedUtc);
+
+            var replacedInspection = await admin.InspectAsync(dead.Id, authenticated, "ticket-test-123");
+            Assert.NotEqual(inspected.ReplayToken, replacedInspection.ReplayToken);
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                admin.RequestReplayAsync(dead.Id, dead.MessageType, dead.ExceptionType,
+                    inspected.ReplayToken!, authenticated, "ticket-test-123"));
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                admin.RequestReplayAsync(dead.Id, "wrong-message", dead.ExceptionType,
+                    replacedInspection.ReplayToken!, authenticated, "ticket-test-123"));
+            var otherOperator = new ClaimsPrincipal(new ClaimsIdentity([
+                new Claim("sub", "operator-2"),
+                new Claim(AbaDeadLetterAdministration.PermissionClaim, "deadletters:replay")
+            ], "validated-operator-identity"));
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                admin.RequestReplayAsync(dead.Id, dead.MessageType, dead.ExceptionType,
+                    replacedInspection.ReplayToken!, otherOperator, "ticket-test-123"));
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                admin.RequestReplayAsync(dead.Id, dead.MessageType, dead.ExceptionType,
+                    replacedInspection.ReplayToken!, authenticated, "ticket-other-123"));
+
+            await db.DeadLetterInspectionReceipts
+                .Where(x => x.EnvelopeId == dead.Id)
+                .ExecuteUpdateAsync(update => update
+                    .SetProperty(x => x.ExpiresUtc, DateTimeOffset.UtcNow.AddSeconds(-1)));
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                admin.RequestReplayAsync(dead.Id, dead.MessageType, dead.ExceptionType,
+                    replacedInspection.ReplayToken!, authenticated, "ticket-test-123"));
+            var refreshedInspection = await admin.InspectAsync(dead.Id, authenticated, "ticket-test-123");
+            Assert.NotEqual(replacedInspection.ReplayToken, refreshedInspection.ReplayToken);
+
+            // Model a process interruption after receipt consumption but
+            // before Wolverine marks the envelope replayable. A fresh inspect
+            // is refused during the active safety window, then can issue a new
+            // receipt after expiry only because it re-read a non-replayable row.
+            await db.DeadLetterInspectionReceipts
+                .Where(x => x.EnvelopeId == dead.Id)
+                .ExecuteUpdateAsync(update => update
+                    .SetProperty(x => x.ConsumedUtc, DateTimeOffset.UtcNow)
+                    .SetProperty(x => x.ExpiresUtc, DateTimeOffset.UtcNow.AddMinutes(5)));
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                admin.InspectAsync(dead.Id, authenticated, "ticket-test-123"));
+            await db.DeadLetterInspectionReceipts
+                .Where(x => x.EnvelopeId == dead.Id)
+                .ExecuteUpdateAsync(update => update
+                    .SetProperty(x => x.ConsumedUtc, DateTimeOffset.UtcNow.AddMinutes(-6))
+                    .SetProperty(x => x.ExpiresUtc, DateTimeOffset.UtcNow.AddMinutes(5)));
+            var retryInspection = await admin.InspectAsync(dead.Id, authenticated, "ticket-test-123");
+            Assert.NotEqual(refreshedInspection.ReplayToken, retryInspection.ReplayToken);
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                admin.RequestReplayAsync(dead.Id, dead.MessageType, dead.ExceptionType,
+                    refreshedInspection.ReplayToken!, authenticated, "ticket-test-123"));
 
             // Simulate a corrected dependency before touching the dead letter.
-            var db = scope.ServiceProvider.GetRequiredService<AbaPlatformDbContext>();
             db.IdempotencyReceipts.Add(new IdempotencyReceipt
             {
                 Scope = "aba-poison-fixed", Key = key, CreatedUtc = DateTimeOffset.UtcNow
             });
             await db.SaveChangesAsync();
-            Assert.True(await admin.RequestReplayAsync(dead.Id, dead.MessageType,
-                dead.ExceptionType, authenticated, "ticket-test-123"));
+            var concurrentReplayResults = await Task.WhenAll(Enumerable.Range(0, 2).Select(async _ =>
+            {
+                await using var replayScope = app.Services.CreateAsyncScope();
+                var replayAdmin = replayScope.ServiceProvider
+                    .GetRequiredService<AbaDeadLetterAdministration>();
+                try
+                {
+                    return await replayAdmin.RequestReplayAsync(dead.Id, dead.MessageType,
+                        dead.ExceptionType, retryInspection.ReplayToken!, authenticated,
+                        "ticket-test-123");
+                }
+                catch (InvalidOperationException)
+                {
+                    return false;
+                }
+            }));
+            Assert.Single(concurrentReplayResults, x => x);
 
             var handled = false;
             for (var i = 0; i < 120; i++)

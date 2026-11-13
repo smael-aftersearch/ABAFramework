@@ -33,7 +33,7 @@ if [[ "${ABA_ENABLE_SHARED_RATE_LIMIT_PROCESS_DRILL:-}" == "yes" ]]; then
   python3 "$ROOT/scripts/verify_shared_rate_limit_processes.py" \
     --dll "$DIR/generic/src/Pilot.Backends.Api/bin/Release/net10.0/Pilot.Backends.Api.dll"
 fi
-dotnet test "$INTEGRATION" -c Release --no-build --filter 'Category!=RecoveryDrill&Category!=CrashDrill&Category!=RedisRestartDrill&Category!=BrokerOutageDrill' --logger 'console;verbosity=normal'
+dotnet test "$INTEGRATION" -c Release --no-build --filter 'Category!=RecoveryDrill&Category!=CrashDrill&Category!=RedisRestartDrill&Category!=BrokerOutageDrill&Category!=BrokerCrashDrill' --logger 'console;verbosity=normal'
 if [[ "${ABA_ENABLE_DESTRUCTIVE_CI_DRILLS:-}" == "yes" ]]; then
   # Both providers receive disposable, uniquely named databases. Never run
   # against production targets; the C# fixture independently enforces CI-only
@@ -45,5 +45,10 @@ if [[ "${ABA_ENABLE_DESTRUCTIVE_CI_DRILLS:-}" == "yes" ]]; then
 fi
 if [[ "${ABA_ENABLE_BROKER_OUTAGE_DRILL:-}" == "yes" ]]; then
   dotnet test "$INTEGRATION" -c Release --no-build --filter 'Category=BrokerOutageDrill' --logger 'console;verbosity=normal'
+fi
+if [[ "${ABA_ENABLE_DESTRUCTIVE_CI_DRILLS:-}" == "yes" && "${ABA_ENABLE_BROKER_OUTAGE_DRILL:-}" == "yes" ]]; then
+  # Kill only the synthetic producer after SQL commits the outbox while the
+  # exact disposable RabbitMQ service is paused; recover on a new host.
+  dotnet test "$INTEGRATION" -c Release --no-build --filter 'Category=BrokerCrashDrill' --logger 'console;verbosity=normal'
 fi
 echo "PASS: PostgreSQL, SQL Server, Redis, RabbitMQ, Kafka and Wolverine message probes on generated project"

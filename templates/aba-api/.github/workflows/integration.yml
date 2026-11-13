@@ -150,6 +150,18 @@ jobs:
           dotnet test tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj \
             -c Release --no-build --filter 'Category=CrashDrill' \
             --logger 'console;verbosity=normal'
+      - name: Kill the outbox producer during RabbitMQ outage and recover
+        env:
+          CI: "true"
+          ABA_ENABLE_DESTRUCTIVE_CI_DRILLS: "yes"
+          ABA_ENABLE_BROKER_OUTAGE_DRILL: "yes"
+          ABA_TEST_POSTGRESQL: "Host=localhost;Port=5432;Database=aba_ci;Username=aba_ci;Password=aba-ci-local-only"
+          ABA_TEST_RABBITMQ: "amqp://aba_ci:aba-ci-local-only@localhost:5672/%2F"
+          ABA_TEST_RABBITMQ_CONTAINER_ID: ${{ job.services.rabbitmq.id }}
+        run: |
+          dotnet test tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj \
+            -c Release --no-build --filter 'Category=BrokerCrashDrill' \
+            --logger 'console;verbosity=normal'
       - name: Upload integration verification evidence
         if: always()
         uses: actions/upload-artifact@v4

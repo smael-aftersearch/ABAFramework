@@ -44,6 +44,11 @@ The external integration-only test project is not in that solution;
 pinning/scanning OCI digests and signing/verifying release attestations
 have not been completed. Existing Production gates still apply.
 
+Root and generated-project CI also use an immutable-digest Gitleaks container
+to scan files and reachable history with captured, redacted output and an empty
+ignore file. This does not provide a secret manager, key rotation, least-
+privilege deployment or evidence that previously exposed values were revoked.
+
 ## 2026-11-13 — CI recovery and expanded software supply-chain scope
 
 Isolated native PostgreSQL and SQL Server backup/restore drills are now authored

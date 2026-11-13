@@ -44,17 +44,34 @@ under claim name \`aba_permission\`. The framework never grants them.
 
 1. Investigate and fix the original failure before considering replay.
 2. Use \`InspectAsync(envelopeId, principal, changeTicket)\` to inspect
-   **metadata only**, and record the type/exception in the change ticket.
+   **metadata only**. It returns a one-time replay token when the envelope
+   is not already replayable. Treat it as a transient capability: keep it
+   only in the approved operator session, never in logs or the change ticket;
+   record the observed types.
 3. Check the owning business context's idempotency and external
    side-effect/compensation policy; obtain documented operator approval.
 4. Execute \`RequestReplayAsync(envelopeId, reviewedMessageType,
-   reviewedExceptionType, principal, changeTicket)\` for one exact ID.
+   reviewedExceptionType, inspectionToken, principal, changeTicket)\` for
+   that exact ID within five minutes. A fresh inspection invalidates any
+   older unused token.
    A signed request audit entry is committed *before* replay marking.
 5. Observe the Wolverine durability agent, subsequent handler result,
    and independently verified business state. A replay request is not
    proof of successful execution; do not retry indefinitely.
 6. Verify the HMAC chain against an off-DB head checkpoint and keep
    incident/approval records according to policy.
+
+The inspection response includes a one-time token for a non-replayable
+envelope. Keep it only in the approved operator session; never log it or
+paste it into the change ticket. Pass it to the replay request within five
+minutes. A fresh inspection invalidates an older unused token. The token is
+bound to the envelope, inspected types, operator and ticket, and is consumed
+once. If replay has an uncertain error, do not retry the same token; check
+the envelope state and follow the approved incident process. A consumed
+receipt stays exclusive for five minutes after consumption. After that
+window, a new inspection can issue a replacement only if it reads the
+envelope as still non-replayable. If the Wolverine store cannot confirm the
+state, the service fails closed and issues no replacement.
 
 No arbitrary payload exposure, native-broker DLQ management, bulk replay,
 default authorization, public HTTP surface or exactly-once external

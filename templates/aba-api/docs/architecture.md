@@ -100,7 +100,10 @@ serializable transactions and provider-specific concurrency retries.
 The new dead-letter operator builds on Wolverine's durable storage,
 requires a separately authenticated permission claim and change
 ticket, and creates an audit record before marking one explicit
-message for replay. No HTTP management route or tenant-unsafe
+message for replay. Inspection yields a five-minute one-time token
+whose hash is persisted and bound to the envelope, operator and ticket;
+consumption is atomic so concurrent use cannot queue the same receipt
+twice. No HTTP management route or tenant-unsafe
 multi-tenant mode is enabled. Business message handlers must still
 be idempotent and compensate external side effects.
 

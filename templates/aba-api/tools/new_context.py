@@ -41,6 +41,19 @@ def proj(refs=(), extra=()):
     return '\n'.join(body) + '\n'
 
 
+def ef_design_reference():
+    """Keep generated context tooling on the same EF Core Design version as Platform."""
+    platform_project = ROOT / "src/Aba.Starter.Platform/Aba.Starter.Platform.csproj"
+    platform_xml = ET.parse(platform_project).getroot()
+    versions = [item.attrib.get("Version") for item in platform_xml.findall(".//PackageReference")
+                if item.attrib.get("Include") == "Microsoft.EntityFrameworkCore.Design"]
+    if len(versions) != 1 or not versions[0]:
+        raise ValueError("Platform must declare exactly one versioned EF Core Design package.")
+    version = versions[0]
+    return (f'<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="{version}">'
+            '<PrivateAssets>all</PrivateAssets></PackageReference>')
+
+
 def files_for(name, ns, with_db=False):
     prefix = f"{ns}.{name}"
     mod = Path("src/Modules") / name
@@ -94,6 +107,17 @@ def files_for(name, ns, with_db=False):
     }
     if with_db:
         # Infrastructure-owned EF model shell; no fictional business entities.
+        files[mod / "Infrastructure" / infra] = proj(
+            [f"../Application/{app}",
+             f"../../../{ns}.Platform/{ns}.Platform.csproj"],
+            [ef_design_reference()])
+        files[testdir / testproj] = proj(
+            [f"../../src/Modules/{name}/Infrastructure/{infra}"],
+            ['<FrameworkReference Include="Microsoft.AspNetCore.App" />',
+             '<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />',
+             '<PackageReference Include="xunit" Version="2.9.3" />',
+             '<PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />',
+             ef_design_reference()])
         db_context = mod / "Infrastructure" / "Persistence" / f"{name}DbContext.cs"
         files[db_context] = (
             "using Microsoft.EntityFrameworkCore;\n"
@@ -101,6 +125,86 @@ def files_for(name, ns, with_db=False):
             f"public sealed class {name}DbContext(DbContextOptions<{name}DbContext> options)"
             " : DbContext(options)\n{\n"
             "    // Add ONLY context-owned EF mappings after real requirements exist.\n"
+            "}\n"
+        )
+        db_context_factory = mod / "Infrastructure" / "Persistence" / f"{name}DbContextFactory.cs"
+        files[db_context_factory] = (
+            "using Microsoft.EntityFrameworkCore;\n"
+            "using Microsoft.EntityFrameworkCore.Design;\n"
+            f"namespace {prefix}.Infrastructure;\n"
+            f"public sealed class {name}DbContextFactory : IDesignTimeDbContextFactory<{name}DbContext>\n"
+            "{\n"
+            f"    public {name}DbContext CreateDbContext(string[] args)\n"
+            "    {\n"
+            "        var provider = Environment.GetEnvironmentVariable(\"ABA_DB_PROVIDER\");\n"
+            "        var connection = Environment.GetEnvironmentVariable(\"ABA_DB_CONNECTION\");\n"
+            "        if (string.IsNullOrWhiteSpace(connection))\n"
+            "            throw new InvalidOperationException(\"Set ABA_DB_CONNECTION for EF design-time operations.\");\n"
+            f"        var options = new DbContextOptionsBuilder<{name}DbContext>();\n"
+            "        switch (provider?.Trim().ToLowerInvariant())\n"
+            "        {\n"
+            "            case \"postgresql\":\n"
+            "            case \"postgres\":\n"
+            "                options.UseNpgsql(connection);\n"
+            "                break;\n"
+            "            case \"sqlserver\":\n"
+            "            case \"mssql\":\n"
+            "                options.UseSqlServer(connection);\n"
+            "                break;\n"
+            "            default:\n"
+            "                throw new InvalidOperationException(\"ABA_DB_PROVIDER must be PostgreSql or SqlServer.\");\n"
+            "        }\n"
+            f"        return new {name}DbContext(options.Options);\n"
+            "    }\n"
+            "}\n"
+        )
+        files[testdir / "DesignTimeMigrationFactoryTests.cs"] = (
+            f"using {prefix}.Infrastructure;\n"
+            "using Xunit;\n"
+            f"namespace {prefix}.Tests;\n"
+            "public sealed class DesignTimeMigrationFactoryTests\n"
+            "{\n"
+            "    [Theory]\n"
+            "    [InlineData(\"PostgreSql\", \"Npgsql.EntityFrameworkCore.PostgreSQL\")]\n"
+            "    [InlineData(\"SqlServer\", \"Microsoft.EntityFrameworkCore.SqlServer\")]\n"
+            "    public void DesignFactorySelectsEitherProviderWithoutConnecting(string provider, string expected)\n"
+            "    {\n"
+            "        using var environment = new EfEnvironment(provider,\n"
+            "            provider == \"PostgreSql\"\n"
+            "                ? \"Host=localhost;Database=aba;Username=app;Password=test\"\n"
+            "                : \"Server=localhost;Database=aba;User ID=sa;Password=Test!12345;TrustServerCertificate=True\");\n"
+            f"        using var db = new {name}DbContextFactory().CreateDbContext([]);\n"
+            "        Assert.Equal(expected, db.Database.ProviderName);\n"
+            "    }\n"
+            "\n"
+            "    [Fact]\n"
+            "    public void DesignFactoryRejectsMissingConnectionAndUnknownProvider()\n"
+            "    {\n"
+            "        using (var missing = new EfEnvironment(\"PostgreSql\", null))\n"
+            "            Assert.Throws<InvalidOperationException>(() =>\n"
+            f"                new {name}DbContextFactory().CreateDbContext([]));\n"
+            "        using (var unknown = new EfEnvironment(\"oracle\", \"Host=localhost;Password=test\"))\n"
+            "            Assert.Throws<InvalidOperationException>(() =>\n"
+            f"                new {name}DbContextFactory().CreateDbContext([]));\n"
+            "    }\n"
+            "\n"
+            "    private sealed class EfEnvironment : IDisposable\n"
+            "    {\n"
+            "        private readonly string? _previousProvider;\n"
+            "        private readonly string? _previousConnection;\n"
+            "        public EfEnvironment(string? provider, string? connection)\n"
+            "        {\n"
+            "            _previousProvider = Environment.GetEnvironmentVariable(\"ABA_DB_PROVIDER\");\n"
+            "            _previousConnection = Environment.GetEnvironmentVariable(\"ABA_DB_CONNECTION\");\n"
+            "            Environment.SetEnvironmentVariable(\"ABA_DB_PROVIDER\", provider);\n"
+            "            Environment.SetEnvironmentVariable(\"ABA_DB_CONNECTION\", connection);\n"
+            "        }\n"
+            "        public void Dispose()\n"
+            "        {\n"
+            "            Environment.SetEnvironmentVariable(\"ABA_DB_PROVIDER\", _previousProvider);\n"
+            "            Environment.SetEnvironmentVariable(\"ABA_DB_CONNECTION\", _previousConnection);\n"
+            "        }\n"
+            "    }\n"
             "}\n"
         )
         module_registration = mod / "Infrastructure" / "ModuleRegistration.cs"
@@ -167,7 +271,14 @@ def files_for(name, ns, with_db=False):
             f"# {name} owned persistence\n\n"
             "This optional EF Core DbContext has no business entities and no migrations yet. "
             "Create context-owned migrations only after real data/rules are defined. "
-            "Use the shared database provider selection but do not share other contexts' tables.\n"
+            "The generated design-time factory reads ABA_DB_PROVIDER and ABA_DB_CONNECTION; "
+            "these are design-time environment variables and must not be committed. "
+            "From the repository root, create a migration with "
+            f"dotnet ef migrations add <Name> --project src/Modules/{name}/Infrastructure/{infra} "
+            f"--startup-project src/Modules/{name}/Infrastructure/{infra} "
+            f"--context {name}DbContext --output-dir Persistence/Migrations. "
+            "Apply and test each approved context migration against both PostgreSQL and SQL Server. "
+            "Do not share another context's tables or copy Platform technical migrations.\n"
         )
     docs = mod / "_Docs"
     metadata = {

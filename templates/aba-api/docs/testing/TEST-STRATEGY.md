@@ -178,8 +178,11 @@ checkpoint mismatch, missing old signing keys and concurrent
 append sequencing. The Wolverine integration suite uses a
 synthetic poison message to verify quarantine, denied anonymous
 or type-mismatched requests, operator-authorized replay after
-repair and chain verification. These are technical tests, not
-business workflow or live operator identity approval.
+repair and chain verification. The operator suite also proves the one-time
+inspection token is stored only as a hash, bound to the envelope, types,
+subject and ticket, expires, and can be consumed by at most one of two
+concurrent replay requests on each SQL provider. These are technical tests,
+not business workflow or live operator identity approval.
 
 ## Real SIGKILL and externally signed audit prefix cases
 
@@ -214,6 +217,23 @@ technical handler, not a domain consumer or external payment.
 
 **Verified execution:** [root CI 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289) passed 26/26 standard real-service tests, 7/7 provider-native recovery cases, and 8/8 separate SIGKILL fault-injection tests. Both SQL engines proved one committed technical effect after an actual pre-ACK crash and subsequent redelivery. The later safety preflight tests require separate CI evidence.
 
+## Broker outage plus producer SIGKILL
+
+`BrokerCrashDrill` combines the synthetic transactional outbox with a real
+process kill. A child starts its RabbitMQ producer host, then the parent
+pauses only the exact labeled loopback CI broker before allowing a technical
+outbox command to commit in PostgreSQL. The parent verifies one committed
+command receipt and no consumer effect, kills the child, restores the broker,
+and starts a fresh host. Acceptance requires recovered delivery, one
+idempotent effect receipt, and another delivery attempt from an intentional
+duplicate logical message without a second effect.
+
+This category is excluded from ordinary integration runs and requires both
+destructive-drill and broker-outage opt-ins. It is authored but unverified
+until exact-head CI executes it. It covers only generic technical recovery;
+it does not certify a business Outbox, business consumer ACK handling,
+external provider side effects, live broker failover or Production behavior.
+
 ## Real Redis restart and host-wide cache stampede
 
 CacheSingleFlightTests checks 24 concurrent request scopes coalescing
@@ -238,6 +258,11 @@ coordinator. `AbaDistributedCacheCoordinationIntegrationTests` creates
 separate service providers against one Redis backend to prove same-key
 miss collapse, shared concurrent-source limits and a shared serial-load
 budget, and readiness reports the separate coordination connection.
+The authored shared-cache invalidation case writes the same key under two
+isolated scopes through one provider, removes one scoped entry, and requires
+the second independent provider to observe that miss while the other scope
+remains available. This does not prove a versioned invalidation-event
+backplane or tenant authorization.
 Its unreachable-Redis case verifies that an explicitly permitted
 authoritative-source fallback still does not call the source without a
 shared coordinator permit; a configuration-drift case rejects replicas

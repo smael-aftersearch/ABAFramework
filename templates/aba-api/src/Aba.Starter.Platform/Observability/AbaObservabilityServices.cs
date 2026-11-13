@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
+using Aba.Starter.Platform.Caching;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -54,7 +55,8 @@ public static class AbaObservabilityServices
             .WithMetrics(metrics =>
             {
                 metrics.AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation();
+                    .AddHttpClientInstrumentation()
+                    .AddMeter(AbaCacheTelemetry.MeterName);
                 if (options.OtlpEndpoint is not null)
                     metrics.AddOtlpExporter(x => x.Endpoint = options.OtlpEndpoint);
             });

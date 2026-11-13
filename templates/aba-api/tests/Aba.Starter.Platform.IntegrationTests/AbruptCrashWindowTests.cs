@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.IO.Pipes;
+using System.Text;
 using Aba.Starter.Platform;
 using Aba.Starter.Platform.Messaging;
 using Aba.Starter.Platform.Persistence;
@@ -10,6 +12,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Wolverine;
+using Wolverine.RabbitMQ;
 using Xunit;
 
 namespace Aba.Starter.Platform.IntegrationTests;
@@ -25,6 +28,8 @@ public sealed class AbruptCrashWindowTests
     private const string ChildProvider = "ABA_CI_CRASH_PROVIDER";
     private const string ChildId = "ABA_CI_CRASH_ID";
     private const string ChildMarker = "ABA_CI_CRASH_MARKER";
+    private const string ChildQueue = "ABA_CI_CRASH_RABBIT_QUEUE";
+    private const string ParentPipe = "ABA_CI_CRASH_PARENT_PIPE";
 
     private static string ConfiguredConnection(string provider) =>
         Environment.GetEnvironmentVariable(provider == "PostgreSql"
@@ -59,29 +64,59 @@ public sealed class AbruptCrashWindowTests
         }
     }
 
-    private static void RequireCurrentFixture(string provider, string connection) =>
+    internal static void RequireCurrentFixture(string provider, string connection) =>
         RequireIsolatedCi(provider, connection,
             Environment.GetEnvironmentVariable("CI") == "true",
             Environment.GetEnvironmentVariable("ABA_ENABLE_DESTRUCTIVE_CI_DRILLS") == "yes");
 
-    private static async Task<WebApplication> StartHostAsync(
-        string provider, string connection)
+    internal static void RequireBrokerCrashDrill(bool ci, bool destructiveDrill, bool brokerOutageDrill)
     {
+        if (!ci || !destructiveDrill || !brokerOutageDrill)
+            throw new InvalidOperationException(
+                "The broker crash-window drill requires CI and both explicit destructive and broker-outage opt-ins.");
+    }
+
+    private static async Task<WebApplication> StartHostAsync(
+        string provider, string connection, string? rabbitConnection = null,
+        string? rabbitQueue = null)
+    {
+        if ((rabbitConnection is null) != (rabbitQueue is null))
+            throw new InvalidOperationException("RabbitMQ connection and queue must be configured together.");
+
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
             EnvironmentName = "Development"
         });
         builder.WebHost.UseUrls("http://127.0.0.1:0");
-        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        var configuration = new Dictionary<string, string?>
         {
             ["Platform:Database:Provider"] = provider,
             ["ConnectionStrings:AbaDatabase"] = connection,
             ["Platform:Cache:Provider"] = "Memory",
             ["Platform:Messaging:Enabled"] = "true",
             ["Platform:Messaging:AutoProvisionInDevelopment"] = "true"
-        });
+        };
+        if (rabbitConnection is not null)
+        {
+            configuration["Platform:Messaging:Transport"] = "RabbitMQ";
+            configuration["ConnectionStrings:AbaRabbitMQ"] = rabbitConnection;
+        }
+        builder.Configuration.AddInMemoryCollection(configuration);
         builder.Services.AddHealthChecks();
-        builder.AddAbaPlatform();
+        if (rabbitQueue is null)
+        {
+            builder.AddAbaPlatform();
+        }
+        else
+        {
+            builder.AddAbaPlatform(options =>
+            {
+                options.PublishMessage<AbaDurabilityProbe>()
+                    .ToRabbitQueue(rabbitQueue)
+                    .UseDurableOutbox();
+                options.ListenToRabbitQueue(rabbitQueue).UseDurableInbox();
+            });
+        }
         var app = builder.Build();
         try
         {
@@ -108,7 +143,7 @@ public sealed class AbruptCrashWindowTests
         }
     }
 
-    private static async Task<int> ReceiptCountAsync(
+    internal static async Task<int> ReceiptCountAsync(
         string provider, string connection, string scope, string? key)
     {
         var options = new DbContextOptionsBuilder<AbaPlatformDbContext>();
@@ -134,7 +169,7 @@ public sealed class AbruptCrashWindowTests
     {
         var mode = Environment.GetEnvironmentVariable(ChildMode);
         if (string.IsNullOrWhiteSpace(mode)) return;
-        if (mode is not ("uncommitted" or "scheduled" or "preack"))
+        if (mode is not ("uncommitted" or "scheduled" or "preack" or "broker-outbox"))
             throw new InvalidOperationException("Unknown crash injection mode.");
         var provider = Environment.GetEnvironmentVariable(ChildProvider)
             ?? throw new InvalidOperationException("No child provider.");
@@ -147,6 +182,57 @@ public sealed class AbruptCrashWindowTests
         AbaCrashAckProbeHandler.RequireIsolatedCrashMarker(marker,
             Environment.GetEnvironmentVariable("CI") == "true",
             Environment.GetEnvironmentVariable("ABA_ENABLE_DESTRUCTIVE_CI_DRILLS") == "yes");
+
+        if (mode == "broker-outbox")
+        {
+            if (provider != "PostgreSql")
+                throw new InvalidOperationException("The broker crash-window probe uses the disposable PostgreSQL fixture.");
+            RequireBrokerCrashDrill(
+                Environment.GetEnvironmentVariable("CI") == "true",
+                Environment.GetEnvironmentVariable("ABA_ENABLE_DESTRUCTIVE_CI_DRILLS") == "yes",
+                Environment.GetEnvironmentVariable("ABA_ENABLE_BROKER_OUTAGE_DRILL") == "yes");
+
+            var rabbitConnection = Environment.GetEnvironmentVariable("ABA_TEST_RABBITMQ")
+                ?? throw new InvalidOperationException("Missing disposable RabbitMQ connection.");
+            var queue = Environment.GetEnvironmentVariable(ChildQueue)
+                ?? throw new InvalidOperationException("No child RabbitMQ queue.");
+            var pipeName = Environment.GetEnvironmentVariable(ParentPipe)
+                ?? throw new InvalidOperationException("No parent synchronization pipe.");
+            await using var brokerHost = await StartHostAsync(
+                provider, connection, rabbitConnection, queue);
+            await using var pipe = new NamedPipeClientStream(
+                ".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+            await pipe.ConnectAsync(60_000);
+            using var reader = new StreamReader(pipe, Encoding.ASCII,
+                detectEncodingFromByteOrderMarks: false, bufferSize: 1024, leaveOpen: true);
+            using var writer = new StreamWriter(pipe, Encoding.ASCII,
+                bufferSize: 1024, leaveOpen: true) { AutoFlush = true };
+            await writer.WriteLineAsync("host-ready");
+            var release = await reader.ReadLineAsync().WaitAsync(TimeSpan.FromMinutes(2));
+            if (release != "invoke-outbox")
+                throw new InvalidOperationException("The parent did not release the broker crash probe.");
+
+            await using (var scope = brokerHost.Services.CreateAsyncScope())
+            {
+                var bus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
+                await bus.InvokeAsync(new AbaTransactionalOutboxProbe(id, FailAfterPublish: false));
+            }
+
+            if (await ReceiptCountAsync(provider, connection,
+                    "aba-outbox-transaction", id.ToString("N")) != 1 ||
+                await ReceiptCountAsync(provider, connection,
+                    "aba-durability-probe", id.ToString("N")) != 0)
+                throw new InvalidOperationException(
+                    "The broker-outage child did not reach the committed-outbox/no-effect boundary.");
+
+            AbaCrashAckProbeHandler.WriteIsolatedCrashMarker(marker,
+                "outbox-committed-broker-paused",
+                Environment.GetEnvironmentVariable("CI") == "true",
+                Environment.GetEnvironmentVariable("ABA_ENABLE_DESTRUCTIVE_CI_DRILLS") == "yes",
+                atomic: true);
+            await Task.Delay(Timeout.InfiniteTimeSpan);
+            return;
+        }
 
         await using var host = await StartHostAsync(provider, connection);
         if (mode == "uncommitted")
@@ -204,8 +290,9 @@ public sealed class AbruptCrashWindowTests
         throw new InvalidOperationException("Cannot locate current generated integration project.");
     }
 
-    private static async Task KillAfterMarkerAsync(string provider,
-        string mode, Guid id, string marker)
+    internal static ProcessStartInfo CreateCrashWorkerStartInfo(
+        string provider, string mode, Guid id, string marker,
+        string? rabbitQueue = null, string? parentPipe = null)
     {
         var start = new ProcessStartInfo("dotnet")
         {
@@ -225,8 +312,19 @@ public sealed class AbruptCrashWindowTests
         start.Environment[ChildProvider] = provider;
         start.Environment[ChildId] = id.ToString();
         start.Environment[ChildMarker] = marker;
+        if (rabbitQueue is not null)
+            start.Environment[ChildQueue] = rabbitQueue;
+        if (parentPipe is not null)
+            start.Environment[ParentPipe] = parentPipe;
         if (mode == "preack")
             start.Environment["ABA_CI_CRASH_ACK_MARKER"] = marker;
+        return start;
+    }
+
+    private static async Task KillAfterMarkerAsync(string provider,
+        string mode, Guid id, string marker)
+    {
+        var start = CreateCrashWorkerStartInfo(provider, mode, id, marker);
         using var child = Process.Start(start) ??
             throw new InvalidOperationException("Could not launch nested .NET crash worker.");
         try
@@ -423,5 +521,17 @@ public sealed class AbruptCrashWindowTests
                 sql.Replace("Database=aba_ci", "Database=customer"), true, true));
         Assert.Throws<InvalidOperationException>(() =>
             RequireIsolatedCi("Unknown", pg, true, true));
+    }
+
+    [Theory]
+    [Trait("Category", "BrokerCrashDrill")]
+    [InlineData(false, true, true)]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, false)]
+    public void BrokerProducerKillRequiresBothOptInsAndCi(
+        bool ci, bool destructiveDrill, bool brokerOutageDrill)
+    {
+        Assert.Throws<InvalidOperationException>(() =>
+            RequireBrokerCrashDrill(ci, destructiveDrill, brokerOutageDrill));
     }
 }

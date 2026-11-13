@@ -33,7 +33,7 @@ Default: `Platform:Cache:Provider=Memory`; no Redis server is necessary for loca
 
 To enable real Redis, set `Platform__Cache__Provider=Redis` and `ConnectionStrings__AbaRedis=localhost:6379`, using environment variables, workload identity, or a secret store. The `ScopedJsonCache` wrapper supports JSON values, TTLs, removal/invalidation and explicit scope hashing. The Redis provider has a real read/write/remove health check at `/health/ready`.
 
-**Tenant boundary:** a cache scope is only a namespace. You must authenticate/authorize tenant ownership **before** constructing and using that scope. The starter does not implement multitenant authorization or distributed invalidation events. Its default cache-miss gate is host-local; optional Redis coordination can bound misses across replicas but does not grant tenant access.
+**Tenant boundary:** a cache scope is only a namespace. You must authenticate/authorize tenant ownership **before** constructing and using that scope. When replicas direct reads and writes to the same Redis primary and use the same cache prefix, an exact-key `RemoveAsync` is visible to the other replicas because they share the backing store; no invalidation event is needed for that case. The starter does not implement versioned distributed invalidation events or multitenant authorization. Its default cache-miss gate is host-local; optional Redis coordination can bound misses across replicas but does not grant tenant access.
 
 ### Optional cross-replica miss coordination
 
@@ -140,7 +140,19 @@ Set `ABA_TEST_POSTGRESQL`, `ABA_TEST_SQLSERVER`, `ABA_TEST_REDIS`, `ABA_TEST_RAB
 
 ## Observability: OpenTelemetry
 
-Set `Platform__Observability__Enabled=true` to enable ASP.NET Core and outgoing HTTP traces/metrics. Set `Platform__Observability__ServiceName=MyApi` and optionally `Platform__Observability__OtlpEndpoint=https://collector.example:4317` to export via OTLP. An unsecured HTTP collector is accepted only in local Development. No external collector, credentials, public metrics endpoint or telemetry backend is bundled. Review tracing sampling, PII filters, service identity and collector trust in production.
+Set `Platform__Observability__Enabled=true` to enable ASP.NET Core and outgoing HTTP traces/metrics. The generic read-through cache also emits `aba.cache.reads`, `aba.cache.source.loads`, and `aba.cache.source.load.duration` with bounded outcome values only; tenant IDs, cache scopes/keys, and exception text are never metric dimensions. Set `Platform__Observability__ServiceName=MyApi` and optionally `Platform__Observability__OtlpEndpoint=https://collector.example:4317` to export via OTLP. An unsecured HTTP collector is accepted only in local Development. No external collector, credentials, public metrics endpoint or telemetry backend is bundled. Review tracing sampling, PII filters, service identity and collector trust in production.
+
+## Secret configuration
+
+The generated-project CI scans the current file tree and reachable Git history
+with a digest-pinned Gitleaks image. Scanner output is captured and redacted;
+the checked-in ignore file is empty and inline allow comments are disabled.
+Locally, a missing Docker CLI or daemon is reported as `NOT_RUN` (exit code 2);
+Docker-backed fixture tests skip only in that local case. CI fails if Docker is
+unavailable, preserving the positive and negative scanner checks as required gates.
+Configure runtime secrets through the consuming deployment's protected
+environment or secret provider. The template does not select a vendor, provision
+production credentials, rotate keys, or establish least-privilege assignments.
 
 
 ## Optional tenant claim safety
@@ -224,17 +236,20 @@ and trust boundaries.
 ## Provider-backed audit and Wolverine poison recovery
 
 The 202611130001_AuditLedger migration adds a technical audit table on
-both PostgreSQL and SQL Server. The HMAC-SHA256 chain includes stable
+both PostgreSQL and SQL Server. The 202611130002_DeadLetterInspectionReceipts
+migration stores one-time replay inspection receipts, with the random token
+persisted only as a SHA-256 hash. The HMAC-SHA256 chain includes stable
 UTC timestamps, actor/tenant/action/outcome IDs and key version,
 and is written through SERIALIZABLE per-tenant transactions. Missing
 or weak keys fail at enabled startup; old keys are needed after
 rotation; external checkpoints detect terminal deletion.
 
 The operator service wraps Wolverine's own durable dead-letter API
-with explicit inspect/replay permission claims and audit-first
-processing. Inspection does not return bodies or exception messages.
-A replay mark is not evidence of successful consumption. See the
-operations guide for detailed incident checks.
+with explicit inspect/replay permission claims, a five-minute receipt
+bound to one envelope/operator/ticket, atomic single-use consumption and
+audit-first processing. Inspection does not return bodies or exception
+messages. A replay mark is not evidence of successful consumption. See
+the operations guide for detailed incident checks.
 
 ## SIGKILL fault boundaries and offline audit anchoring
 

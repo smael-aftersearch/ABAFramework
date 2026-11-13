@@ -7,6 +7,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from xml.etree import ElementTree as ET
 
 TOOLS = Path(__file__).resolve().parent
 spec = importlib.util.spec_from_file_location("aba_task", TOOLS / "aba_task.py")
@@ -86,6 +87,7 @@ class TaskPlannerTests(unittest.TestCase):
         source = (TOOLS / "aba_task.py").read_text()
         self.assertIn("Category!=RecoveryDrill", source)
         self.assertIn("Category!=BrokerOutageDrill", source)
+        self.assertIn("Category!=BrokerCrashDrill", source)
         self.assertIn('"ABA_TEST_RABBITMQ"', source)
         self.assertIn('"ABA_TEST_KAFKA"', source)
 
@@ -144,6 +146,55 @@ class ContractSurfaceTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "explicitly versioned"):
                 context_module.validate_contract_surface(
                     "Inventory", Path(temporary), [], [], ["Identity.UserRegistered"])
+
+
+class ContextScaffoldingTests(unittest.TestCase):
+    def test_with_db_scaffold_supports_design_time_migrations_without_inventing_schema(self):
+        files, _ = context_module.files_for("ContextProbe", "Pilot.QuickStart", with_db=True)
+        factory_path = Path(
+            "src/Modules/ContextProbe/Infrastructure/Persistence/ContextProbeDbContextFactory.cs")
+        context_path = Path(
+            "src/Modules/ContextProbe/Infrastructure/Persistence/ContextProbeDbContext.cs")
+        persistence_readme_path = Path(
+            "src/Modules/ContextProbe/Infrastructure/Persistence/README.md")
+        infrastructure_path = Path(
+            "src/Modules/ContextProbe/Infrastructure/Pilot.QuickStart.ContextProbe.Infrastructure.csproj")
+        tests_project_path = Path(
+            "tests/Pilot.QuickStart.ContextProbe.Tests/Pilot.QuickStart.ContextProbe.Tests.csproj")
+        factory = files[factory_path]
+        context = files[context_path]
+        persistence_readme = files[persistence_readme_path]
+        infrastructure = files[infrastructure_path]
+        tests_project = files[tests_project_path]
+        platform_project = context_module.ROOT / "src/Aba.Starter.Platform/Aba.Starter.Platform.csproj"
+        platform_xml = ET.parse(platform_project)
+        design_version = next(
+            reference.attrib["Version"]
+            for reference in platform_xml.findall(".//PackageReference")
+            if reference.attrib.get("Include") == "Microsoft.EntityFrameworkCore.Design")
+
+        self.assertIn("IDesignTimeDbContextFactory<ContextProbeDbContext>", factory)
+        self.assertIn('GetEnvironmentVariable("ABA_DB_PROVIDER")', factory)
+        self.assertIn('GetEnvironmentVariable("ABA_DB_CONNECTION")', factory)
+        self.assertIn("options.UseNpgsql(connection)", factory)
+        self.assertIn("options.UseSqlServer(connection)", factory)
+        self.assertIn(
+            f'Microsoft.EntityFrameworkCore.Design" Version="{design_version}"', infrastructure)
+        self.assertIn("<PrivateAssets>all</PrivateAssets>", infrastructure)
+        self.assertIn(
+            f'Microsoft.EntityFrameworkCore.Design" Version="{design_version}"', tests_project)
+        self.assertNotIn("DbSet<", context)
+        self.assertIn("--startup-project", persistence_readme)
+        self.assertIn("ABA_DB_PROVIDER", persistence_readme)
+        self.assertFalse(any("/Migrations/" in str(path).replace("\\", "/")
+                             for path in files))
+
+    def test_without_db_scaffold_does_not_add_design_time_database_tooling(self):
+        files, _ = context_module.files_for("ContextProbe", "Pilot.QuickStart")
+        paths = [str(path).replace("\\", "/") for path in files]
+        self.assertFalse(any(path.endswith("ContextProbeDbContextFactory.cs") for path in paths))
+        self.assertFalse(any("Microsoft.EntityFrameworkCore.Design" in content
+                             for content in files.values()))
 
 
 if __name__ == "__main__":

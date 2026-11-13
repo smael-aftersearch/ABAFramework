@@ -13,7 +13,7 @@ The generic API starter already has Wolverine 6 relational durability using Post
 - Products supply handler discovery and explicit message routes through the `AddAbaPlatform` Wolverine configuration callback. Use the owning context's versioned Contracts; do not route every message or add business contracts to the Platform.
 - Listeners must use Wolverine's durable inbox when handling messages that affect durable state. Handlers remain at-least-once and owners must make effects idempotent.
 - Wolverine database resources and RabbitMQ topology may auto-provision only in an explicitly opted-in Development environment. Production keeps automatic creation off and requires reviewed database resources, exchanges/queues/bindings, credentials, TLS trust and operational retry/dead-letter policies.
-- Production RabbitMQ settings require an `amqps://` URI with a non-guest username and password. The URI is treated as a secret and is never included in validation errors or verification artifacts.
+- Production RabbitMQ settings require an `amqps://` URI with a non-guest username and password. The built-in `guest` username is rejected case-insensitively even if its default password was changed; Operations still owns creation and least-privilege configuration of the product-specific principal. The URI is treated as a secret and is never included in validation errors or verification artifacts.
 - CI's outage drill may pause only its exact disposable, labeled `rabbitmq:4.4.0-management-alpine` service and always resumes it in cleanup.
 
 ## Consequences

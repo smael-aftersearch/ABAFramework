@@ -4,6 +4,26 @@
 
 Before any production deployment, require standards-based OIDC/JWT validation, granular authorization, tenant identity/isolation, CSRF and CORS decisions, request limits and rate limits, secure secret loading, migrations, backup/recovery, threat modeling, monitoring, vulnerability checks, real provider idempotency and webhook signature verification, and a deployment security review. Follow the next milestone acceptance gates.
 
+## Repository secret scanning
+
+Root CI and the generated API CI run the official Gitleaks OCI image pinned by
+immutable digest. The scanner checks both the checked-out file tree and
+reachable Git history, disables inline `gitleaks:allow` bypasses, uses an empty
+ignore file, and captures output so a detected value is not copied into CI
+logs. Positive and negative fixtures construct a synthetic GitHub-shaped token
+at runtime; no credential literal is stored in source.
+Locally, the scanner reports `NOT_RUN` with exit code 2 when Docker CLI or its
+daemon is unavailable; the Docker-backed regression fixtures skip only in that
+local case. CI (`CI=true`) fails if Docker is unavailable, so its positive and
+negative scanner cases cannot be silently skipped.
+
+This is a static detector, not a production secret manager. It does not provide
+secure secret loading, rotation, least-privilege access, guarantee detection,
+revoke a leaked value or remove it from Git history. Production secret-store
+selection and rotation remain Operations/Security decisions. Any real finding
+must be treated as exposed and handled through the approved rotation process;
+deleting the latest copy alone does not revoke it.
+
 ## Security of the new generic API template (not Academy)
 
 The generated API implements ASP.NET JWT bearer middleware, fails closed outside Development without an HTTPS Authority/Audience, requires authentication by default, and includes an explicit protected route with a negative `401` test. Optional `Platform:Tenancy:Enabled` checks a JWT `tenant_id` claim in the default/fallback authorization policies; it never accepts a raw tenant header as authority. A real disposable Keycloak OIDC/JWKS CI test verifies signed-token acceptance and audience/tenant-claim denial, and EF tenant query/write guards are tested on both SQL providers. These checks are **not full production identity/membership management, key rotation, SQL Row-Level Security or protection against raw/bulk SQL operations**. Do not deploy multi-tenant data without the owning business context implementing and testing tenant membership and row-level access.

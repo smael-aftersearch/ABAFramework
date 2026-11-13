@@ -51,6 +51,10 @@ for required in \
   .github/workflows/integration.yml \
   tools/supply_chain.py \
   tools/test_supply_chain.py \
+  tools/secret_scan.py \
+  tools/test_secret_scan.py \
+  .gitleaks.toml \
+  .gitleaksignore \
   tests/Pilot.Packaged.Platform.IntegrationTests/Pilot.Packaged.Platform.IntegrationTests.csproj; do
   if [[ ! -f "$TMP/from-package/$required" ]]; then
     echo "FAIL: template package omitted generated file: $required" >&2

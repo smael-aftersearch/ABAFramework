@@ -10,6 +10,46 @@ public sealed class AbaDistributedCacheCoordinationIntegrationTests
 {
     [Fact]
     [Trait("Category", "RedisIntegration")]
+    public async Task SharedRedisRemovalFromOneProviderIsVisibleToAnotherAndPreservesScopeIsolation()
+    {
+        var connection = RequiredEnvironment("ABA_TEST_REDIS");
+        await using var firstHost = BuildSharedRedisCacheHost(connection);
+        await using var secondHost = BuildSharedRedisCacheHost(connection);
+        var firstCache = firstHost.GetRequiredService<ScopedJsonCache>();
+        var secondCache = secondHost.GetRequiredService<ScopedJsonCache>();
+        var scopeA = "tenant-a-" + Guid.NewGuid().ToString("N");
+        var scopeB = "tenant-b-" + Guid.NewGuid().ToString("N");
+        const string key = "same-query-key";
+        var ttl = TimeSpan.FromMinutes(1);
+
+        try
+        {
+            await firstCache.PutAsync(scopeA, key, "tenant-a-value", ttl);
+            await firstCache.PutAsync(scopeB, key, "tenant-b-value", ttl);
+
+            // The second provider owns an independent Redis cache adapter but
+            // shares the same backing store and key prefix.
+            Assert.Equal("tenant-a-value", await secondCache.GetAsync<string>(scopeA, key));
+            Assert.Equal("tenant-b-value", await secondCache.GetAsync<string>(scopeB, key));
+
+            await firstCache.RemoveAsync(scopeA, key);
+
+            var removed = await secondCache.TryGetAsync<string>(scopeA, key);
+            Assert.False(removed.Found);
+            Assert.Null(removed.Value);
+
+            // A same-named key in a different scope is not invalidated.
+            Assert.Equal("tenant-b-value", await secondCache.GetAsync<string>(scopeB, key));
+        }
+        finally
+        {
+            await firstCache.RemoveAsync(scopeA, key);
+            await firstCache.RemoveAsync(scopeB, key);
+        }
+    }
+
+    [Fact]
+    [Trait("Category", "RedisIntegration")]
     public async Task SharedRedisCoordinatesSameMissAcrossIndependentHosts()
     {
         var connection = RequiredEnvironment("ABA_TEST_REDIS");
@@ -202,6 +242,20 @@ public sealed class AbaDistributedCacheCoordinationIntegrationTests
                 ["Platform:Cache:DistributedCoordination:SourceLoadWindowSeconds"] = "60",
                 ["Platform:Cache:DistributedCoordination:AcquireTimeoutSeconds"] = acquireTimeoutSeconds.ToString(),
                 ["Platform:Cache:DistributedCoordination:LeaseDurationSeconds"] = "10",
+                ["ConnectionStrings:AbaRedis"] = connection
+            }).Build();
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddAbaCaching(config, isDevelopment: true);
+        return services.BuildServiceProvider();
+    }
+
+    private static ServiceProvider BuildSharedRedisCacheHost(string connection)
+    {
+        var config = new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?>
+            {
+                ["Platform:Cache:Provider"] = "Redis",
                 ["ConnectionStrings:AbaRedis"] = connection
             }).Build();
         var services = new ServiceCollection();

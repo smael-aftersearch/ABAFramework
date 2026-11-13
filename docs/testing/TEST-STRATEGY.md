@@ -238,6 +238,14 @@ CI must execute these tests before they count as passing evidence. No production
 broker topology, retry/dead-letter policy, business consumer, Kafka failover or
 external side effect is covered.
 
+`BrokerCrashDrill` adds a separately gated producer-process-kill boundary:
+while the verified RabbitMQ CI container is paused, a child commits a
+synthetic PostgreSQL/Wolverine outbox command, then the parent SIGKILLs that
+child. A fresh host must recover the outgoing message; an intentional
+duplicate logical delivery must leave exactly one technical effect. This
+case is authored and awaits exact-head CI. It does not certify a business
+Outbox, customer handler, provider effect or production broker failover.
+
 ## Reviewed pinned OCI bases and attestations
 
 Root and generated CI must validate oci-base-lock.json and both

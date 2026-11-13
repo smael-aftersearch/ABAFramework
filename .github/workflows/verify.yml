@@ -3,6 +3,23 @@ on:
   push:
   pull_request:
 jobs:
+  secret-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Positive, negative and no-disclosure scanner regressions
+        run: python3 templates/aba-api/tools/test_secret_scan.py
+      - name: Fail closed on secrets in source or reachable Git history
+        run: python3 templates/aba-api/tools/secret_scan.py --root .
+
   governance-and-runtime:
     runs-on: ubuntu-latest
     steps:
@@ -147,6 +164,19 @@ jobs:
         run: |
           dotnet test templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj \
             -c Release --filter 'Category=BrokerOutageDrill' \
+            --logger 'console;verbosity=normal'
+
+      - name: Kill the outbox producer during RabbitMQ outage and recover
+        env:
+          CI: "true"
+          ABA_ENABLE_DESTRUCTIVE_CI_DRILLS: "yes"
+          ABA_ENABLE_BROKER_OUTAGE_DRILL: "yes"
+          ABA_TEST_POSTGRESQL: "Host=localhost;Port=5432;Database=aba_ci;Username=aba_ci;Password=aba-ci-local-only"
+          ABA_TEST_RABBITMQ: "amqp://aba_ci:aba-ci-local-only@localhost:5672/%2F"
+          ABA_TEST_RABBITMQ_CONTAINER_ID: ${{ job.services.rabbitmq.id }}
+        run: |
+          dotnet test templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj \
+            -c Release --filter 'Category=BrokerCrashDrill' \
             --logger 'console;verbosity=normal'
 
   redis-restart:
@@ -357,6 +387,7 @@ jobs:
       - otel-collector
       - supply-chain
       - container-security
+      - secret-scan
     runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
@@ -387,7 +418,7 @@ jobs:
           PACKAGE="$(find artifacts/provenance -maxdepth 1 -name '*.nupkg' -type f -print -quit)"
           test -n "$PACKAGE"
           bash scripts/verify_attested_artifact.sh "$PACKAGE" artifacts/provenance/verified-attestation.json
-      - name: Download scanned Docker archive after all eight prerequisite jobs passed
+      - name: Download scanned Docker archive after all verification prerequisites passed
         uses: actions/download-artifact@v4
         with:
           name: aba-runtime-image-security

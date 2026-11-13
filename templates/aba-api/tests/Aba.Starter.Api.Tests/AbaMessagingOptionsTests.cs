@@ -67,6 +67,8 @@ public sealed class AbaMessagingOptionsTests
     [Theory]
     [InlineData("amqp://service:secret@rabbit.example.test/v1")]
     [InlineData("amqps://guest:guest@rabbit.example.test/v1")]
+    [InlineData("amqps://guest:custom-password@rabbit.example.test/v1")]
+    [InlineData("amqps://Guest:custom-password@rabbit.example.test/v1")]
     [InlineData("amqps://user@rabbit.example.test/v1")]
     public void ProductionRequiresTlsAndNonGuestCredentialsWithoutLeakingSecret(string connection)
     {
@@ -78,6 +80,7 @@ public sealed class AbaMessagingOptionsTests
         }, isDevelopment: false));
 
         Assert.Contains("Production RabbitMQ requires amqps://", error.Message);
+        Assert.DoesNotContain(connection, error.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("secret", error.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("guest:guest" + '@', error.Message, StringComparison.Ordinal);
     }

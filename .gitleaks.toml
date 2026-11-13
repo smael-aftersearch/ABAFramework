@@ -1,0 +1,6 @@
+title = "ABA Framework secret scanning"
+
+# Keep every upstream Gitleaks detector enabled. False positives are reviewed
+# individually; do not add broad path, rule, or commit allowlists.
+[extend]
+useDefault = true
