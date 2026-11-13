@@ -191,3 +191,14 @@ acceptance gate. These are technical guards; real tenant memberships, DB
 privileges, provider-level session spoofing and production migrations still
 need owner/DBA/Security approval. Count the new cases as executed only after
 exact-HEAD CI verifies them.
+
+## Queue C final — pre-cancelled tenant SQL scope safety
+
+`TenantRlsPolicyTests.CancelledRequestNeverOpensTenantConnectionOrRunsCallback`
+models an already-cancelled request with a provider fake that would otherwise
+open even with a cancelled token. The Platform scope now refuses provider
+access before OpenAsync (negative), while existing valid-tenant provider and
+real SQL-engine tests remain the positive path and missing/malformed tenant
+claims still reject before OpenAsync. The invariant is zero opens, closes,
+transactions and callbacks for a pre-cancelled request. The authored test is
+not a PASS claim until [PR #28 exact-head CI](https://github.com/smael-aftersearch/ABAFramework/pull/28/checks) verifies it. No production schema, membership or RLS policy is changed.
