@@ -43,8 +43,8 @@ Remaining queue statuses: `api-shared-limits` partial, `auth-membership` not_sta
 `biz-contract-tests` not_started, `biz-endpoints` not_started.
 **Fully verified Queue C closures: 0/7 (0%)**; no fabricated domain memberships or contracts.
 [Queue C #5](https://github.com/smael-aftersearch/ABAFramework/issues/5)
-and [proposed patch branch](https://github.com/smael-aftersearch/ABAFramework/tree/queue-c-shared-limits-20261113-run2)
-contain review/CI evidence (PR link is added when opened).
+and [PR #10](https://github.com/smael-aftersearch/ABAFramework/pull/10) · [exact-head checks](https://github.com/smael-aftersearch/ABAFramework/pull/10/checks)
+contain proposed diff and the required CI/review evidence; do not infer a PASS before checks complete.
 
 The table records *verified feature closures*, not speculative percentage-complete estimates. For exact feature IDs, acceptance criteria, owners and evidence, follow [the generated backlog](docs/IMPLEMENTATION-STATUS.md). After each substantive code change, update the README and source status JSON only to reflect actual tested changes, regenerate the status matrix, and record the PR/CI evidence in the relevant issue. Automated merge is allowed only after real tests, review and branch-policy gates. Business-owner approvals, production secrets, release policy, and deployment decisions remain outside the authority of these tasks.
 
