@@ -124,16 +124,39 @@ public sealed class DeadLetterOperatorIntegrationTests
                 ], "validated-operator-identity"),
                 new ClaimsIdentity([new Claim("sub", "other-operator")], "other-authenticated-identity")
             });
+            // Even one authenticated identity can carry two conflicting
+            // subject claims. Refuse both inspect and replay before audit I/O.
+            var conflictingSubjects = new ClaimsPrincipal(new ClaimsIdentity([
+                new Claim("sub", "operator-1"),
+                new Claim("sub", "forged-operator"),
+                new Claim(AbaDeadLetterAdministration.PermissionClaim, "deadletters:inspect"),
+                new Claim(AbaDeadLetterAdministration.PermissionClaim, "deadletters:replay")
+            ], "validated-operator-identity"));
+            var repeatedSubject = new ClaimsPrincipal(new ClaimsIdentity([
+                new Claim("sub", "operator-1"),
+                new Claim("sub", "operator-1"),
+                new Claim(AbaDeadLetterAdministration.PermissionClaim, "deadletters:replay")
+            ], "validated-operator-identity"));
             var auditBeforeDenials = await scope.ServiceProvider
                 .GetRequiredService<AbaAuditLedger>().VerifyAsync("system");
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
                 admin.RequestReplayAsync(dead.Id, dead.MessageType, dead.ExceptionType,
                     splitPermission, "ticket-test-123"));
-            await Assert.ThrowsAsync<ArgumentException>(() =>
+            // Missing authenticated sub is an authorization denial, not
+            // an argument-shape error, under the new exact-one-sub rule.
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
                 admin.InspectAsync(dead.Id, splitSubject, "ticket-test-123"));
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
                 admin.RequestReplayAsync(dead.Id, dead.MessageType, dead.ExceptionType,
                     ambiguousAuthenticated, "ticket-test-123"));
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+                admin.InspectAsync(dead.Id, conflictingSubjects, "ticket-test-123"));
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+                admin.RequestReplayAsync(dead.Id, dead.MessageType, dead.ExceptionType,
+                    conflictingSubjects, "ticket-test-123"));
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+                admin.RequestReplayAsync(dead.Id, dead.MessageType, dead.ExceptionType,
+                    repeatedSubject, "ticket-test-123"));
             var auditAfterDenials = await scope.ServiceProvider
                 .GetRequiredService<AbaAuditLedger>().VerifyAsync("system");
             Assert.True(auditAfterDenials.Valid, auditAfterDenials.Reason);
