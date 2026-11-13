@@ -29,6 +29,10 @@ The generic framework has no business membership model and must not invent one.
   a callback against that same transaction. PostgreSQL uses SET LOCAL.
   Connection closure also covers a provider `OpenAsync` failure after the
   connection has partially opened; the callback must never run in that case.
+  A pre-cancelled request is rejected before a provider OpenAsync call even if
+  that provider would ignore the cancellation token; no transaction or tenant
+  callback may run. This is a technical resource/isolation invariant, not
+  membership authorization.
   SQL Server resets SESSION_CONTEXT before pooling; if it cannot reset,
   the connection pool is invalidated.
 - The technical request-tenant resolver requires exactly one authenticated identity

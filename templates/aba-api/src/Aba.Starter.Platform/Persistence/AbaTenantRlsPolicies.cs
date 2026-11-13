@@ -99,6 +99,9 @@ public static class AbaTenantSqlScope
             throw new InvalidOperationException("Tenant SQL scope requires a fresh closed connection.");
         if (engine == "SqlServer" && connection is not SqlConnection)
             throw new ArgumentException("SqlServer RLS requires a SqlConnection.");
+        // Some provider implementations ignore a token already cancelled at
+        // OpenAsync. Never touch tenant SQL for an abandoned request.
+        cancellationToken.ThrowIfCancellationRequested();
 
         try
         {

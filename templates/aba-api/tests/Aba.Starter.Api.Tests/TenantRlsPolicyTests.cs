@@ -105,6 +105,30 @@ public sealed class TenantRlsPolicyTests
         Assert.False(invoked);
     }
 
+    [Fact]
+    public async Task CancelledRequestNeverOpensTenantConnectionOrRunsCallback()
+    {
+        await using var connection = new PartiallyOpenedConnection();
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+        var invoked = false;
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            AbaTenantSqlScope.RunAsync(connection, "PostgreSql", new FakeTenant("tenant-alpha"),
+                (c, t, ct) =>
+                {
+                    invoked = true;
+                    return Task.FromResult(1);
+                }, cancelled.Token));
+
+        // Even a provider which disregards a pre-cancelled OpenAsync must not
+        // receive a call. No transaction, callback or connection cleanup ran.
+        Assert.Equal(0, connection.OpenCalls);
+        Assert.Equal(0, connection.CloseCalls);
+        Assert.Equal(ConnectionState.Closed, connection.State);
+        Assert.False(invoked);
+    }
+
     // A provider can transition to Open before OpenAsync reports a failure.
     // This disposable fake models exactly that failure boundary; the real SQL
     // provider happy/foreign-tenant cases remain in RowLevelSecurityTests.

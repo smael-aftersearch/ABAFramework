@@ -248,7 +248,7 @@
       "status": "partial",
       "owner": "Owning business context / Security",
       "priority": "P0",
-      "delivered": "CI-verified tenant-scoped SQL transaction wrapper with cross-tenant raw SQL/EF bulk denial on both SQL engines; split-identity tenant guard verified in CI 43357853144; duplicate tenant-claim authorization denial and quota invariants (PR #20 CI 43364852219 PASS); Queue C technical SQL scope now closes a partially opened connection if OpenAsync fails, with disposable provider-fault and malformed-tenant regression tests (new exact-head CI required)",
+      "delivered": "CI-verified tenant-scoped SQL transaction wrapper with cross-tenant raw SQL/EF bulk denial on both SQL engines; split-identity tenant guard verified in CI 43357853144; duplicate tenant-claim authorization denial and quota invariants (PR #20 CI 43364852219 PASS); Queue C technical SQL scope now closes a partially opened connection if OpenAsync fails, with disposable provider-fault and malformed-tenant regression tests (new exact-head CI required); Queue C final pre-cancelled request guard refuses provider OpenAsync and tenant callback before database access (PR #28 exact-head checks required)",
       "remaining": "Block SQL-injection tenant session spoofing, adopt real owner-context raw SQL authorization, least-privileged production accounts and DBA/Security approvals",
       "acceptance": "Cross-tenant raw SQL and bulk mutation are denied",
       "evidence": [
