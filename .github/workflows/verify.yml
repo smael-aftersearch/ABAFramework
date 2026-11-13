@@ -13,6 +13,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Reject malformed attestation verification credentials
+        run: python3 scripts/test_workflow_attestation_auth.py
       - name: Verify implementation status catalog, task backlog and evidence links
         run: |
           python3 scripts/test_status_matrix.py
@@ -331,7 +333,7 @@ jobs:
           subject-path: artifacts/oci-provenance/aba-runtime-image.tar.gz
       - name: Verify gated OCI archive attestation and reject tampering
         env:
-          GH_TOKEN: \${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           image='artifacts/oci-provenance/aba-runtime-image.tar.gz'
