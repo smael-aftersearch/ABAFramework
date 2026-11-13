@@ -53,7 +53,7 @@ public sealed class AbaCacheLoadGate
         {
             if (_inFlightRequests >= _maxInFlightRequests)
                 throw new AbaCacheLoadGateSaturatedException();
-            if (!_entries.TryGetValue(scopedKey, out entry!)
+            if (!_entries.TryGetValue(scopedKey, out entry!))
             {
                 entry = new Entry();
                 _entries.Add(scopedKey, entry);
