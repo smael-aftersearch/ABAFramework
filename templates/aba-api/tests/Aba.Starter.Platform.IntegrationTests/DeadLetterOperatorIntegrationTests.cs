@@ -100,6 +100,46 @@ public sealed class DeadLetterOperatorIntegrationTests
                 new Claim(AbaDeadLetterAdministration.PermissionClaim, "deadletters:inspect"),
                 new Claim(AbaDeadLetterAdministration.PermissionClaim, "deadletters:replay")
             ], "validated-operator-identity"));
+            // Negative tenant/operator bypass cases run against actual poison
+            // envelopes on both disposable SQL providers.
+            var splitPermission = new ClaimsPrincipal(new[]
+            {
+                new ClaimsIdentity([new Claim("sub", "operator-1")], "validated-operator-identity"),
+                new ClaimsIdentity([
+                    new Claim(AbaDeadLetterAdministration.PermissionClaim, "deadletters:replay")
+                ])
+            });
+            var splitSubject = new ClaimsPrincipal(new[]
+            {
+                new ClaimsIdentity([
+                    new Claim(AbaDeadLetterAdministration.PermissionClaim, "deadletters:inspect")
+                ], "validated-operator-identity"),
+                new ClaimsIdentity([new Claim("sub", "forged-operator")])
+            });
+            var ambiguousAuthenticated = new ClaimsPrincipal(new[]
+            {
+                new ClaimsIdentity([
+                    new Claim("sub", "operator-1"),
+                    new Claim(AbaDeadLetterAdministration.PermissionClaim, "deadletters:replay")
+                ], "validated-operator-identity"),
+                new ClaimsIdentity([new Claim("sub", "other-operator")], "other-authenticated-identity")
+            });
+            var auditBeforeDenials = await scope.ServiceProvider
+                .GetRequiredService<AbaAuditLedger>().VerifyAsync("system");
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+                admin.RequestReplayAsync(dead.Id, dead.MessageType, dead.ExceptionType,
+                    splitPermission, "ticket-test-123"));
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                admin.InspectAsync(dead.Id, splitSubject, "ticket-test-123"));
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+                admin.RequestReplayAsync(dead.Id, dead.MessageType, dead.ExceptionType,
+                    ambiguousAuthenticated, "ticket-test-123"));
+            var auditAfterDenials = await scope.ServiceProvider
+                .GetRequiredService<AbaAuditLedger>().VerifyAsync("system");
+            Assert.True(auditAfterDenials.Valid, auditAfterDenials.Reason);
+            Assert.Equal(auditBeforeDenials.VerifiedRecords, auditAfterDenials.VerifiedRecords);
+            Assert.False((await store.DeadLetters.DeadLetterEnvelopeByIdAsync(dead.Id))!.Replayable);
+
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 admin.RequestReplayAsync(dead.Id, "wrong-message", dead.ExceptionType,
                     authenticated, "ticket-test-123"));

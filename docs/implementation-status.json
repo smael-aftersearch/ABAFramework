@@ -483,7 +483,7 @@
       "status": "partial",
       "owner": "Platform / Operations",
       "priority": "P0",
-      "delivered": "CI-verified opt-in Wolverine poison quarantine, metadata-only inspection and exact-ID audit-before-replay with permission/type/mismatch denial; 2 real SQL providers exercised",
+      "delivered": "CI-verified opt-in Wolverine poison quarantine, metadata-only inspection and exact-ID audit-before-replay with permission/type/mismatch denial; 2 real SQL providers exercised; authored single-authenticated-identity operator claim binding, split-principal bypass denial and audit/replay invariant tests (new-head CI pending)",
       "remaining": "Issue real signed operator IdP permission, tenant-scoped message store authorization, replay dedup/business compensation, volume limits and approved production runbook",
       "acceptance": "Poison message is quarantined, inspected and safely replayed exactly as intended",
       "evidence": [

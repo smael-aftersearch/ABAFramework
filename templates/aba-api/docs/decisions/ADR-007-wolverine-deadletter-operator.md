@@ -14,6 +14,13 @@ database, durable messaging, tamper-evident audit ledger and explicit
 operation is rejected until an Identity owner implements tenant-aware
 message-store permissions and tests them.
 
+Only **exactly one authenticated claims identity** with both the subject and
+operation permission is allowed. Anonymous claims cannot augment an otherwise
+authenticated principal, and multiple authenticated identities fail closed
+rather than ambiguously authorizing a replay. The upstream verified issuer
+must normalize principal identity; this does **not** itself issue IdP roles or
+approve Production operators.
+
 Only an authenticated principal with an exact
 \`aba_permission=deadletters:inspect\` or
 \`aba_permission=deadletters:replay\` claim, opaque valid \`sub\`, a
