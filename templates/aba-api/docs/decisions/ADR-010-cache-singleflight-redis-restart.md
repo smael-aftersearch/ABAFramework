@@ -234,3 +234,26 @@ The disposable integration regression removes only its unique test namespace
 settings key, then exercises compatible recovery, incompatible replacement,
 fail-closed source denial/readiness and preservation of both tenant caches.
 The new regression is AUTHORED and counts as PASS only on exact PR-head CI.
+
+## Disposable Redis revoked-lease / late-loader boundary
+
+The independent Redis integration regression revokes only the unique
+hashed per-key lease for a synthetic tenant after its source callback has
+started. A second replica can claim the key and write an authoritative
+replacement. The first replica must observe lease loss during token-owned
+renewal, cancel its linked source token and discard a stale callback result
+even if that callback ignores cancellation. Its renewal loop no longer
+extends the old cluster-wide source slot after the per-key lock is lost.
+
+Positive: the new replica commits one scoped replacement. Negative: the
+cancelled old replica cannot return or cache its late result. Invariants:
+the replacement survives and a neighboring tenant's identically named
+query key is unchanged. The test touches only a GUID-scoped Redis lock and
+query keys on the disposable CI provider; it does not stop Redis or alter
+a business scope. The dedicated real Redis CI must PASS before claiming
+execution evidence.
+
+This does not undo actual external side effects of a cancellation-blind
+loader, promise Redis failover SLA, enforce business tenant membership, or
+turn best-effort load protection into a correctness lock. The capability
+remains `cache-stampede=partial`.
