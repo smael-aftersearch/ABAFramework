@@ -11,6 +11,7 @@ No business membership or trusted gateway policy is inferred. The default is OFF
   and instead fall back to the connection peer. Client `X-Tenant-ID` and
   `X-Forwarded-For` do not determine the partition. A unique application namespace must be set.
 - Multiple subject identifiers in one authenticated identity (duplicate `sub`, duplicate mapped name identifier or both forms) are ambiguous: the quota key falls back to the actual TCP peer. This conservatively groups ambiguous tokens rather than selecting the first subject; it does not grant tenant membership. A single valid `sub` or mapped name identifier preserves authenticated partitioning. Local and shared Redis paths use the same key.
+- Anonymous TCP peers are normalized when the same IPv4 address is presented as IPv4-mapped IPv6 by a dual-stack listener. `192.0.2.25` and `::ffff:192.0.2.25` must consume one quota in local and shared Redis gates; native IPv6 peers and unique authenticated JWT subjects retain independent keys. Forwarded and tenant headers remain untrusted.
 - Redis server `TIME` and one atomic Lua `INCR`/`EXPIRE` operation protect
   the shared budget from lost updates and per-replica clock skew.
   A fixed window allows up to twice the quota across adjacent window boundaries.

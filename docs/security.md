@@ -121,7 +121,7 @@ validated identity, two claims of the configured tenant type (including two
 identical values) are rejected rather than selecting the first; signed tenant
 membership is still a separate owner-approved policy. The local and
 shared Redis rate limit partitioner uses the same rule for subject and tenant,
-falling back to the actual TCP peer if no unambiguous subject exists. This
+falling back to the actual TCP peer if no unambiguous subject exists. The peer address is canonicalized for IPv4-mapped IPv6 so dual-stack presentation cannot double anonymous request budgets; native IPv6 and unambiguous authenticated JWT identities stay independent. This
 avoids a forged secondary identity creating extra quota partitions. A genuine
 signed JWT with its tenant claim remains valid; unsigned forwarded/tenant
 headers and unrelated claims are not authority. A single authenticated identity must also have exactly one subject claim across `sub` and the mapped name-identifier claim to receive a JWT-partitioned quota. Duplicate or conflicting identifiers use the actual TCP peer for both local and shared Redis quotas, not an arbitrary first subject. This is conservative rate limiting, not membership authorization.
