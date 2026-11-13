@@ -96,3 +96,16 @@ must individually sign their actual published digest. See
 docs/release-integrity.md and the template's ADR-011.
 
 **Signed artifact gate:** signing the scanned Docker-save image archive is now deferred to the final provenance job. All eight upstream CI jobs (including the isolated actual Redis restart and full SQL/Wolverine tests) must pass before that artifact receives SLSA provenance. A partial/passing image-scan job alone cannot issue a signed archive. This still is not a published registry OCI signature.
+
+## Shared Redis API quotas (generic template)
+
+`api-shared-limits` is opt-in, alongside the local HTTP limiter. When enabled
+outside Development, the API now refuses a Redis connection configuration that
+omits `ssl=true` or explicitly sets `ssl=false`; its unit regression tests also
+require forged tenant headers and unauthenticated identity claims to leave the
+anonymous TCP-peer partition unchanged. Real Redis two-replica 429/503 and
+spoofed-header tests remain isolated in CI. This is a transport configuration
+guard, **not** certificate-chain verification, authenticated Redis ACL approval,
+reverse-proxy identity policy, business membership or production readiness.
+Those security-owner/deployment gates remain open under
+[ADR-012](../templates/aba-api/docs/decisions/ADR-012-shared-redis-rate-limits.md).
