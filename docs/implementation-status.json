@@ -896,7 +896,7 @@
       "status": "partial",
       "owner": "Operations / Performance",
       "priority": "P1",
-      "delivered": "CI-verified focused disposable generated-API loopback liveness drill: 40/40 HTTP 200, four workers, p50/p95 and throughput artifact (PR run 43354991363 otel-collector job); full PR gating remains separate",
+      "delivered": "CI-verified disposable generated-API loopback drill (main CI 43356449614): 40 HTTP 200, four workers, p50/p95 and throughput; PR #18 adds exclusive private JSON evidence writes with path/overwrite/symlink rejection and focused negative tests (exact-head CI pending)",
       "remaining": "Set owner-approved production SLO/RTO/RPO and exercise actual provider-backed two-replica business load/failover, recovery and safe capacity thresholds; loopback liveness does not certify those",
       "acceptance": "SLO and recovery objectives measurable under load",
       "evidence": [
