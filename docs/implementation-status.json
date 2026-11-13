@@ -624,7 +624,7 @@
       "status": "partial",
       "owner": "Platform",
       "priority": "P1",
-      "delivered": "Optional tracing/metrics instrumentation and OTLP exporter wiring",
+      "delivered": "Optional tracing/metrics instrumentation and OTLP exporter wiring; endpoint URL validation refuses embedded credentials, queries and fragments before OTLP exporter configuration",
       "remaining": "Approve production PII/sampling/correlation policy and prove deployed collector end-to-end; isolated main CI 43353408323 proves only generated-API export",
       "acceptance": "Collector receives correlated spans/metrics without secrets",
       "evidence": [

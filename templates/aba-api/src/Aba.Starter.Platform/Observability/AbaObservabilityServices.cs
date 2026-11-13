@@ -22,9 +22,12 @@ public sealed record AbaObservabilityOptions(bool Enabled, string ServiceName, U
 
         if (!Uri.TryCreate(endpointText, UriKind.Absolute, out var endpoint)
             || (endpoint.Scheme != Uri.UriSchemeHttps
-                && !(isDevelopment && endpoint.Scheme == Uri.UriSchemeHttp)))
+                && !(isDevelopment && endpoint.Scheme == Uri.UriSchemeHttp))
+            || !string.IsNullOrEmpty(endpoint.UserInfo)
+            || !string.IsNullOrEmpty(endpoint.Query)
+            || !string.IsNullOrEmpty(endpoint.Fragment))
             throw new InvalidOperationException(
-                "OTLP endpoint must be HTTPS (HTTP permitted only in local Development).");
+                "OTLP endpoint must be HTTPS (HTTP permitted only in local Development), without URI credentials, query or fragment.");
 
         return new(enabled, service, endpoint);
     }

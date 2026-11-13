@@ -30,6 +30,49 @@ public sealed class AbaPlatformTests
         Assert.True(AbaObservabilityOptions.FromConfiguration(config, isDevelopment: true).Enabled);
     }
 
+    [Theory]
+    [InlineData("https://api:private@collector.example:4318/v1/traces")]
+    [InlineData("https://collector.example:4318/v1/traces?api_key=private")]
+    [InlineData("https://collector.example:4318/v1/traces#private")]
+    [InlineData("http://api:private@127.0.0.1:4317")]
+    [InlineData("http://127.0.0.1:4317/v1/traces?api_key=private")]
+    public void OtlpEndpointRejectsEmbeddedSecretsAndNonRoutingUrlParts(string endpoint)
+    {
+        var config = Config(new Dictionary<string, string?>
+        {
+            ["Platform:Observability:Enabled"] = "true",
+            ["Platform:Observability:ServiceName"] = "Example.Api",
+            ["Platform:Observability:OtlpEndpoint"] = endpoint
+        });
+        foreach (var isDevelopment in new[] { false, true })
+        {
+            var error = Assert.Throws<InvalidOperationException>(() =>
+                AbaObservabilityOptions.FromConfiguration(config, isDevelopment));
+            Assert.DoesNotContain("private", error.Message);
+        }
+    }
+
+    [Fact]
+    public void SafeOtlpUrlAndDisabledDefaultRemainUnchanged()
+    {
+        var https = Config(new Dictionary<string, string?>
+        {
+            ["Platform:Observability:Enabled"] = "true",
+            ["Platform:Observability:ServiceName"] = "Example.Api",
+            ["Platform:Observability:OtlpEndpoint"] = "https://collector.example:4318/v1/traces"
+        });
+        var enabled = AbaObservabilityOptions.FromConfiguration(https, isDevelopment: false);
+        Assert.True(enabled.Enabled);
+        Assert.Equal("Example.Api", enabled.ServiceName);
+        Assert.Equal("https://collector.example:4318/v1/traces", enabled.OtlpEndpoint?.AbsoluteUri);
+
+        var disabled = AbaObservabilityOptions.FromConfiguration(
+            Config(new Dictionary<string, string?> { ["Platform:Observability:Enabled"] = "false" }),
+            isDevelopment: false);
+        Assert.False(disabled.Enabled);
+        Assert.Null(disabled.OtlpEndpoint);
+    }
+
     [Fact]
     public void TenantResolverIgnoresUnsignedUserSuppliedHeaders()
     {

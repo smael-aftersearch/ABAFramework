@@ -163,3 +163,13 @@ The disposable load script now refuses arbitrary `--output` paths and preserves
 prior evidence using exclusive `0600` JSON creation under `artifacts/load`;
 this does not provide authenticated artifact retention, offsite immutability or
 protection against a malicious runner administrator.
+
+## Queue A — OTLP URL configuration guard (2026-11-13)
+
+The generic API rejects OTLP exporter URLs with inline username/password, query
+parameters or fragments before exporter construction, including in Development.
+Safe HTTPS paths remain valid; Development-only HTTP remains a deliberate local
+exception. These negative checks reduce accidental credential propagation; they
+**do not** deliver endpoint authentication, mTLS, production PII filtering,
+sampling, collector retention or an approved telemetry destination. The new
+regression tests must pass their exact PR-head CI before being called verified.
