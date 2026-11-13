@@ -202,3 +202,20 @@ real SQL-engine tests remain the positive path and missing/malformed tenant
 claims still reject before OpenAsync. The invariant is zero opens, closes,
 transactions and callbacks for a pre-cancelled request. The authored test is
 not a PASS claim until [PR #28 exact-head CI](https://github.com/smael-aftersearch/ABAFramework/pull/28/checks) verifies it. No production schema, membership or RLS policy is changed.
+
+## Queue B run 9 — malformed query cache payloads
+
+`CacheSingleFlightTests.ExplicitFallbackRepairsOnlyTheCorruptTenantsQueryPayload`
+primes another tenant's same-named query key, corrupts a JSON entry,
+then verifies an explicitly opted-in authoritative refresh repairs the
+scoped entry once while the other tenant's value stays unchanged
+(positive and tenant-isolation invariant).
+`StrictOrCancelledCorruptCacheReadNeverCallsSourceOrOverwritesEvidence`
+requires a strict cache read to propagate `JsonException`, an
+already-cancelled fallback to stop before source I/O, malformed bytes
+to remain unchanged, and local gate references to be released
+(negative and no-side-effect invariant). Real Redis restart and
+source-load saturation tests remain independent. The new xUnit cases
+must be checked against the exact [PR #29 HEAD](https://github.com/smael-aftersearch/ABAFramework/pull/29/checks)
+before PASS is claimed. No business tenant membership or production
+cache authorization is inferred.
