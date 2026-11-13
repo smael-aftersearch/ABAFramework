@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO.Pipes;
 using System.Net.Sockets;
@@ -177,16 +178,39 @@ public sealed class RabbitMqIntegrationTests
             brokerPaused = true;
             await writer.WriteLineAsync("invoke-outbox");
 
+            // The child may block while the broker is down. Drain a fixed
+            // vocabulary of non-secret phase signals from the existing private
+            // pipe so a timeout points to the exact unfinished stage instead
+            // of disguising all failures as a missing committed-outbox marker.
+            var phases = new ConcurrentQueue<string>();
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    while (await reader.ReadLineAsync() is { } phase)
+                    {
+                        if (phase is "outbox-started" or "outbox-resolved"
+                            or "outbox-published" or "outbox-flushed" or "outbox-verified")
+                            phases.Enqueue(phase);
+                    }
+                }
+                catch (IOException) { /* The isolated child was killed or closed the pipe. */ }
+                catch (ObjectDisposedException) { /* Parent cleanup closed the pipe. */ }
+            });
+
             var signalled = false;
             for (var i = 0; i < 240; i++)
             {
                 if (File.Exists(marker)) { signalled = true; break; }
                 if (childProcess.HasExited)
                     throw new InvalidOperationException(
-                        "The broker crash worker exited before the committed-outbox marker.");
+                        "The broker crash worker exited before the committed-outbox marker. " +
+                        "Non-secret child phases: " + string.Join(" -> ", phases));
                 await Task.Delay(250);
             }
-            Assert.True(signalled, "Timed out before the producer committed its outbox command.");
+            Assert.True(signalled,
+                "Timed out before the producer committed its outbox command. " +
+                "Non-secret child phases: " + string.Join(" -> ", phases));
             Assert.Equal("outbox-committed-broker-paused", File.ReadAllText(marker));
 
             childProcess.Kill(entireProcessTree: true);
