@@ -27,6 +27,8 @@ The generic framework has no business membership model and must not invent one.
 - `AbaTenantSqlScope.RunAsync` binds a validated `IRequestTenant`
   with a parameter, in a fresh connection and transaction, and executes
   a callback against that same transaction. PostgreSQL uses SET LOCAL.
+  Connection closure also covers a provider `OpenAsync` failure after the
+  connection has partially opened; the callback must never run in that case.
   SQL Server resets SESSION_CONTEXT before pooling; if it cannot reset,
   the connection pool is invalidated.
 - The technical request-tenant resolver requires exactly one authenticated identity

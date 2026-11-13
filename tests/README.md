@@ -177,3 +177,17 @@ rejected targets send no HTTP requests. The URL parsing guard protects only
 disposable CI loopback diagnostics; it is not a load SLO, production probe or
 an authorization to send traffic to a real deployment. See issue #3 for
 exact-HEAD PR CI and completion evidence.
+
+## Queue C — tenant SQL connection-open failure boundary
+
+`TenantRlsPolicyTests.FailedOpenClosesPartiallyOpenedTenantConnectionBeforeItCanBeReused`
+uses a disposable DbConnection that transitions to Open then faults during
+`OpenAsync`. The SQL scope must close the partially opened connection and
+never invoke the command callback. `InvalidTenantCannotReachSqlEvenWhenProviderCouldOpen`
+denies missing or malformed tenant IDs before connection access. Existing real
+PostgreSQL/SQL Server `RowLevelSecurityTests.RlsDeniesForeignRowsForRawSqlAndEfBulkMutations`
+remain the positive own-tenant, negative cross-tenant and no-residual-session
+acceptance gate. These are technical guards; real tenant memberships, DB
+privileges, provider-level session spoofing and production migrations still
+need owner/DBA/Security approval. Count the new cases as executed only after
+exact-HEAD CI verifies them.
