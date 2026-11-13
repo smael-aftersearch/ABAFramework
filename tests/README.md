@@ -141,3 +141,13 @@ sending requests, and uses exclusive creation with private mode `0600`.
 The additional happy/negative/invariant tests in the same Python suite check
 that prior evidence and unrelated files are never overwritten. These are
 local/CI technical security controls, not approved production telemetry storage.
+
+## Generic OTLP exporter URL safety regression (Queue A)
+
+`AbaPlatformTests.OtlpEndpointRejectsEmbeddedSecretsAndNonRoutingUrlParts`
+rejects credentials, query and fragment values for both Development and
+non-Development configurations; `SafeOtlpUrlAndDisabledDefaultRemainUnchanged`
+keeps HTTPS paths and the off-by-default invariant. The existing HTTP-in-
+Development/HTTPS-only-in-production test remains. Run the generated .NET 10
+xUnit suite via `bash scripts/verify-starter.sh` in CI; authored cases are
+not evidence of PASS until that exact PR HEAD finishes successfully.
