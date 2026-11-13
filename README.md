@@ -297,7 +297,14 @@ The audit ledger now produces unsigned head candidates that a
 separate trusted custodian can sign with an independent HMAC key.
 The API verifies that signed historical prefix even after later
 audit events are appended, but does not deploy an immutable
-offsite checkpoint store or Production key manager. See
+offsite checkpoint store or Production key manager. The technical
+full-chain and signed-prefix audit verifiers now read ordered tenant
+records incrementally instead of materializing complete histories;
+a disposable PostgreSQL/SQL Server regression checks a valid chain,
+historical signed prefix, tamper rejection and neighbor-tenant isolation.
+This improvement requires exact-HEAD CI before claiming PASS, and
+`ops-audit` remains `partial` pending independent custody and approvals.
+See
 [crash ADR](templates/aba-api/docs/decisions/ADR-008-kill-window-recovery.md),
 [checkpoint ADR](templates/aba-api/docs/decisions/ADR-009-offline-audit-checkpoints.md)
 and [safe crash runbook](templates/aba-api/docs/operations/crash-drills.md).

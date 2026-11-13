@@ -51,3 +51,22 @@ handling and operational disaster drills.
 Rollback must retain audit evidence for the legal period. Dropping this
 technical migration deletes evidence; require explicit DBA/legal approval,
 not an emergency shortcut.
+
+## Streaming full-chain and signed-prefix verification (incremental hardening)
+
+Both `VerifyAsync` and `VerifyAnchoredPrefixAsync` now enumerate the
+ordered, per-tenant EF Core query asynchronously instead of materializing
+all records using `ToListAsync`. The prefix verifier retains its
+repeatable-read snapshot; the HMAC format, sequence checks, independent
+checkpoint signature and fail-closed mismatch results are unchanged.
+Verification still processes **every** relevant row and needs an index
+and bounded operational scheduling for long histories; streaming is not a
+Production performance/SLA or immutable-retention guarantee.
+
+The synthetic PostgreSQL/SQL Server regression verifies a multi-row
+chain, independently signed prefix followed by legitimate appends,
+negative mid-chain modification, and the unaffected neighbor tenant.
+The test deletes only its own random-tenant audit rows. Exact-HEAD CI
+must execute it successfully before claiming PASS. Real off-DB
+checkpoint custody, key rotation, DB append-only grants and legally
+approved retention remain Security/Operations/business-owner gates.
