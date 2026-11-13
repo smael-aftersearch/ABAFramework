@@ -190,7 +190,8 @@ public sealed class RabbitMqIntegrationTests
                     while (await reader.ReadLineAsync() is { } phase)
                     {
                         if (phase is "outbox-started" or "outbox-resolved"
-                            or "outbox-published" or "outbox-flushed" or "outbox-verified")
+                            or "outbox-published" or "outbox-flush-started"
+                            or "outbox-committed" or "outbox-verified")
                             phases.Enqueue(phase);
                     }
                 }
