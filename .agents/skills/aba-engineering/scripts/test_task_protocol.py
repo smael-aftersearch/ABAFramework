@@ -51,6 +51,42 @@ class TestTaskProtocol(unittest.TestCase):
     def test_unknown_business_owner_remains_unresolved(self):
         planned = protocol.classify_task(ROOT, 'Add a lunar calendar export with no existing owner', [])
         self.assertFalse(planned['possible_contexts'])
+        self.assertFalse(planned['possible_technical_owners'])
+        self.assertFalse(planned['ownership_confirmed'])
+
+    def test_generic_platform_component_is_not_a_business_context(self):
+        planned = protocol.classify_task(
+            ROOT,
+            'Review read-through cache resilience',
+            ['templates/aba-api/src/Aba.Starter.Platform/Caching/ReadThroughQueryCache.cs'],
+        )
+        self.assertFalse(planned['possible_contexts'])
+        self.assertEqual(['Platform'], planned['possible_technical_owners'])
+        self.assertFalse(planned['ownership_confirmed'])
+        self.assertIn(
+            'templates/aba-api/docs/decisions/ADR-010-cache-singleflight-redis-restart.md',
+            planned['reading_paths'],
+        )
+        categories = {item['category'] for item in planned['test_categories']}
+        self.assertIn('caching', categories)
+        self.assertNotIn('api', categories)
+        self.assertNotIn('architecture', categories)
+        self.assertNotIn('samples/Academy/Host/openapi-v1.json', planned['reading_paths'])
+        integration_plan = protocol.classify_task(
+            ROOT,
+            'Verify provider-backed cache behavior',
+            ['templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/SharedRedisRateLimitTests.cs'],
+        )
+        self.assertEqual(['Platform'], integration_plan['possible_technical_owners'])
+
+    def test_business_context_and_technical_owner_remain_separate_candidates(self):
+        planned = protocol.classify_task(
+            ROOT,
+            'Review payment cache policy',
+            ['templates/aba-api/src/Aba.Starter.Platform/Caching/ReadThroughQueryCache.cs'],
+        )
+        self.assertIn('Payments', planned['possible_contexts'])
+        self.assertEqual(['Platform'], planned['possible_technical_owners'])
         self.assertFalse(planned['ownership_confirmed'])
 
     def test_path_traversal_is_rejected(self):

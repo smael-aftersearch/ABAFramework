@@ -150,6 +150,35 @@ def validate_repo(root: Path) -> list[str]:
                                 error('AI007', f'{key} ai-rules must_read references unknown metadata.',
                                       'Use recognized context document names.')
 
+    technical_owners = knowledge.get('technical_owners')
+    if not isinstance(technical_owners, dict) or not technical_owners:
+        error('AI010', 'Knowledge map has no technical owner entries.',
+              'List generic Host/Platform source path prefixes separately from business contexts.')
+    else:
+        for owner, entry in technical_owners.items():
+            if not isinstance(entry, dict):
+                error('AI010', f'technical_owners.{owner} must be an object.',
+                      'Use path_prefixes and docs arrays.')
+                continue
+            prefixes, docs = entry.get('path_prefixes'), entry.get('docs')
+            if not isinstance(prefixes, list) or not prefixes or any(
+                    not isinstance(prefix, str) or not prefix.strip() for prefix in prefixes):
+                error('AI010', f'technical_owners.{owner} has no valid path prefixes.',
+                      'Use nonblank repository-relative directory prefixes.')
+            else:
+                for prefix in prefixes:
+                    path = Path(prefix)
+                    resolved = root / path
+                    if path.is_absolute() or '..' in path.parts or not is_within(root, resolved) or not resolved.is_dir():
+                        error('AI010', f'Invalid technical-owner path prefix {prefix!r} for {owner}.',
+                              'Point to an existing repository-relative source directory.')
+            if not isinstance(docs, list) or not docs or any(
+                    not isinstance(doc, str) or not doc.strip() for doc in docs):
+                error('AI010', f'technical_owners.{owner} has no valid docs.',
+                      'List repository-relative architecture sources.')
+            else:
+                seen.update(docs)
+
     for item in sorted(seen):
         if not isinstance(item, str) or not item.strip():
             error('AI008', f'Invalid knowledge-map path {item!r}', 'Use nonblank relative paths.')
@@ -197,6 +226,15 @@ def term_matches(needle: str, haystack: str) -> bool:
     return needle in haystack
 
 
+def searchable_file_path(file: str) -> str:
+    """Do not classify a task as API work only because it lives in aba-api/."""
+    normalized = file.replace('\\', '/')
+    template_root = 'templates/aba-api/'
+    if normalized.casefold().startswith(template_root):
+        normalized = normalized[len(template_root):]
+    return re.sub(r'(?i)Aba\.Starter\.', '', normalized)
+
+
 def review_docs_for_changes(paths: list[str]) -> list[str]:
     """Conservative review hints; never claims documentation is automatically correct."""
     docs = []
@@ -226,8 +264,10 @@ def review_docs_for_changes(paths: list[str]) -> list[str]:
 
 def task_brief(root: Path, task: str, files: list[str]) -> str:
     knowledge = json_file(root / MAP)
-    haystack = task + ' ' + ' '.join(files)
+    searchable_paths = [searchable_file_path(file) for file in files]
+    haystack = task + ' ' + ' '.join(searchable_paths)
     contexts = []
+    technical_owners = []
     topics = []
     selected = list(knowledge['always'])
     for context, entry in knowledge['contexts'].items():
@@ -238,6 +278,12 @@ def task_brief(root: Path, task: str, files: list[str]) -> str:
         if by_name or by_keyword or by_file:
             contexts.append(context)
             selected += entry['docs']
+    normalized_files = [f.replace('\\', '/').casefold() for f in files]
+    for owner, entry in knowledge.get('technical_owners', {}).items():
+        prefixes = [path.casefold() for path in entry.get('path_prefixes', [])]
+        if any(file.startswith(prefix) for file in normalized_files for prefix in prefixes):
+            technical_owners.append(owner)
+            selected += entry['docs']
     for topic, entry in knowledge['topics'].items():
         if any(term_matches(word, haystack) for word in entry['keywords']):
             topics.append(topic)
@@ -246,6 +292,7 @@ def task_brief(root: Path, task: str, files: list[str]) -> str:
     out = ['ABA TASK READING BRIEF (heuristic, not architectural authority)',
            f'Task: {task}',
            'Possible owning contexts: ' + (', '.join(contexts) if contexts else 'UNRESOLVED — inspect ownership.yaml and context maps'),
+           'Possible technical owners: ' + (', '.join(technical_owners) if technical_owners else 'none indicated by source paths'),
            'Relevant topics: ' + (', '.join(topics) if topics else '(none matched)'),
            'Recommended reading order:']
     out += [f'  - {item}' for item in unique]

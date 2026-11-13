@@ -111,6 +111,25 @@
       ]
     }
   },
+  "technical_owners": {
+    "Host (composition only)": {
+      "path_prefixes": [
+        "templates/aba-api/src/Aba.Starter.Api/"
+      ],
+      "docs": [
+        "templates/aba-api/docs/architecture.md"
+      ]
+    },
+    "Platform": {
+      "path_prefixes": [
+        "templates/aba-api/src/Aba.Starter.Platform/",
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/"
+      ],
+      "docs": [
+        "templates/aba-api/docs/architecture.md"
+      ]
+    }
+  },
   "topics": {
     "contracts": {
       "keywords": [

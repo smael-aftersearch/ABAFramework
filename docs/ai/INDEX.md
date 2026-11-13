@@ -56,7 +56,7 @@ python3 scripts/task_protocol.py verify --profile all --output artifacts/verific
 
 **Every material change must start with a test plan and finish with test evidence** as defined in `docs/testing/TEST-STRATEGY.md`. The `brief` command **suggests** relevant files using task keywords and target paths. Its guesses are not authoritative; inspect the actual ownership metadata. If owner cannot be determined, do not invent one.
 
-For a short Persian operator guide, see `docs/ai/USAGE-FA.md`. Read `docs/ai/CHANGE-PROTOCOL.md` for the end-to-end task loop and `docs/ai/DOC-UPDATE-RULES.md` for documentation maintenance. The machine-readable `docs/ai/knowledge-map.json` powers document discovery; update it when adding or moving a source that agents should discover.
+For a short Persian operator guide, see `docs/ai/USAGE-FA.md`. Read `docs/ai/CHANGE-PROTOCOL.md` for the end-to-end task loop and `docs/ai/DOC-UPDATE-RULES.md` for documentation maintenance. The machine-readable `docs/ai/knowledge-map.json` powers document discovery and keeps technical component candidates separate from business contexts; update it when adding or moving a source that agents should discover.
 
 ## Implementation truth and confidence
 

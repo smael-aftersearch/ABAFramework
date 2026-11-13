@@ -32,27 +32,27 @@ RULES = {
     'messaging': {
         'match': ('outbox', 'inbox', 'wolverine', 'broker', 'messaging', 'retry', 'idempotent', 'idempotency', 'dead-letter', 'پیام', 'تکراری'),
         'cases': ['Business state and outbox message stored atomically', 'Duplicate delivery does not duplicate side effects', 'Transient failure retries; exhausted retries are diagnosable'],
-        'test': 'Messaging integration/failure tests; local smoke exists, external broker tests planned',
+        'test': 'Generic Wolverine dual-provider integration tests exist; verify owner-specific business flow and broker demand separately',
     },
     'persistence': {
         'match': ('database', 'postgres', 'dbcontext', 'ef core', 'migration', 'transaction', 'sql', 'دیتابیس', 'تراکنش'),
         'cases': ['Expected writes and reads persist after restart', 'Transaction rollback and unique constraints prevent corruption', 'One context cannot modify another context storage'],
-        'test': 'Real database migration/transaction integration tests (planned)',
+        'test': 'Generic EF Core dual-provider integration tests exist; business schemas and migrations require their owner',
     },
     'caching': {
         'match': ('redis', 'cache', 'caching', 'ttl', 'invalidate', 'کش', 'ردیس'),
         'cases': ['Cache miss and hit return correct data', 'State change invalidates affected cached result', 'TTL, tenant isolation and cache outage have safe behavior'],
-        'test': 'Cache integration/failure tests; only memory cache exists now',
+        'test': 'Generic cache xUnit and opt-in real Redis integration tests exist; Academy sample caching is separate',
     },
     'security': {
         'match': ('security', 'oauth', 'oidc', 'jwt', 'token', 'permission', 'auth', 'tenant', 'امنیت', 'مجوز', 'احراز هویت'),
         'cases': ['Authorized request succeeds with least privilege', 'Unauthenticated and forbidden requests return 401/403', 'Tenant boundary and sensitive error response cannot leak information'],
-        'test': 'HTTP authorization/tenant integration tests (planned)',
+        'test': 'Generic JWT, Keycloak and SQL tenant-guard tests exist; membership policy remains owner-defined',
     },
     'api': {
         'match': ('api', 'endpoint', 'http', 'openapi', 'controller', 'route', 'swagger', 'مسیر', 'وب سرویس'),
         'cases': ['Successful route response matches public schema', 'Bad request/conflict/not found return correct status', 'OpenAPI and implementation remain aligned'],
-        'test': 'Host/API HTTP integration tests (planned)',
+        'test': 'Generic WebApplicationFactory, OpenAPI and HTTP error tests exist; Academy API docs are separate',
     },
     'architecture': {
         'match': ('architecture', 'governance', 'dependency', 'bounded context', 'metadata', 'skill', 'agent', 'ci', 'pipeline', 'معماری', 'ایجنت'),
@@ -77,6 +77,15 @@ def clean_file(root: Path, raw: str) -> str:
     if path.is_absolute() or not (root / path).resolve().is_relative_to(root.resolve()):
         raise ValueError(f'Unsafe file path outside repository: {raw}')
     return path.as_posix().removeprefix('./')
+
+
+def searchable_file_path(file: str) -> str:
+    """Ignore the generic template's repository folder name during keyword matching."""
+    normalized = file.replace('\\', '/')
+    template_root = 'templates/aba-api/'
+    if normalized.casefold().startswith(template_root):
+        normalized = normalized[len(template_root):]
+    return re.sub(r'(?i)Aba\.Starter\.', '', normalized)
 
 
 def discover_xunit_test_projects(root: Path) -> list[str]:
@@ -122,13 +131,21 @@ def classify_task(root: Path, task: str, files: list[str]) -> dict:
         raise ValueError('Missing docs/ai/knowledge-map.json: cannot propose owners or reading paths')
     knowledge = json.loads((root / 'docs/ai/knowledge-map.json').read_text(encoding='utf-8'))
     normalized = [clean_file(root, raw) for raw in files]
-    haystack = task + ' ' + ' '.join(normalized)
+    searchable_paths = [searchable_file_path(file) for file in normalized]
+    haystack = task + ' ' + ' '.join(searchable_paths)
     contexts = []
+    technical_owners = []
     recommended = list(knowledge.get('always', []))
     for ctx, record in knowledge.get('contexts', {}).items():
         if (any(match_term(k, haystack) for k in record['keywords'])
                 or any(f'/Academy/{ctx}/' in f'/{f}' or f'/Academy/{ctx}.Contracts/' in f'/{f}' for f in normalized)):
             contexts.append(ctx)
+            recommended.extend(record['docs'])
+    for owner, record in knowledge.get('technical_owners', {}).items():
+        prefixes = record.get('path_prefixes', [])
+        if any(file.casefold().startswith(prefix.casefold())
+               for file in normalized for prefix in prefixes):
+            technical_owners.append(owner)
             recommended.extend(record['docs'])
     topics = []
     for name, record in knowledge.get('topics', {}).items():
@@ -176,6 +193,7 @@ def classify_task(root: Path, task: str, files: list[str]) -> dict:
         'task': task,
         'files': normalized,
         'possible_contexts': contexts,
+        'possible_technical_owners': technical_owners,
         'ownership_confirmed': False,
         'ownership_warning': 'Candidates only. Inspect ownership.yaml, decisions.md, contracts, implementation and consumers before edits.',
         'matched_topics': topics,
@@ -190,6 +208,7 @@ def format_plan(plan: dict) -> str:
     lines = ['ABA TASK PLAN (suggestion, NOT an ownership decision)',
              f"Task: {plan['task']}",
              'Possible contexts: ' + (', '.join(plan['possible_contexts']) or 'UNRESOLVED'),
+             'Possible technical owners: ' + (', '.join(plan['possible_technical_owners']) or 'none indicated by source paths'),
              'Confirm each owner in metadata and code before implementing.',
              'Read these sources selectively:']
     lines.extend(f'  - {item}' for item in plan['reading_paths'])

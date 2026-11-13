@@ -24,7 +24,7 @@
 
 ## Executable task and test protocol
 
-For each material request, run `python3 scripts/task_protocol.py plan --task "<request>" --file "<changed/path>"` to suggest owner(s), reading sources and success/negative/invariant test cases. Confirm every proposed owner from metadata and source; a suggestion is not permission. Implement source + focused tests + relevant docs together. Run `python3 scripts/task_protocol.py verify --profile static --output artifacts/verification/static.json` and where .NET 10 exists use `--profile all --output artifacts/verification/full.json`; the runner records PASS, FAIL and NOT_RUN and fails closed on missing runtime. Read `.agents/skills/aba-engineering/references/testing-and-evidence.md` for complete guidance.
+For each material request, run `python3 scripts/task_protocol.py plan --task "<request>" --file "<changed/path>"` to suggest business-context candidates, technical component owners, reading sources and success/negative/invariant test cases. These are separate candidate lists: Platform/Host ownership does not imply business ownership. Confirm every candidate from metadata and source; a suggestion is not permission. Implement source + focused tests + relevant docs together. Run `python3 scripts/task_protocol.py verify --profile static --output artifacts/verification/static.json` and where .NET 10 exists use `--profile all --output artifacts/verification/full.json`; the runner records PASS, FAIL and NOT_RUN and fails closed on missing runtime. Read `.agents/skills/aba-engineering/references/testing-and-evidence.md` for complete guidance.
 
 ## Before finishing a material task
 
