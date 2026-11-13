@@ -164,4 +164,91 @@ public sealed class CacheSingleFlightTests
         Assert.Equal(2, await Get());
         Assert.Equal(2, count);
     }
+
+    [Fact]
+    public async Task FullHostGateRejectsCrossTenantWaitersAndCancellationRestoresCapacity()
+    {
+        var gate = new AbaCacheLoadGate(2);
+        var firstKey = ScopedJsonCache.KeyFor("authorized-tenant-a", "same-key");
+        var otherKey = ScopedJsonCache.KeyFor("authorized-tenant-b", "same-key");
+        using var active = await gate.EnterAsync(firstKey, CancellationToken.None);
+        using var cancel = new CancellationTokenSource();
+        var queued = gate.EnterAsync(firstKey, cancel.Token);
+        Assert.Equal(2, gate.InFlightRequests);
+        Assert.Equal(1, gate.ActiveKeys);
+
+        await Assert.ThrowsAsync<AbaCacheLoadGateSaturatedException>(() =>
+            gate.EnterAsync(otherKey, CancellationToken.None));
+        Assert.Equal(2, gate.InFlightRequests);
+        Assert.Equal(1, gate.ActiveKeys); // Denial must not create another tenant's entry.
+
+        cancel.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => queued);
+        Assert.Equal(1, gate.InFlightRequests);
+        using var admitted = await gate.EnterAsync(otherKey, CancellationToken.None);
+        Assert.Equal(2, gate.InFlightRequests);
+        Assert.Equal(2, gate.ActiveKeys);
+        admitted.Dispose();
+        active.Dispose();
+        Assert.Equal(0, gate.InFlightRequests);
+        Assert.Equal(0, gate.ActiveKeys);
+    }
+
+    [Fact]
+    public async Task SaturationNeverInvokesTheAuthoritativeLoaderAndCanRetryAfterRelease()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddAbaCaching(new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?>
+            {
+                ["Platform:Cache:MaxInFlightRequests"] = "1"
+            }).Build());
+        using var provider = services.BuildServiceProvider();
+        var gate = provider.GetRequiredService<AbaCacheLoadGate>();
+        using var occupied = await gate.EnterAsync(
+            ScopedJsonCache.KeyFor("authorized-tenant-a", "busy"), CancellationToken.None);
+        await using var scope = provider.CreateAsyncScope();
+        var cache = scope.ServiceProvider.GetRequiredService<ReadThroughQueryCache>();
+        var calls = 0;
+
+        await Assert.ThrowsAsync<AbaCacheLoadGateSaturatedException>(() =>
+            cache.GetOrLoadAsync("authorized-tenant-b", "same-key",
+                TimeSpan.FromMinutes(1), _ =>
+                {
+                    calls++;
+                    return Task.FromResult("should-not-load");
+                }));
+        Assert.Equal(0, calls);
+        Assert.Equal(1, gate.InFlightRequests);
+        occupied.Dispose();
+
+        Assert.Equal("tenant-b-result", await cache.GetOrLoadAsync(
+            "authorized-tenant-b", "same-key", TimeSpan.FromMinutes(1),
+            _ =>
+            {
+                calls++;
+                return Task.FromResult("tenant-b-result");
+            }));
+        Assert.Equal(1, calls);
+        Assert.Equal(0, gate.InFlightRequests);
+        Assert.Equal(0, gate.ActiveKeys);
+    }
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("-1")]
+    [InlineData("4097")]
+    [InlineData("invalid")]
+    public void InvalidInFlightCapacityFailsFastAtRegistration(string invalid)
+    {
+        var config = new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?>
+            {
+                ["Platform:Cache:MaxInFlightRequests"] = invalid
+            }).Build();
+        Assert.Throws<InvalidOperationException>(() =>
+            new ServiceCollection().AddAbaCaching(config));
+    }
+
 }
