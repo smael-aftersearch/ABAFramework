@@ -325,7 +325,6 @@ public sealed class AbruptCrashWindowTests
         }
     }
 
-
     [Fact]
     [Trait("Category", "CrashDrill")]
     public void CrashMarkerCannotEscapeDisposableDirectoryOrOverwriteExistingEvidence()
@@ -375,6 +374,22 @@ public sealed class AbruptCrashWindowTests
                         true, true, atomic: true)));
                 Assert.False(File.Exists(marker));
                 Assert.Equal("untouched", File.ReadAllText(sentinel));
+
+                // An alternate directory symlink with a valid-looking name is denied.
+                var alias = Path.Combine(Path.GetTempPath(),
+                    "aba-crash-" + Guid.NewGuid().ToString("N"));
+                Directory.CreateSymbolicLink(alias, directory);
+                try
+                {
+                    Assert.Throws<InvalidOperationException>(() =>
+                        AbaCrashAckProbeHandler.WriteIsolatedCrashMarker(
+                            Path.Combine(alias, "child-ready.marker"), "overwrite", true, true));
+                    Assert.Equal("untouched", File.ReadAllText(sentinel));
+                }
+                finally
+                {
+                    Directory.Delete(alias);
+                }
             }
         }
         finally
