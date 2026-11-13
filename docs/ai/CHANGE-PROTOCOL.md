@@ -4,7 +4,7 @@ A coding agent uses this loop for every material request. This is a workflow con
 
 ## Discover -> Decide -> Implement -> Synchronize -> Verify -> Report
 
-**Discover:** Read root `AGENTS.md`, this index and task-relevant paths from `python3 scripts/ai_check.py brief --task "..."`. Generate a proposed test matrix with `python3 scripts/task_protocol.py plan --task "..."`. Neither command grants architectural authority; confirm in metadata, ADRs and code.
+**Discover:** Read root `AGENTS.md`, this index and task-relevant paths from `python3 scripts/ai_check.py brief --task "..."`. Generate a proposed test matrix with `python3 scripts/task_protocol.py plan --task "..."`. The plan's test inventory includes checked-in xUnit projects under `tests/` and `templates/*/tests/`; inventory means source exists, not that tests ran. Neither command grants architectural authority; confirm in metadata, ADRs and code.
 
 **Decide:** Find the single authority for every business datum, rule, decision and public contract. Read `docs/testing/TEST-STRATEGY.md`, then define a test plan (success, failure/negative and invariant cases) before coding. Establish expected behavior, API/error cases, failure semantics, migrations, security, compatibility and tests. If ownership is ambiguous, inspect the map/catalog and prior ADRs. Request an explicit decision before a material ownership change instead of creating a shared model.
 

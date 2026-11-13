@@ -79,6 +79,35 @@ def clean_file(root: Path, raw: str) -> str:
     return path.as_posix().removeprefix('./')
 
 
+def discover_xunit_test_projects(root: Path) -> list[str]:
+    """Find checked-in xUnit projects in the repo and generated templates."""
+    search_roots = [root / 'tests']
+    templates = root / 'templates'
+    if templates.is_dir():
+        search_roots.extend(sorted(path / 'tests' for path in templates.iterdir()
+                                   if path.is_dir() and (path / 'tests').is_dir()))
+
+    projects = set()
+    ignored_parts = {'.git', 'artifacts', 'bin', 'obj'}
+    xunit_reference = re.compile(
+        r'<PackageReference\b(?=[^>]*\bInclude\s*=\s*[\"\']xunit(?:\.v\d+)?[\"\'])[^>]*>',
+        re.IGNORECASE,
+    )
+    for search_root in search_roots:
+        if not search_root.is_dir():
+            continue
+        for project in search_root.rglob('*.csproj'):
+            if any(part.casefold() in ignored_parts for part in project.relative_to(root).parts):
+                continue
+            try:
+                contents = project.read_text(encoding='utf-8')
+            except (OSError, UnicodeError):
+                continue
+            if xunit_reference.search(contents):
+                projects.add(project.relative_to(root).as_posix())
+    return sorted(projects)
+
+
 def match_term(term: str, body: str) -> bool:
     term = term.casefold()
     body = body.casefold()
@@ -140,8 +169,7 @@ def classify_task(root: Path, task: str, files: list[str]) -> dict:
         'console_smoke_source': (root / 'tests/Aba.SmokeTests/Program.cs').is_file(),
         'python_governance_tests': (root / 'scripts/test_governance.py').is_file(),
         'python_agent_tests': (root / 'scripts/test_ai_check.py').is_file(),
-        'xunit_test_projects': sorted(str(p.relative_to(root)) for p in (root / 'tests').rglob('*.csproj')
-                                     if 'UnitTests' in p.name or 'IntegrationTests' in p.name),
+        'xunit_test_projects': discover_xunit_test_projects(root),
     }
     return {
         'schema_version': 1,
@@ -170,9 +198,11 @@ def format_plan(plan: dict) -> str:
         lines.append(f"  [{item['category']}] {item['test_target']}")
         lines.extend(f'    - {test}' for test in item['acceptance_examples'])
     present = plan['existing_test_inventory']
+    projects = present['xunit_test_projects']
+    project_list = ', '.join(projects) if projects else 'none'
     lines.append('Inventory: console smoke source=' + str(present['console_smoke_source']) +
                  '; Python governance tests=' + str(present['python_governance_tests']) +
-                 '; .NET xUnit/Integration projects found=' + str(len(present['xunit_test_projects'])))
+                 '; .NET xUnit projects=' + project_list)
     lines.append('Existing source does not imply that C# tests ran. Verify and report PASS/FAIL/NOT_RUN.')
     return '\n'.join(lines)
 

@@ -16,6 +16,9 @@ class GenericTemplateTests(unittest.TestCase):
         script = (ROOT / "scripts/pack-template.sh").read_text()
         self.assertIn("PackageVersion=" + version, script)
         self.assertIn("ABAFramework.GenericApi.Template." + version + ".nupkg", script)
+        self.assertIn('PACKAGE_ID="ABAFramework.GenericApi.Template"', script)
+        self.assertIn('dotnet new uninstall "$PACKAGE_ID"', script)
+        self.assertIn('dotnet new uninstall 2>/dev/null | grep -Fq "$PACKAGE_ID"', script)
 
     def test_dotnet_new_metadata(self):
         meta = json.loads((TEMPLATE / '.template.config/template.json').read_text())

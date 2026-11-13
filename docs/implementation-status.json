@@ -115,6 +115,24 @@
       ]
     },
     {
+      "id": "api-cors",
+      "area": "API",
+      "feature": "Configurable browser CORS allow-list",
+      "status": "partial",
+      "owner": "Host",
+      "priority": "P1",
+      "delivered": "Exact configured origins only; HTTPS outside Development, loopback HTTP allowed only in Development, constrained methods/headers and no credential cookies; 11 focused xUnit cases pass locally",
+      "remaining": "Verify exact HEAD in GitHub CI; each deployment must provide its reviewed application origin list",
+      "acceptance": "Allowed origin receives CORS headers; unlisted origin receives none; unsafe configuration fails closed",
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Api/Platform/AbaCorsOptions.cs",
+        "templates/aba-api/src/Aba.Starter.Api/Program.cs"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/CorsTests.cs"
+      ]
+    },
+    {
       "id": "api-shared-limits",
       "area": "API",
       "feature": "Distributed multi-instance rate limits",
@@ -754,16 +772,19 @@
       "status": "implemented",
       "owner": "Agent tooling",
       "priority": "P1",
-      "delivered": "AGENTS, Skill, task-aware reader, PASS/FAIL/NOT_RUN evidence",
+      "delivered": "Root and generated-project agent workflows provide task-aware reading/test plans and PASS/FAIL/NOT_RUN evidence",
       "remaining": "AI agent adoption varies by platform; semantic review still manual",
       "acceptance": "Unknown owner and missing service checks fail closed",
       "evidence": [
         "templates/aba-api/tools/aba_task.py",
-        "templates/aba-api/.agents/skills/aba-engineering/SKILL.md"
+        "templates/aba-api/.agents/skills/aba-engineering/SKILL.md",
+        "scripts/task_protocol.py",
+        ".agents/skills/aba-engineering/scripts/task_protocol.py"
       ],
       "tests": [
         "templates/aba-api/tools/test_aba_task.py",
-        "scripts/verify-starter.sh"
+        "scripts/verify-starter.sh",
+        "scripts/test_task_protocol.py"
       ]
     },
     {

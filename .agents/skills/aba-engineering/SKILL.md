@@ -12,6 +12,7 @@ Use this skill as the procedural layer for the ABA repository. It does not repla
 1. Locate the repository root containing `AGENTS.md`, `docs/ai/INDEX.md`, and `contract-catalog.yaml`.
 2. Read `AGENTS.md` and `docs/ai/INDEX.md`. If they are absent, say so; never assume that this skill's examples describe an unknown repository.
 3. Run `python3 scripts/ai_check.py brief --task "<request>"` and `python3 scripts/task_protocol.py plan --task "<request>"` from that root when available. Pass `--file <path>` for likely edits. These are **reading/test suggestions, not ownership authority**; confirm against metadata, ADRs and code.
+   The task plan inventories xUnit projects under `tests/` and `templates/*/tests/`; listed projects exist in source but are not evidence that tests ran.
 4. Check the actual code and configuration for implemented behavior. The reference PDF defines ABA principles; the accepted ADRs and current metadata describe explicit project decisions. A README or aspirational specification does not prove a feature exists.
 
 ## 1. Make a minimal ownership-aware plan

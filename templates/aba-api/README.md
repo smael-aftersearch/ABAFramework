@@ -180,6 +180,21 @@ For non-authoritative, already-authorized queries you may use `ReadThroughQueryC
 
 `Platform:RateLimit:PermitLimit` (default 120) and `Platform:RateLimit:WindowSeconds` (default 60) configure per-instance fixed-window limits. Authenticated requests partition on verified JWT subject plus tenant claim; anonymous traffic is grouped by the actual TCP peer IP, never by untrusted `X-Forwarded-For` or `X-Tenant-ID`. The health endpoints are exempt from request throttling so load cannot make readiness/liveness accidentally fail. This is **per-process**, not a distributed quota across replicas; production needs an API gateway/shared limiter. Test in `RateLimitTests` covers 429, anonymous and JWT partition keys, and health bypass.
 
+## Browser cross-origin access (CORS)
+
+Cross-origin access is denied unless an exact origin is configured under
+`Api:Cors:AllowedOrigins`. For example, set
+`Api__Cors__AllowedOrigins__0=https://app.example.com` in the deployment
+environment. Production origins must use HTTPS. Development may also allow
+HTTP loopback origins such as `http://localhost:5173`.
+
+Origins containing paths, credentials, query strings, fragments or wildcard
+values are rejected at startup. The policy allows only the common API methods
+and required request headers, exposes correlation/retry headers, and never
+enables credential cookies. CORS controls browser access; it does not replace
+JWT authentication, authorization or tenant membership checks. Keep the
+production allow-list limited to reviewed application origins.
+
 ## Built-in coding-agent workflow
 
 `tools/aba_task.py` gives a deterministic architecture-aware document reading plan and fixed-command verification with JSON evidence; start with `docs/ai/TASK-PROTOCOL.md`. The `plan` command **never invents business ownership**, and `verify` reports PASS/FAIL/NOT_RUN rather than pretending unavailable database tests were executed. Python 3.10+ is needed for these developer tools only, not for the running API.

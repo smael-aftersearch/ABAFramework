@@ -15,6 +15,7 @@ var audience = builder.Configuration["Authentication:Audience"];
 StartupSecurityGuard.Validate(builder.Environment.IsDevelopment(), authority, audience);
 
 builder.Services.AddAbaErrorHandling();
+builder.Services.AddAbaCors(builder.Environment.IsDevelopment());
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
 builder.Services.AddAbaSharedRateLimiting();
@@ -57,6 +58,8 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 app.UseAbaErrorHandling();
+app.UseRouting();
+app.UseCors(AbaCorsOptions.PolicyName);
 // Evaluate validated JWT identity before assigning a user's rate-limit bucket.
 app.UseAuthentication();
 app.UseMiddleware<AbaSharedRateLimitMiddleware>();

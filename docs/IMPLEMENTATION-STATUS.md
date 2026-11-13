@@ -14,7 +14,7 @@ its **production release gates remain open**. Evidence refers to the last review
 [CI run 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289)
 (commit `dd77a1c1b0f2`). New commits must pass their own CI before being treated as verified.
 
-**Tracked: 54** · Implemented: 31 · Partial: 13 · Not implemented: 10.
+**Tracked: 55** · Implemented: 31 · Partial: 14 · Not implemented: 10.
 
 | Area | Parameter / feature | Status | Delivered scope | Remaining task | Priority |
 | --- | --- | --- | --- | --- | --- |
@@ -24,6 +24,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | API | Request correlation IDs | **Implemented** | Validated X-Correlation-ID response header | Correlate logs, traces and message envelopes across services | P1 |
 | API | Liveness and readiness | **Implemented** | Independent liveness and ready-tagged dependencies; injected health failure returns live 200 and ready 503 | Prove real database/Redis outage, reconnection and readiness behavior under load | P0 |
 | API | Authenticated per-identity rate limits | **Implemented** | JWT subject + tenant partition; anonymous TCP peer; Health bypass | Multi-node shared quotas require a gateway | P1 |
+| API | Configurable browser CORS allow-list | **Partial** | Exact configured origins only; HTTPS outside Development, loopback HTTP allowed only in Development, constrained methods/headers and no credential cookies; 11 focused xUnit cases pass locally | Verify exact HEAD in GitHub CI; each deployment must provide its reviewed application origin list | P1 |
 | API | Distributed multi-instance rate limits | **Partial** | Opt-in atomic Redis quota with live two-host and distinct-OS-process HTTP probes (CI 43352559984), non-Development TLS guard (CI 43347945447) and single-authenticated-identity quota partition guard (CI 43357853144); duplicate-subject quota denial (PR #21 CI 43366589618 PASS), plus dual-stack IPv4-mapped peer canonicalization authored (new exact-head CI pending); not deployed | Approve gateway trust, Redis certificate identity/ACLs, monitoring and production load controls; disposable processes do not certify deployed replicas | P1 |
 | Security | OIDC/JWT signature, issuer and audience | **Implemented** | ASP.NET JWT bearer validation and fail-closed production OIDC config | External real-user IdP configuration and security operations remain | P0 |
 | Security | Real Keycloak OIDC/JWKS test | **Implemented** | Ephemeral Keycloak CI verifies signed 204, missing/malformed 401, tenant 403 | Real IdP key rotation and organization policy not validated | P0 |
@@ -60,7 +61,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | Developer | Installable versioned NuGet API template | **Implemented** | Installable versioned v0.3.0-preview.2 NuGet API template built, installed and tested with 73 xUnit cases in CI | NuGet.org publication, provenance/signing and release automation remain gated | P1 |
 | Developer | Domain/Application/Contracts/Infrastructure generator | **Implemented** | Scaffold real named contexts with ownership docs; no fictional entities | Complete real domain behavior remains owner-dependent | P1 |
 | Governance | ABA ownership and forbidden-edge checks | **Implemented** | Repo and generated-project architecture checks with negative cases | Semantic/IL enforcement still requires human architecture review | P0 |
-| Governance | Portable agent Skill, task plan and verification | **Implemented** | AGENTS, Skill, task-aware reader, PASS/FAIL/NOT_RUN evidence | AI agent adoption varies by platform; semantic review still manual | P1 |
+| Governance | Portable agent Skill, task plan and verification | **Implemented** | Root and generated-project agent workflows provide task-aware reading/test plans and PASS/FAIL/NOT_RUN evidence | AI agent adoption varies by platform; semantic review still manual | P1 |
 | Governance | Machine-readable feature status and remaining tasks | **Implemented** | 54-feature machine-readable catalog drives README and detailed backlog; six negative/positive tests and CI drift gate passed | Maintain each feature's owner, test evidence, acceptance gate and backlog after future tasks | P1 |
 | Testing | Default xUnit HTTP/authorization/EF tests | **Implemented** | 60+ API xUnit checks in fresh generated solution | Business invariants and load testing need real domains | P0 |
 | Testing | Real PostgreSQL/SQL Server/Redis/Wolverine CI | **Implemented** | 16 executable real-service tests across both SQL engines | Crash, high-load and external broker remain release gates | P0 |
@@ -117,6 +118,7 @@ Run `python3 scripts/status_matrix.py --check` to fail CI on mismatched tables.
 | `biz-contracts` | Business owners (TBD) | P0 | Partial | V1 consumers stay compatible; private implementation edges rejected |
 | `biz-contract-tests` | Business owners (TBD) | P0 | Not implemented | A breaking V1 change fails CI and requires an explicit V2 |
 | `biz-endpoints` | Actual business owner (TBD) | P0 | Not implemented | Owner-specific happy/negative/invariant and provider integration tests pass |
+| `api-cors` | Host | P1 | Partial | Allowed origin receives CORS headers; unlisted origin receives none; unsafe configuration fails closed |
 | `api-shared-limits` | Operations | P1 | Partial | Verify one limit across two replicas under concurrent load |
 | `db-concurrency` | Actual context owner (TBD) | P1 | Not implemented | Two updates cannot silently overwrite the same business aggregate |
 | `msg-broker` | Platform | P1 | Not implemented | Broker outage, retry and duplicate-delivery integration scenarios pass |
@@ -136,6 +138,7 @@ Run `python3 scripts/status_matrix.py --check` to fail CI on mismatched tables.
 | `api-correlation` | `templates/aba-api/src/Aba.Starter.Api/Program.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/ApiSmokeTests.cs` |
 | `api-health` | `templates/aba-api/src/Aba.Starter.Api/Program.cs`, `templates/aba-api/src/Aba.Starter.Platform/AbaPlatformSetup.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/ApiSmokeTests.cs`, `scripts/verify-container-starter.sh`, `templates/aba-api/tests/Aba.Starter.Api.Tests/ReadinessTests.cs` |
 | `api-rate-limits` | `templates/aba-api/src/Aba.Starter.Api/Platform/AbaRateLimitOptions.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/RateLimitTests.cs` |
+| `api-cors` | `templates/aba-api/src/Aba.Starter.Api/Platform/AbaCorsOptions.cs`, `templates/aba-api/src/Aba.Starter.Api/Program.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/CorsTests.cs` |
 | `api-shared-limits` | `templates/aba-api/src/Aba.Starter.Api/Platform/AbaSharedRateLimit.cs`, `templates/aba-api/docs/decisions/ADR-012-shared-redis-rate-limits.md`, `templates/aba-api/src/Aba.Starter.Api/Platform/AbaRateLimitOptions.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/RateLimitTests.cs`, `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/SharedRedisRateLimitTests.cs`, `scripts/verify_shared_rate_limit_processes.py`, `scripts/test_shared_rate_limit_processes.py` |
 | `auth-jwt` | `templates/aba-api/src/Aba.Starter.Api/Program.cs`, `templates/aba-api/src/Aba.Starter.Api/Platform/StartupSecurityGuard.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/SignedJwtAuthenticationTests.cs`, `templates/aba-api/tests/Aba.Starter.Api.Tests/SecurityGuardTests.cs` |
 | `auth-keycloak` | `scripts/verify-keycloak-oidc.sh`, `infra/keycloak/aba-ci-realm.json` | `scripts/verify-keycloak-oidc.sh` |
@@ -165,7 +168,7 @@ Run `python3 scripts/status_matrix.py --check` to fail CI on mismatched tables.
 | `dev-dotnetnew` | `packaging/ABAFramework.GenericApi.Template.csproj` | `scripts/pack-template.sh` |
 | `dev-contexts` | `templates/aba-api/tools/new_context.py` | `scripts/verify-starter.sh` |
 | `dev-architecture` | `scripts/governance.py`, `templates/aba-api/tools/new_context.py` | `scripts/test_governance.py`, `scripts/verify-starter.sh` |
-| `dev-agent` | `templates/aba-api/tools/aba_task.py`, `templates/aba-api/.agents/skills/aba-engineering/SKILL.md` | `templates/aba-api/tools/test_aba_task.py`, `scripts/verify-starter.sh` |
+| `dev-agent` | `templates/aba-api/tools/aba_task.py`, `templates/aba-api/.agents/skills/aba-engineering/SKILL.md`, `scripts/task_protocol.py`, `.agents/skills/aba-engineering/scripts/task_protocol.py` | `templates/aba-api/tools/test_aba_task.py`, `scripts/verify-starter.sh`, `scripts/test_task_protocol.py` |
 | `dev-status-matrix` | `scripts/status_matrix.py`, `docs/implementation-status.json` | `scripts/test_status_matrix.py`, `.github/workflows/verify.yml` |
 | `dev-xunit` | `templates/aba-api/tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj` | `scripts/verify-starter.sh` |
 | `dev-services-ci` | `scripts/verify-platform-services.sh` | `scripts/verify-platform-services.sh` |

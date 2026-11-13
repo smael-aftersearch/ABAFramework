@@ -25,7 +25,21 @@ class TestTaskProtocol(unittest.TestCase):
         self.assertIn('contracts', cats)
         self.assertIn('messaging', cats)
         self.assertTrue(planned['existing_test_inventory']['console_smoke_source'])
-        self.assertEqual(planned['existing_test_inventory']['xunit_test_projects'], [])
+        self.assertEqual(planned['existing_test_inventory']['xunit_test_projects'], [
+            'templates/aba-api/tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj',
+            'templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj',
+        ])
+
+    def test_xunit_inventory_includes_generic_template_but_not_console_smoke(self):
+        planned = protocol.classify_task(ROOT, 'Add a generic API behavior',
+                                         ['templates/aba-api/src/Aba.Starter.Api/Program.cs'])
+        projects = planned['existing_test_inventory']['xunit_test_projects']
+        self.assertTrue(any(path.endswith('Aba.Starter.Api.Tests.csproj') for path in projects))
+        self.assertTrue(any(path.endswith('Aba.Starter.Platform.IntegrationTests.csproj') for path in projects))
+        self.assertFalse(any('Aba.SmokeTests' in path for path in projects))
+        output = protocol.format_plan(planned)
+        self.assertIn('Aba.Starter.Api.Tests.csproj', output)
+        self.assertIn('Aba.Starter.Platform.IntegrationTests.csproj', output)
 
     def test_api_security_plan(self):
         planned = protocol.classify_task(ROOT, 'Secure the OAuth API endpoint with tenant permissions',

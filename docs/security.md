@@ -133,3 +133,13 @@ authenticated identities and unchanged trusted/peer partitions. Exact PR
 head checks must pass before calling this revision verified. **This does not
 grant roles or prove organization membership, production RLS, SQL session
 spoofing prevention or Redis gateway/ACL approval.**
+
+## Generic API browser-origin policy
+
+The generic `aba-api` host uses an explicit `Api:Cors:AllowedOrigins`
+allow-list. An empty list grants no browser origin access; wildcard origins,
+non-HTTPS production origins, and values containing paths or credentials are
+rejected during startup. Development may allow HTTP loopback origins. The
+policy does not enable credential cookies and does not replace JWT or tenant
+authorization. Each deployment must provide its own reviewed origin list in
+secure configuration; see the starter README for the configuration key.
