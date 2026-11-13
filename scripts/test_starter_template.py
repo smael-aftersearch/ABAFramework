@@ -200,8 +200,15 @@ class GenericTemplateTests(unittest.TestCase):
         for required in ('template-provenance:', 'artifact-metadata: write',
                          'attestations: write', 'id-token: write',
                          '1e69f48acb82d1966a394da916b4c1698aa569d6',
-                         'gh attestation verify', 'tamper-test', 'SHA256SUMS'):
+                         'SHA256SUMS'):
             self.assertIn(required, root)
+        verifier = (ROOT / 'scripts/verify_attested_artifact.sh').read_text()
+        self.assertEqual(2, root.count('bash scripts/verify_attested_artifact.sh'))
+        for required in ('gh attestation verify "$artifact"',
+                         '--source-ref refs/heads/main --source-digest "$GITHUB_SHA"',
+                         'gh attestation verify "$mutated"',
+                         'wrong_sha=', 'altered-after-scan'):
+            self.assertIn(required, verifier)
         self.assertIn('needs:', root)
 
     def test_database_rls_policies_and_live_sql_negative_tests_are_bundled(self):
@@ -284,15 +291,21 @@ class GenericTemplateTests(unittest.TestCase):
         for phrase in ('docker save aba-ci-security:local',
                        'docker load -i aba-runtime-image.tar.gz',
                        "test \"$original\" = \"$restored\"",
-                       'subject-path: artifacts/oci-provenance/aba-runtime-image.tar.gz',
-                       'gh attestation verify "$image"',
-                       'altered-after-scan',
-                       "PASS: exact OCI image archive signed and modified archive rejected"):
+                       'subject-path: artifacts/oci-provenance/aba-runtime-image.tar.gz'):
             self.assertIn(phrase, workflow)
+        verifier = (ROOT / 'scripts/verify_attested_artifact.sh').read_text()
+        for phrase in ('gh attestation verify "$artifact"',
+                       'gh attestation verify "$mutated"',
+                       '--source-ref refs/heads/main --source-digest "$GITHUB_SHA"',
+                       'altered-after-scan',
+                       "PASS: signed artifact, source identity and mutation denial verified"):
+            self.assertIn(phrase, verifier)
         scan_job = workflow.split('  container-security:', 1)[1].split('  template-provenance:', 1)[0]
         final_job = workflow.split('  template-provenance:', 1)[1]
         self.assertNotIn('actions/attest@', scan_job)
         self.assertIn('needs:', final_job)
+        self.assertIn('uses: actions/checkout@v4', final_job)
+        self.assertEqual(2, final_job.count('bash scripts/verify_attested_artifact.sh'))
         for upstream in ('governance-and-runtime', 'integration-relational-and-redis',
                          'redis-restart', 'container-startup', 'package-template',
                          'keycloak-oidc', 'supply-chain', 'container-security'):
