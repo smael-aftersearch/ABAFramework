@@ -35,6 +35,24 @@ To enable real Redis, set `Platform__Cache__Provider=Redis` and `ConnectionStrin
 
 **Tenant boundary:** a cache scope is only a namespace. You must authenticate/authorize tenant ownership **before** constructing and using that scope. The starter does not yet implement multitenant authorization, cache stampede protection or distributed invalidation events.
 
+### Bounded opt-in query source loads
+
+The optional `ReadThroughQueryCache` `UseAuthoritativeSource` policy
+uses a process-wide, fail-fast source-load budget (default 8 concurrent
+queries, configured with `Platform__Cache__OptInSourceLoadMaxConcurrent`
+between 1 and 256). This also caps opted-in cache misses when Redis
+reads succeed but writes may fail. A saturated host throws
+`AbaCacheSourceLoadLimitExceededException` **before** invoking the
+authoritative query loader. Failure and cancellation release permits,
+and the default `FailClosed` policy is unchanged.
+
+This is only a **per-replica** concurrency limit for already-authorized
+non-authoritative queries. It does not coordinate tenants or processes,
+provide a global rate quota, protect serial request bursts or authorize
+fallback for payment/idempotency/permissions. Deployments must test
+multi-node cache failures and the actual backend budget independently.
+See [ADR-010](decisions/ADR-010-cache-singleflight-redis-restart.md).
+
 ## Wolverine durable messaging / Outbox–Inbox
 
 Enable with `Platform__Messaging__Enabled=true` **only when a PostgreSQL or SQL Server database is configured**. The platform uses WolverineFx 6 and selects `PersistMessagesWithPostgresql` or `PersistMessagesWithSqlServer`, EF Core transactional middleware and durable local queues. These are genuine relational message persistence integrations, not the old Academy file outbox.

@@ -50,13 +50,36 @@ isolation assertions. A finally block restores the service after
 assertion failures too. Only non-authoritative already-authorized
 read-only queries may select this fallback.
 
+## Opt-in per-host source load ceiling (incremental B queue change)
+
+AbaCacheSourceLoadBudget is a singleton shared across request scopes.
+ReadThroughQueryCache acquires a nonblocking permit **before** invoking
+the authoritative query loader whenever UseAuthoritativeSource is chosen.
+This applies both when Redis read fails and to a healthy Redis MISS
+(because the subsequent cache write might fail). The configured
+`Platform:Cache:OptInSourceLoadMaxConcurrent` is 8 by default and accepts
+1..256; invalid startup values fail registration. Exhaustion raises
+AbaCacheSourceLoadLimitExceededException; it **never** serves stale data,
+suppresses authorization or pretends the source loaded. Source loader
+faults and cancellation release permits in a finally-safe lease.
+A failed Redis read is not retried for a write in the same request.
+
+The ceiling bounds **simultaneous opted-in source invocations per host**.
+It is deliberately not a rate-per-minute quota, distributed semaphore,
+same-key cross-replica single-flight or a substitute for authorizing query
+scope before cache access. A production DB can still be overloaded by
+serial requests, cross-replica traffic or unbounded FailClosed cache misses.
+The bounded, synthetic outage/miss tests are in CacheSourceBudgetTests;
+real provider failure/restart and existing single-flight tests remain
+independent CI gates.
+
 ## Open limits
 
 This is **one-process** miss coalescing, not a distributed Redis
 lock across multiple replicas. During an actual Redis outage, each
-explicit source-fallback request can still execute independently;
-there is no distributed source load budget or stampede protection
-for downed Redis, and not every loader can be safely retried.
+explicit source-fallback request can still execute after a prior permit
+is released; no distributed source load budget or cross-replica stampede
+protection exists, and not every loader can be safely retried.
 The service does not authorize cache scopes, enforce PII retention,
 guarantee cross-replica invalidation or replace the authoritative DB.
 Do not use it to cache permissions, payments, accounting or

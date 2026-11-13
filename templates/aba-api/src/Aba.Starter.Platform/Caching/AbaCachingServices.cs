@@ -33,6 +33,13 @@ public static class AbaCachingServices
         // One load gate per host, not per request. Does not claim distributed
         // Redis locks or authoritative scope/tenant authorization.
         services.AddSingleton<AbaCacheLoadGate>();
+        var sourceLimit = AbaCacheSourceLoadBudget.DefaultMaxConcurrentLoads;
+        if (config["Platform:Cache:OptInSourceLoadMaxConcurrent"] is { } configuredLimit &&
+            (!int.TryParse(configuredLimit, out sourceLimit) ||
+             sourceLimit is < 1 or > AbaCacheSourceLoadBudget.HardLimit))
+            throw new InvalidOperationException(
+                "Platform:Cache:OptInSourceLoadMaxConcurrent must be an integer from 1 to 256.");
+        services.AddSingleton(new AbaCacheSourceLoadBudget(sourceLimit));
         services.AddScoped<ScopedJsonCache>();
         services.AddScoped<ReadThroughQueryCache>();
         return services;

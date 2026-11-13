@@ -204,6 +204,20 @@ authoritative query fallback, and proves reconnection. Default
 Fast tests never stop Redis. Neither cross-replica locks nor
 cache-backed authorization are supplied.
 
+## Opt-in source-load backpressure during cache outages
+
+The `cache-stampede` hardening path includes a fail-fast, shared
+per-host limit for source reads using `CacheOutagePolicy.UseAuthoritativeSource`.
+`Platform__Cache__OptInSourceLoadMaxConcurrent` defaults to **8** and
+accepts **1–256**. When all slots are in use, the query throws
+`AbaCacheSourceLoadLimitExceededException` without invoking its loader;
+it never returns stale or fabricated data. Permits are released after
+success, failure and cancellation, and strict `FailClosed` remains
+unchanged. The scope must already have been authorized by its business
+owner. This is **not** distributed miss coordination, a global database
+budget or production-readiness evidence. See [ADR-010](docs/decisions/ADR-010-cache-singleflight-redis-restart.md)
+and `CacheSourceBudgetTests`.
+
 ## Immutable OCI base images and signed upstream test archive
 
 The generated Dockerfile uses reviewed immutable multiarch
