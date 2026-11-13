@@ -33,6 +33,24 @@ The [hourly delivery control issue](https://github.com/smael-aftersearch/ABAFram
 
 **Queue B — `cache-stampede` incremental resilience (execution 2/10):** [PR #8](https://github.com/smael-aftersearch/ABAFramework/pull/8) adds a fail-fast, per-host limit for opted-in authoritative reads on cache misses and Redis outages, with failure/cancellation and tenant/key-scope regression tests. At the original code head `cabd2c7`, [CI 43338197320](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43338197320) passed **8/8 applicable jobs**, including **116 generated API xUnit tests**, live SQL/Redis/Wolverine integration and the isolated Redis restart. This is an incremental verified **Partial** improvement, **not a closure** of the distributed `cache-stampede` feature (B **0/9**). No business migrations, broker, multi-replica lock or production authorization is inferred.
 
+**Queue B — bounded cache-miss in-flight calls (execution 4/10; 2026-11-13):**
+`cache-stampede` adds a **single-host, configurable (default 1024) cap** on
+the total registered cache-miss callers, including queued same-key waiters.
+Saturation refuses new work before cache/source access, does not retain an
+unauthorized tenant key, and cancellation releases space; scoped requests
+can retry after capacity returns. Success/denial/invariant .NET tests are
+**AUTHORED, NOT RUN** until exact-HEAD CI verifies them. This is not a
+multi-node coordination, owner-approved policy, or production readiness claim.
+Queue B feature status: `db-business-migrations=not_started`,
+`db-concurrency=not_started`, `db-backup-restore=partial`,
+`msg-poison-replay=partial`, `msg-crash-window=partial`,
+`msg-broker=not_started`, `msg-domain-consumers=not_started`,
+`cache-multinode=not_started`, `cache-stampede=partial`.
+**Verified closures B 0/9 (0%)**. Owner-specific migrations, concurrency and
+business consumers remain **BLOCKED**. Review scoped changes and required
+checks in [PR #13 and exact-HEAD CI checks](https://github.com/smael-aftersearch/ABAFramework/pull/13/checks)
+and [Queue B ledger #4](https://github.com/smael-aftersearch/ABAFramework/issues/4).
+
 **Queue C — technical rate-limit progress (execution 2/10; 2026-11-13):**
 `api-shared-limits` now has an opt-in Redis Lua quota with **two separately hosted
 in-process HTTP apps** sharing disposable Redis, concurrent forged forwarded/tenant
@@ -247,7 +265,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | Caching | Redis distributed cache with TTL and scopes | **Implemented** | StackExchangeRedis adapter with scoped JSON TTL/invalidation | Distributed invalidation and PII audit remain open | P1 |
 | Caching | Read-through fallback when Redis unavailable | **Implemented** | Default fail-closed; explicit fresh authoritative query fallback | Cluster reconnect, authorized workloads and load behavior unverified | P1 |
 | Caching | Cross-instance invalidation and tenant permissions | **Not implemented** | Not implemented | Add versioned invalidation events with authorized namespace boundaries | P1 |
-| Caching | Cache stampede and Redis restart resilience | **Partial** | Host-wide per-tenant/key single-flight read-through with 24-concurrent-call and real 12-caller Redis tests, TTL/cancellation/miss-value fixes; actual CI Redis stop/restart with strict/explicit fallback and reconnect (isolated 2-case drill); CI-verified opt-in per-host concurrency ceiling (default 8, configurable 1..256) for authoritative query loads on cache misses/outage; PR #8 CI 43338197320 PASS 8/8 at cabd2c7 | Add distributed multi-replica miss budget/locking, authorize query scopes, bound total/serial source load across replicas during full Redis outage and verify production Redis topology/TTL race policies | P1 |
+| Caching | Cache stampede and Redis restart resilience | **Partial** | Host-wide per-tenant/key single-flight read-through with 24-concurrent-call and real 12-caller Redis tests, TTL/cancellation/miss-value fixes; actual CI Redis stop/restart with strict/explicit fallback and reconnect (isolated 2-case drill); CI-verified opt-in per-host concurrency ceiling (default 8, configurable 1..256) for authoritative query loads on cache misses/outage; PR #8 CI 43338197320 PASS 8/8 at cabd2c7; authored per-host capped in-flight cache-miss registrations (default 1024, configurable 1..4096) with fail-fast cross-tenant queue admission and cancellation cleanup; exact-head PR CI pending | Verify bounded in-flight queue tests on exact PR-head CI; Add distributed multi-replica miss budget/locking, authorize query scopes, bound total/serial source load across replicas during full Redis outage and verify production Redis topology/TTL race policies | P1 |
 | Observability | OpenTelemetry ASP.NET/HTTP traces and metrics | **Partial** | Optional tracing/metrics instrumentation and OTLP exporter wiring | Verify exact-head collector trace/metric export and approve production PII/sampling/correlation policy | P1 |
 | Observability | Collector pipeline and export integration test | **Partial** | Authored an isolated CI-only OTLP/gRPC Collector receiver and debug-export pipeline with a generated API trace/metric smoke probe; exact-head CI verification pending | Pass the new real collector CI and select/approve production collector routing, HTTPS/mTLS, PII controls, sampling and retention | P1 |
 | Observability | Tamper-evident audit trail | **Partial** | CI-verified HMAC-SHA256 per-tenant ledger, serializable dual SQL append, tamper/rotation tests plus separately signed offline checkpoint codec and historical-prefix verification on both SQL engines | Deploy independently immutable off-DB checkpoint archive, real signing key custody/rotation and context-owned actor/event/retention rules; audit appender role restrictions and legal policies | P0 |

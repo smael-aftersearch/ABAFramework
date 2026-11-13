@@ -73,6 +73,26 @@ The bounded, synthetic outage/miss tests are in CacheSourceBudgetTests;
 real provider failure/restart and existing single-flight tests remain
 independent CI gates.
 
+## Bounded per-host in-flight cache-miss registrations (Queue B run 4)
+
+The singleton `AbaCacheLoadGate` now caps **all registered callers** across
+authorized scope/key partitions, including the active loader and callers
+waiting behind a hot key. `Platform:Cache:MaxInFlightRequests` defaults
+to **1024**, permits **1–4096**, and rejects invalid configuration at
+registration. When the limit is reached,
+`AbaCacheLoadGateSaturatedException` rejects a new request **before
+a cache read or authoritative loader** and does not disclose tenant or
+key metadata. Cancellation, a failed loader and lease disposal release
+capacity; rejected requests never create another scoped entry.
+
+This bounds in-process pending-request registrations, NOT remote clients,
+serial DB query rate, Redis outage retries, multi-replica aggregate
+source load or tenant authorization. The separate opt-in source-read
+concurrency ceiling remains in effect. Tests check cross-tenant denial,
+healthy retry after release, canceled-waiter cleanup and invalid config.
+The new tests require the exact PR-head .NET CI before they count as
+executed evidence.
+
 ## Open limits
 
 This is **one-process** miss coalescing, not a distributed Redis
