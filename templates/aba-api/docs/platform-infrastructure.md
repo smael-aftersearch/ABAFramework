@@ -245,3 +245,16 @@ guard the Dockerfile/oci-base-lock.json pair; the root CI attests
 the exact Docker-save archive after real Trivy scanning and a
 Docker load identity check. This is not a published OCI manifest
 signature. Read ADR-011 and upstream docs/release-integrity.md.
+
+## Optional shared Redis API quota
+
+Opt in with `Platform:RateLimit:Shared:Enabled=true` and a required unique
+`Platform:RateLimit:Shared:Namespace` (identical across replicas), plus
+`ConnectionStrings:AbaRedis`. A Redis server-time atomic Lua counter
+enforces one fixed-window budget while local limits stay enabled.
+Redis timeout/unavailability fails closed (503); exhaustion is 429,
+liveness is exempt and readiness checks the shared dependency.
+Untrusted `X-Forwarded-For`, `Host` and `X-Tenant-ID` are not authority.
+The anonymous peer may be your gateway: require independently reviewed
+proxy trust rules, Redis ACL/TLS/network isolation and load acceptance.
+See [ADR-012](decisions/ADR-012-shared-redis-rate-limits.md).

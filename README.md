@@ -33,6 +33,19 @@ The [hourly delivery control issue](https://github.com/smael-aftersearch/ABAFram
 
 **Queue B — `cache-stampede` incremental resilience (execution 2/10):** [PR #8](https://github.com/smael-aftersearch/ABAFramework/pull/8) adds a fail-fast, per-host limit for opted-in authoritative reads on cache misses and Redis outages, with failure/cancellation and tenant/key-scope regression tests. At the original code head `cabd2c7`, [CI 43338197320](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43338197320) passed **8/8 applicable jobs**, including **116 generated API xUnit tests**, live SQL/Redis/Wolverine integration and the isolated Redis restart. This is an incremental verified **Partial** improvement, **not a closure** of the distributed `cache-stampede` feature (B **0/9**). No business migrations, broker, multi-replica lock or production authorization is inferred.
 
+**Queue C — technical rate-limit progress (execution 2/10; 2026-11-13):**
+`api-shared-limits` has an opt-in Redis Lua quota patch, two-replica disposable Redis tests,
+denial of forged forwarded/tenant headers, 429 quota and 503 outage cases.
+**Partial / awaiting exact-head CI**, not independently approved for production:
+the deployment security owner must approve the proxy, Redis ACL/TLS, and operational policy.
+Remaining queue statuses: `api-shared-limits` partial, `auth-membership` not_started,
+`auth-sql-rls` partial, `auth-raw-sql` partial, `biz-contracts` partial,
+`biz-contract-tests` not_started, `biz-endpoints` not_started.
+**Fully verified Queue C closures: 0/7 (0%)**; no fabricated domain memberships or contracts.
+[Queue C #5](https://github.com/smael-aftersearch/ABAFramework/issues/5)
+and [proposed patch branch](https://github.com/smael-aftersearch/ABAFramework/tree/queue-c-shared-limits-20261113-run2)
+contain review/CI evidence (PR link is added when opened).
+
 The table records *verified feature closures*, not speculative percentage-complete estimates. For exact feature IDs, acceptance criteria, owners and evidence, follow [the generated backlog](docs/IMPLEMENTATION-STATUS.md). After each substantive code change, update the README and source status JSON only to reflect actual tested changes, regenerate the status matrix, and record the PR/CI evidence in the relevant issue. Automated merge is allowed only after real tests, review and branch-policy gates. Business-owner approvals, production secrets, release policy, and deployment decisions remain outside the authority of these tasks.
 
 
@@ -174,7 +187,7 @@ its **production release gates remain open**. Evidence refers to the last review
 [CI run 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289)
 (commit `dd77a1c1b0f2`). New commits must pass their own CI before being treated as verified.
 
-**Tracked: 54** · Implemented: 31 · Partial: 10 · Not implemented: 13.
+**Tracked: 54** · Implemented: 31 · Partial: 11 · Not implemented: 12.
 
 | Area | Parameter / feature | Status | Delivered scope | Remaining task | Priority |
 | --- | --- | --- | --- | --- | --- |
@@ -184,7 +197,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | API | Request correlation IDs | **Implemented** | Validated X-Correlation-ID response header | Correlate logs, traces and message envelopes across services | P1 |
 | API | Liveness and readiness | **Implemented** | Independent liveness and ready-tagged dependencies; injected health failure returns live 200 and ready 503 | Prove real database/Redis outage, reconnection and readiness behavior under load | P0 |
 | API | Authenticated per-identity rate limits | **Implemented** | JWT subject + tenant partition; anonymous TCP peer; Health bypass | Multi-node shared quotas require a gateway | P1 |
-| API | Distributed multi-instance rate limits | **Not implemented** | Not implemented | Add shared gateway/quota store with trusted proxy policy | P1 |
+| API | Distributed multi-instance rate limits | **Partial** | Opt-in Redis server-time atomic fixed-window quota wired before local limiter; 429/503, application namespace and readiness health check (new PR; CI pending) | Verify cross-replica and outage cases in exact-head CI; approve trusted proxy/gateway policy, Redis ACL/TLS and production load controls | P1 |
 | Security | OIDC/JWT signature, issuer and audience | **Implemented** | ASP.NET JWT bearer validation and fail-closed production OIDC config | External real-user IdP configuration and security operations remain | P0 |
 | Security | Real Keycloak OIDC/JWKS test | **Implemented** | Ephemeral Keycloak CI verifies signed 204, missing/malformed 401, tenant 403 | Real IdP key rotation and organization policy not validated | P0 |
 | Security | Trusted tenant claim required when enabled | **Implemented** | JWT tenant claim fallback/default authorization; ignores raw tenant header | Prove organization membership in actual IdP | P0 |

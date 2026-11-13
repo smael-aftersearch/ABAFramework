@@ -113,6 +113,20 @@ replay routes, wildcard replay or arbitrary payload exposure are added.
 The [runbook](docs/operations/audit-deadletters.md) documents all
 configuration, permissions, key rotation and rollback limits.
 
+## Optional multi-replica Redis API rate limits
+
+By default limits are per-process. To opt in set
+`Platform__RateLimit__Shared__Enabled=true`,
+`Platform__RateLimit__Shared__Namespace=your-app` (same value on every replica),
+and a secure `ConnectionStrings__AbaRedis`. The local limiter remains active.
+Redis failure returns 503 instead of silently relaxing a cross-replica quota;
+quota denial is 429, liveness is exempt, and readiness probes Redis.
+Only the authenticated JWT subject and tenant or the actual anonymous TCP peer
+define a quota partition; client forwarding and tenant headers are untrusted.
+An owner-reviewed proxy/Redis security policy is still required for production.
+This does not implement membership or business authorization. See
+[ADR-012](docs/decisions/ADR-012-shared-redis-rate-limits.md).
+
 ## Security
 
 All endpoints are authenticated by default (fallback authorization policy). `/health/live` and Development-only documentation are anonymous; the system status endpoint is also anonymous **only in Development**. In other environments, the host **refuses to start without a trusted HTTPS OIDC Authority and Audience**. It has no bundled signing key. Never treat Development mode as public-hosting configuration.
