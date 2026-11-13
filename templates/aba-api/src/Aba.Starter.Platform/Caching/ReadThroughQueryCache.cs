@@ -55,6 +55,9 @@ public sealed class ReadThroughQueryCache(
         try
         {
             var cached = await cache.TryGetAsync<T>(scope, key, ct);
+            // A cache provider may ignore cancellation during I/O; do not return
+            // a cached value after the caller has withdrawn the request.
+            ct.ThrowIfCancellationRequested();
             if (cached.Found)
                 return cached.Value!;
         }
@@ -85,6 +88,9 @@ public sealed class ReadThroughQueryCache(
             : null;
         ct.ThrowIfCancellationRequested();
         var fresh = await loadFromSource(ct);
+        // An authoritative loader may also ignore cancellation. Never publish
+        // its result into cache (or return it) after a cancelled request.
+        ct.ThrowIfCancellationRequested();
         if (readFailed)
             return fresh; // Do not issue a second Redis request on a failed read.
         try
