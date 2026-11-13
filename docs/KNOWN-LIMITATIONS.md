@@ -1,4 +1,4 @@
-> **Generic API current evidence (2026-11-13):** [successful .NET 10 full CI](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43317295032) verifies generated API tests, both PostgreSQL and SQL Server, Redis, Wolverine technical Outbox tests, real Keycloak tokens, non-root Docker and NuGet install. The exact implemented/partial/not-yet-implemented matrix and acceptance checklist are [here](IMPLEMENTATION-STATUS.md). Production remains gated by real business authorization/RLS, crash/dead-letter recovery, backup/restore, production collector/PII and sampling policy (CI-only collector export probe authored; exact-head run pending), security review, deployment and release controls. The numbered Phase-1 notes below apply **only to the optional Academy example**, not the generic template.
+> **Generic API current evidence (2026-11-13):** [successful .NET 10 full CI](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43317295032) verifies generated API tests, both PostgreSQL and SQL Server, Redis, Wolverine technical Outbox tests, real Keycloak tokens, non-root Docker and NuGet install. The exact implemented/partial/not-yet-implemented matrix and acceptance checklist are [here](IMPLEMENTATION-STATUS.md). The latest unmerged [PR #31 head CI](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43415885594) also verifies the generated API's isolated Collector export on loopback; production still needs an approved collector destination, transport security, PII/sampling/retention policy, and real business authorization/RLS, crash/dead-letter recovery, backup/restore, security review, deployment and release controls. The numbered Phase-1 notes below apply **only to the optional Academy example**, not the generic template.
 # Known limitations and security warnings
 
 ## Optional Academy Phase 1 — historical example constraints
@@ -172,5 +172,6 @@ parameters or fragments before exporter construction, including in Development.
 Safe HTTPS paths remain valid; Development-only HTTP remains a deliberate local
 exception. These negative checks reduce accidental credential propagation; they
 **do not** deliver endpoint authentication, mTLS, production PII filtering,
-sampling, collector retention or an approved telemetry destination. The new
-regression tests must pass their exact PR-head CI before being called verified.
+sampling, collector retention or an approved telemetry destination. The
+configuration regressions pass the exact PR #31 head CI; they do not approve a
+production telemetry destination or security policy.

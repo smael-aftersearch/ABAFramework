@@ -1,6 +1,6 @@
 # Next implementation milestones (2026-11-13)
 
-The authoritative, maintained **54-feature status table** and prioritized open-task backlog live at [docs/IMPLEMENTATION-STATUS.md](IMPLEMENTATION-STATUS.md); the machine-readable source is [docs/implementation-status.json](implementation-status.json). This file is a high-level release narrative, not an independent status source. Run `python3 scripts/status_matrix.py --write` after every change.
+The authoritative, maintained **55-feature status table** and prioritized open-task backlog live at [docs/IMPLEMENTATION-STATUS.md](IMPLEMENTATION-STATUS.md); the machine-readable source is [docs/implementation-status.json](implementation-status.json). This file is a high-level release narrative, not an independent status source. Run `python3 scripts/status_matrix.py --write` after every change.
 
 ## New P0 SQL isolation and release-integrity work (CI verified)
 
@@ -28,7 +28,7 @@ The authoritative, maintained **54-feature status table** and prioritized open-t
 - **Wolverine 6:** durable EF transaction+outbox happy path and injected pre-commit rollback verified on both SQL engines, plus persistent scheduled-message recovery after a clean host restart. Real business handlers and arbitrary process-kill recovery remain unverified.
 - **OIDC/JWT:** real ephemeral Keycloak OIDC discovery/JWKS and signed bearer 204/401/403 tests; Production requires HTTPS identity metadata, with HTTP loopback opt-in allowed only in Development. Claim-based tenant gates and EF row query/write guards are tested against both SQL engines. Full IdP membership, production RLS policy installation/role governance and operational key rotation are not delivered; generic RLS providers and raw/bulk negative checks are now technically verified.
 - **OpenTelemetry:** optional ASP.NET+HttpClient tracing/metrics, validated OTLP endpoint, no collector auto-installed.
-- **Status tracking:** the 54-capability JSON/README matrix and generated P0/P1/P2 backlog now pass six negative/positive checks plus a CI drift gate.
+- **Status tracking:** the 55-capability JSON/README matrix and generated P0/P1/P2 backlog now pass six negative/positive checks plus a CI drift gate.
 - **Quality and AI:** xUnit/WebApplicationFactory, provider/tenant/Outbox recovery CI, concurrent four-caller idempotency tests on both SQL engines, JWT/tenant-partitioned rate limits with health bypass, agent Skill/AGENTS and a portable `aba_task.py` document/evidence runner, installable NuGet template and optional per-context dual-provider `--with-db` EF scaffolding. Generated projects include their own default and manually triggered integration CI workflows.
 
 [Source-grounded full framework CI evidence](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43298754432) | `docs/verification/2026-11-12-platform-providers.md`.
@@ -51,7 +51,7 @@ The authoritative, maintained **54-feature status table** and prioritized open-t
 2. **Production security:** Keycloak real OIDC/JWKS positive/negative token tests and EF query/SaveChanges tenant guards on both SQL providers are VERIFIED. Still needed: organization membership and RBAC/ABAC policies, approved production tenant RLS migrations and strict DB role grants, SQL-injection-safe raw/Bulk SQL boundaries, externally managed IdP key rotation and secure HTTPS deployment.
 3. **EF Core production operations:** optional per-context empty DbContext scaffolding and a production-startup TLS verification guard now exist and passed direct + real Docker negative tests in [CI 43305238518](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43305238518). Real context-owned models/migrations, optimistic concurrency, forward/rollback/backup/restore drills and actual production certificate-chain validation remain to deliver with business ownership.
 4. **Redis resilience:** an opt-in authoritative-source fallback for noncritical reads and real-client network-failure test now exist; remaining: controlled live restart/reconnect, distributed invalidation, tenant authorization across services, key rotation, stampede protection and load testing.
-5. **OpenTelemetry and operations:** real collector/export verification, logs correlation, sampling/PII policy, health dependency readiness, performance baselines, load/failover tests, audit events and dashboards.
+5. **OpenTelemetry and operations:** select and secure a production collector destination, approve logs correlation and PII/sampling/retention policy, then complete health dependency readiness, performance baselines, load/failover tests, audit events and dashboards. The disposable CI Collector/export integration is already verified.
 6. **Distribution/deployment:** the `0.3.0-preview.2` NuGet API template package and a non-root OCI image are build/test artifacts. Each generated project has default self-contained CI and an opt-in real-infrastructure workflow. Public NuGet.org publishing, signed attestations, selected cloud deployment, SLA/release automation, threat modeling and vulnerability scans remain incomplete.
 
 ## Supply-chain work (partial, P0)

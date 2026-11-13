@@ -660,10 +660,10 @@
       "id": "otel-collector",
       "area": "Observability",
       "feature": "Collector pipeline and export integration test",
-      "status": "partial",
+      "status": "implemented",
       "owner": "Platform / Operations",
       "priority": "P1",
-      "delivered": "CI-verified isolated OTLP/gRPC Collector with real generated API trace and metric export, 5 fail-closed gate tests (main CI 43353408323)",
+      "delivered": "Technical acceptance passes on exact PR #31 head CI 43415885594: isolated OTLP/gRPC Collector receives generated API spans and HTTP metrics with the correct service name; loopback-only receiver, synthetic sensitive-header non-leak and five fail-closed gate tests",
       "remaining": "Approve production collector routing, HTTPS/mTLS, PII controls, sampling and retention; no published telemetry destination",
       "acceptance": "Collector observes test request traces and identifies service correctly",
       "evidence": [
@@ -794,7 +794,7 @@
       "status": "implemented",
       "owner": "Governance",
       "priority": "P1",
-      "delivered": "54-feature machine-readable catalog drives README and detailed backlog; six negative/positive tests and CI drift gate passed",
+      "delivered": "55-feature machine-readable catalog drives README and detailed backlog; six negative/positive tests and CI drift gate passed",
       "remaining": "Maintain each feature's owner, test evidence, acceptance gate and backlog after future tasks",
       "acceptance": "Generated README/backlog match JSON and invalid/missing evidence fails CI",
       "evidence": [
