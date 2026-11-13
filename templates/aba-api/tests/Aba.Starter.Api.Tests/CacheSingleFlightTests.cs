@@ -1,4 +1,7 @@
+using System.Text;
+using System.Text.Json;
 using Aba.Starter.Platform.Caching;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -233,6 +236,75 @@ public sealed class CacheSingleFlightTests
         Assert.Equal(1, calls);
         Assert.Equal(0, gate.InFlightRequests);
         Assert.Equal(0, gate.ActiveKeys);
+    }
+
+    [Fact]
+    public async Task ExplicitFallbackRepairsOnlyTheCorruptTenantsQueryPayload()
+    {
+        using var provider = Build();
+        await using var scope = provider.CreateAsyncScope();
+        var query = scope.ServiceProvider.GetRequiredService<ReadThroughQueryCache>();
+        var raw = scope.ServiceProvider.GetRequiredService<IDistributedCache>();
+        var ttl = TimeSpan.FromMinutes(1);
+        var badKey = ScopedJsonCache.KeyFor("tenant-a", "shared-query");
+        await raw.SetAsync(badKey, Encoding.UTF8.GetBytes("{broken-json"),
+            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = ttl });
+        Assert.Equal("tenant-b-original", await query.GetOrLoadAsync(
+            "tenant-b", "shared-query", ttl,
+            _ => Task.FromResult("tenant-b-original")));
+
+        var calls = 0;
+        Assert.Equal("tenant-a-repaired", await query.GetOrLoadAsync(
+            "tenant-a", "shared-query", ttl, _ =>
+            {
+                calls++;
+                return Task.FromResult("tenant-a-repaired");
+            }, CacheOutagePolicy.UseAuthoritativeSource));
+        Assert.Equal("tenant-a-repaired", await query.GetOrLoadAsync<string>(
+            "tenant-a", "shared-query", ttl,
+            _ => throw new InvalidOperationException("Repaired data should be a hit")));
+        Assert.Equal("tenant-b-original", await query.GetOrLoadAsync<string>(
+            "tenant-b", "shared-query", ttl,
+            _ => throw new InvalidOperationException("Other tenant data was changed")));
+        Assert.Equal(1, calls); // Repair is persisted; a second request is not a miss.
+        Assert.Equal(0, provider.GetRequiredService<AbaCacheLoadGate>().ActiveKeys);
+        Assert.Equal(0, provider.GetRequiredService<AbaCacheLoadGate>().InFlightRequests);
+        Assert.Equal(AbaCacheSourceLoadBudget.DefaultMaxConcurrentLoads,
+            provider.GetRequiredService<AbaCacheSourceLoadBudget>().AvailablePermits);
+    }
+
+    [Fact]
+    public async Task StrictOrCancelledCorruptCacheReadNeverCallsSourceOrOverwritesEvidence()
+    {
+        using var provider = Build();
+        await using var scope = provider.CreateAsyncScope();
+        var query = scope.ServiceProvider.GetRequiredService<ReadThroughQueryCache>();
+        var raw = scope.ServiceProvider.GetRequiredService<IDistributedCache>();
+        var ttl = TimeSpan.FromMinutes(1);
+        var key = ScopedJsonCache.KeyFor("tenant-a", "malformed");
+        var malformed = Encoding.UTF8.GetBytes("{broken-json");
+        await raw.SetAsync(key, malformed,
+            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = ttl });
+        var loads = 0;
+        await Assert.ThrowsAsync<JsonException>(() => query.GetOrLoadAsync(
+            "tenant-a", "malformed", ttl, _ =>
+            {
+                loads++;
+                return Task.FromResult("must-not-load");
+            }, CacheOutagePolicy.FailClosed));
+
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => query.GetOrLoadAsync(
+            "tenant-a", "malformed", ttl, _ =>
+            {
+                loads++;
+                return Task.FromResult("must-not-load");
+            }, CacheOutagePolicy.UseAuthoritativeSource, cancelled.Token));
+        Assert.Equal(0, loads);
+        Assert.Equal(malformed, await raw.GetAsync(key));
+        Assert.Equal(0, provider.GetRequiredService<AbaCacheLoadGate>().ActiveKeys);
+        Assert.Equal(0, provider.GetRequiredService<AbaCacheLoadGate>().InFlightRequests);
     }
 
     [Theory]

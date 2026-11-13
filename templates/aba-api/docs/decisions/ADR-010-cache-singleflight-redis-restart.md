@@ -124,3 +124,27 @@ multi-node invalidation require owner-specific design.
 CI tests: CacheSingleFlightTests, ReadThroughCacheTests,
 AbaExternalInfrastructureTests.LiveRedisCollapsesConcurrentMissesAcrossRequestScopes
 and isolated RedisRestartDrillTests, plus generated workflows.
+
+## Malformed cached query payload recovery (Queue B run 9)
+
+A provider read can succeed but return unparseable JSON (for example,
+after damaged or version-incompatible cached query data). The local
+per-key single-flight lease still bounds concurrent callers.
+`CacheOutagePolicy.FailClosed` propagates `JsonException` **without**
+invoking a source loader or changing the bad entry. Only callers that
+explicitly choose `UseAuthoritativeSource` for already-authorized,
+non-authoritative queries can refresh the malformed entry. Unlike a
+Redis network outage, an invalid JSON payload is not treated as an
+unavailable cache: the successfully loaded source value is written back
+to **only that scoped key** and subsequent reads become hits.
+
+The host-local opt-in source budget continues to limit loads; cancellation
+and loader errors still propagate, and a failed load cannot overwrite the
+corrupt entry. No business authorization errors are swallowed.
+`CacheSingleFlightTests` covers a successful scoped repair, strict denial,
+pre-cancelled no-source/no-write behavior, preserved malformed evidence,
+isolated neighboring tenant data, and released gate/budget invariants.
+Review exact PR-head checks at
+https://github.com/smael-aftersearch/ABAFramework/pull/29/checks .
+This does not deliver distributed invalidation, query authorization,
+data-schema migration or production cache topology approval.
