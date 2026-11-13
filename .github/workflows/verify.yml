@@ -13,8 +13,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Reject malformed attestation verification credentials
-        run: python3 scripts/test_workflow_attestation_auth.py
+      - name: Check release verifier binding, valid identity and negative attestations
+        run: |
+          python3 scripts/test_workflow_attestation_auth.py
+          python3 scripts/test_release_attestation.py
       - name: Verify implementation status catalog, task backlog and evidence links
         run: |
           python3 scripts/test_status_matrix.py
@@ -277,6 +279,7 @@ jobs:
       attestations: write
       artifact-metadata: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: aba-dotnet-template-nupkg
@@ -290,27 +293,14 @@ jobs:
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
         with:
           subject-path: artifacts/provenance/*.nupkg
-      - name: Verify signature and reject a modified artifact
+      - name: Verify NuGet signature, source commit and tamper rejection
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           PACKAGE="$(find artifacts/provenance -maxdepth 1 -name '*.nupkg' -type f -print -quit)"
           test -n "$PACKAGE"
-          gh attestation verify "$PACKAGE" --repo "$GITHUB_REPOSITORY" \
-            --source-ref refs/heads/main --source-digest "$GITHUB_SHA" \
-            --format json > artifacts/provenance/verified-attestation.json
-          test -s artifacts/provenance/verified-attestation.json
-          mkdir -p artifacts/provenance/tamper-test
-          cp "$PACKAGE" artifacts/provenance/tamper-test/
-          printf 'tampered' >> "artifacts/provenance/tamper-test/$(basename "$PACKAGE")"
-          if gh attestation verify "artifacts/provenance/tamper-test/$(basename "$PACKAGE")" \
-            --repo "$GITHUB_REPOSITORY" --source-digest "$GITHUB_SHA"; then
-            echo "FAIL: tampered artifact was accepted by provenance verification" >&2
-            exit 1
-          fi
-          rm -rf artifacts/provenance/tamper-test
-          echo "PASS: signed build provenance verified and tampered payload denied"
+          bash scripts/verify_attested_artifact.sh "$PACKAGE" artifacts/provenance/verified-attestation.json
       - name: Download scanned Docker archive after all eight prerequisite jobs passed
         uses: actions/download-artifact@v4
         with:
@@ -331,26 +321,13 @@ jobs:
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
         with:
           subject-path: artifacts/oci-provenance/aba-runtime-image.tar.gz
-      - name: Verify gated OCI archive attestation and reject tampering
+      - name: Verify gated OCI signature, source commit and tamper rejection
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -euo pipefail
-          image='artifacts/oci-provenance/aba-runtime-image.tar.gz'
-          gh attestation verify "$image" --repo "$GITHUB_REPOSITORY" \
-            --source-ref refs/heads/main --source-digest "$GITHUB_SHA" \
-            --format json > artifacts/provenance/verified-oci-archive-attestation.json
-          test -s artifacts/provenance/verified-oci-archive-attestation.json
-          mkdir -p artifacts/provenance/tampered
-          cp --reflink=auto "$image" artifacts/provenance/tampered/aba-runtime-image.tar.gz
-          printf 'altered-after-scan' >> artifacts/provenance/tampered/aba-runtime-image.tar.gz
-          if gh attestation verify artifacts/provenance/tampered/aba-runtime-image.tar.gz \
-            --repo "$GITHUB_REPOSITORY" --source-digest "$GITHUB_SHA"; then
-            echo 'FAIL: mutated OCI image archive passed source-attestation verification' >&2
-            exit 1
-          fi
-          rm -rf artifacts/provenance/tampered
-          echo 'PASS: exact OCI image archive signed and modified archive rejected'
+          bash scripts/verify_attested_artifact.sh \
+            artifacts/oci-provenance/aba-runtime-image.tar.gz \
+            artifacts/provenance/verified-oci-archive-attestation.json
       - name: Preserve signed release integrity verification evidence
         if: always()
         uses: actions/upload-artifact@v4
