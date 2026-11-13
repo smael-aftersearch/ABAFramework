@@ -45,8 +45,13 @@ generated `--level full` task runner exclude it.
 4. Negative test rejects missing explicit CI flag, wrong
    provider, remote host, and production database names.
 
-5. Broker/outbox phase: a child first starts its RabbitMQ-connected host and
-   signals over a private local named pipe. The parent validates and pauses
+5. Broker/outbox phase: a child starts its RabbitMQ-connected host, then
+   publishes and consumes a distinct technical warmup envelope on the newly
+   provisioned queue before signalling over a private local named pipe.
+   This verifies broker topology readiness, not merely web-host startup.
+   If the warmup does not commit its unique receipt within 45 seconds,
+   the drill fails before any broker pause or process kill.
+   The parent validates and pauses
    only the exact disposable RabbitMQ container, then lets the child invoke a
    synthetic technical outbox command. The child confirms the SQL command
    receipt committed and no consumer effect exists, writes the existing
