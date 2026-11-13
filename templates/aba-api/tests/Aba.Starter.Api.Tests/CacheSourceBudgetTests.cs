@@ -158,5 +158,17 @@ public sealed class CacheSourceBudgetTests
         Assert.Same(budget, a.ServiceProvider.GetRequiredService<AbaCacheSourceLoadBudget>());
         Assert.Same(budget, b.ServiceProvider.GetRequiredService<AbaCacheSourceLoadBudget>());
         Assert.Equal(1, budget.MaxConcurrentLoads);
+
+        // Prove the scoped ReadThroughQueryCache actually consumes the
+        // singleton budget instead of creating a per-request copy.
+        using var held = budget.EnterOrThrow();
+        var query = b.ServiceProvider.GetRequiredService<ReadThroughQueryCache>();
+        var calls = 0;
+        await Assert.ThrowsAsync<AbaCacheSourceLoadLimitExceededException>(() =>
+            query.GetOrLoadAsync("authorized-tenant", "fresh-key",
+                TimeSpan.FromMinutes(1),
+                _ => { calls++; return Task.FromResult("never"); },
+                CacheOutagePolicy.UseAuthoritativeSource));
+        Assert.Equal(0, calls);
     }
 }
