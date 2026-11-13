@@ -90,6 +90,24 @@ class LoopbackLoadTests(unittest.TestCase):
                 load.probe(target, count=1)
         self.assertEqual(0, Handler.hits)
 
+    def test_control_characters_and_noncanonical_targets_fail_before_http(self):
+        # Python urlsplit normalizes tabs/newlines before parsing: never let
+        # that normalization authorize a different raw target.
+        self.assertEqual(self.url, load.validate_target(self.url))
+        unsafe = (
+            self.url.replace("/health/live", "/health/\\nlive").replace("\\n", "\n"),
+            self.url.replace("/health/live", "/health/\\rlive").replace("\\r", "\r"),
+            self.url.replace("/health/live", "/health/\\tlive").replace("\\t", "\t"),
+            "\t" + self.url,
+            self.url + " ",
+            self.url + "?",
+            self.url.replace("127.0.0.1:", "127.0.0.1:0"),
+        )
+        for target in unsafe:
+            with self.subTest(target=repr(target)), self.assertRaises(ValueError):
+                load.probe(target, count=1)
+        self.assertEqual(0, Handler.hits)
+
     def test_negative_status_and_redirect_are_not_success(self):
         for status in (503, 302):
             Handler.status = status

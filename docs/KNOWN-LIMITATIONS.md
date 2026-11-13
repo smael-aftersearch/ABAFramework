@@ -154,7 +154,8 @@ Digest pins need scheduled CVE review and upgrades.
 The optional 40-request/four-worker liveness baseline in `scripts/ci_loopback_load.py`
 is constrained to a generated API listening on explicit `127.0.0.1` HTTP and
 `/health/live` in a disposable GitHub Actions runner. Redirects, credentials,
-non-loopback targets, arbitrary paths and missing CI opt-in are rejected.
+non-loopback targets, arbitrary paths, parser-normalized control characters,
+noncanonical spellings and missing CI opt-in are rejected.
 p50/p95 and throughput are diagnostics only: they cannot establish production
 load SLOs, real business endpoints, multi-replica failover, traffic shaping,
 capacity forecasts or recovery objectives. Operations must set these with a

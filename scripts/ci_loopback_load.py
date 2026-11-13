@@ -33,7 +33,12 @@ def validate_target(url):
             or parsed.path != "/health/live" or parsed.username is not None
             or parsed.password is not None or parsed.query or parsed.fragment):
         raise ValueError("only http://127.0.0.1:<high-port>/health/live is allowed")
-    return f"http://127.0.0.1:{port}/health/live"
+    canonical = f"http://127.0.0.1:{port}/health/live"
+    # urlsplit silently removes TAB/CR/LF and leading C0 whitespace. Refuse
+    # any input that requires parser normalization before a network request.
+    if url != canonical:
+        raise ValueError("noncanonical loopback liveness target")
+    return canonical
 
 
 def validate_output(raw_path):
