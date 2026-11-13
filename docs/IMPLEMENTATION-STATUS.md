@@ -14,7 +14,7 @@ its **production release gates remain open**. Evidence refers to the last review
 [CI run 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289)
 (commit `dd77a1c1b0f2`). New commits must pass their own CI before being treated as verified.
 
-**Tracked: 54** · Implemented: 31 · Partial: 11 · Not implemented: 12.
+**Tracked: 54** · Implemented: 31 · Partial: 12 · Not implemented: 11.
 
 | Area | Parameter / feature | Status | Delivered scope | Remaining task | Priority |
 | --- | --- | --- | --- | --- | --- |
@@ -53,8 +53,8 @@ its **production release gates remain open**. Evidence refers to the last review
 | Caching | Read-through fallback when Redis unavailable | **Implemented** | Default fail-closed; explicit fresh authoritative query fallback | Cluster reconnect, authorized workloads and load behavior unverified | P1 |
 | Caching | Cross-instance invalidation and tenant permissions | **Not implemented** | Not implemented | Add versioned invalidation events with authorized namespace boundaries | P1 |
 | Caching | Cache stampede and Redis restart resilience | **Partial** | Host-wide per-tenant/key single-flight read-through with 24-concurrent-call and real 12-caller Redis tests, TTL/cancellation/miss-value fixes; actual CI Redis stop/restart with strict/explicit fallback and reconnect (isolated 2-case drill); CI-verified opt-in per-host concurrency ceiling (default 8, configurable 1..256) for authoritative query loads on cache misses/outage; PR #8 CI 43338197320 PASS 8/8 at cabd2c7; authored per-host capped in-flight cache-miss registrations (default 1024, configurable 1..4096) with fail-fast cross-tenant queue admission and cancellation cleanup; exact-head PR CI pending | Verify bounded in-flight queue tests on exact PR-head CI; Add distributed multi-replica miss budget/locking, authorize query scopes, bound total/serial source load across replicas during full Redis outage and verify production Redis topology/TTL race policies | P1 |
-| Observability | OpenTelemetry ASP.NET/HTTP traces and metrics | **Partial** | Optional tracing/metrics instrumentation and OTLP exporter wiring | Prove export to a real collector and enforce PII/sampling policy | P1 |
-| Observability | Collector pipeline and export integration test | **Not implemented** | Not implemented | Add isolated OTLP receiver/collector to CI and verify trace/metric export | P1 |
+| Observability | OpenTelemetry ASP.NET/HTTP traces and metrics | **Partial** | Optional tracing/metrics instrumentation and OTLP exporter wiring | Verify exact-head collector trace/metric export and approve production PII/sampling/correlation policy | P1 |
+| Observability | Collector pipeline and export integration test | **Partial** | Authored an isolated CI-only OTLP/gRPC Collector receiver and debug-export pipeline with a generated API trace/metric smoke probe; exact-head CI verification pending | Pass the new real collector CI and select/approve production collector routing, HTTPS/mTLS, PII controls, sampling and retention | P1 |
 | Observability | Tamper-evident audit trail | **Partial** | CI-verified HMAC-SHA256 per-tenant ledger, serializable dual SQL append, tamper/rotation tests plus separately signed offline checkpoint codec and historical-prefix verification on both SQL engines | Deploy independently immutable off-DB checkpoint archive, real signing key custody/rotation and context-owned actor/event/retention rules; audit appender role restrictions and legal policies | P0 |
 | Operations | Production secrets, key rotation and policy | **Not implemented** | Not implemented | Add approved secret store, rotation and least-privilege deployment setup | P0 |
 | Developer | Installable versioned NuGet API template | **Implemented** | Installable versioned v0.3.0-preview.2 NuGet API template built, installed and tested with 73 xUnit cases in CI | NuGet.org publication, provenance/signing and release automation remain gated | P1 |
@@ -123,7 +123,7 @@ Run `python3 scripts/status_matrix.py --check` to fail CI on mismatched tables.
 | `cache-multinode` | Platform + business owners | P1 | Not implemented | Two API replicas observe invalidations without cross-tenant leakage |
 | `cache-stampede` | Platform / Operations | P1 | Partial | No excessive authoritative DB load during simultaneous cache misses |
 | `otel-instrument` | Platform | P1 | Partial | Collector receives correlated spans/metrics without secrets |
-| `otel-collector` | Platform / Operations | P1 | Not implemented | Collector observes test request traces and identifies service correctly |
+| `otel-collector` | Platform / Operations | P1 | Partial | Collector observes test request traces and identifies service correctly |
 | `ops-load` | Operations / Performance | P1 | Not implemented | SLO and recovery objectives measurable under load |
 
 ## Implemented or partial: checked-in source / executable tests
@@ -159,7 +159,8 @@ Run `python3 scripts/status_matrix.py --check` to fail CI on mismatched tables.
 | `cache-redis` | `templates/aba-api/src/Aba.Starter.Platform/Caching/AbaCachingServices.cs` | `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs` |
 | `cache-outage` | `templates/aba-api/src/Aba.Starter.Platform/Caching/ReadThroughQueryCache.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/ReadThroughCacheTests.cs`, `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs` |
 | `cache-stampede` | `templates/aba-api/src/Aba.Starter.Platform/Caching/AbaCacheLoadGate.cs`, `templates/aba-api/src/Aba.Starter.Platform/Caching/ReadThroughQueryCache.cs`, `templates/aba-api/src/Aba.Starter.Platform/Caching/AbaCachingServices.cs`, `templates/aba-api/docs/decisions/ADR-010-cache-singleflight-redis-restart.md`, `templates/aba-api/src/Aba.Starter.Platform/Caching/AbaCacheSourceLoadBudget.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/CacheSingleFlightTests.cs`, `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/RedisRestartDrillTests.cs`, `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs`, `templates/aba-api/tests/Aba.Starter.Api.Tests/CacheSourceBudgetTests.cs` |
-| `otel-instrument` | `templates/aba-api/src/Aba.Starter.Platform/Observability/AbaObservabilityServices.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/AbaPlatformTests.cs` |
+| `otel-instrument` | `templates/aba-api/src/Aba.Starter.Platform/Observability/AbaObservabilityServices.cs` | `templates/aba-api/tests/Aba.Starter.Api.Tests/AbaPlatformTests.cs`, `scripts/verify-otel-collector.sh` |
+| `otel-collector` | `infra/otel-collector-ci.yaml`, `scripts/verify-otel-collector.sh` | `scripts/verify-otel-collector.sh`, `scripts/test_otel_collector_gate.py` |
 | `ops-audit` | `templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaAuditLedger.cs`, `templates/aba-api/src/Aba.Starter.Platform/Persistence/Migrations/202611130001_AuditLedger.cs`, `templates/aba-api/docs/decisions/ADR-006-audit-ledger.md`, `templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaAuditCheckpoint.cs`, `templates/aba-api/docs/decisions/ADR-009-offline-audit-checkpoints.md` | `templates/aba-api/tests/Aba.Starter.Api.Tests/AuditLedgerConfigTests.cs`, `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AuditLedgerIntegrationTests.cs`, `templates/aba-api/tests/Aba.Starter.Api.Tests/AuditCheckpointTests.cs`, `templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AuditAnchoredCheckpointIntegrationTests.cs` |
 | `dev-dotnetnew` | `packaging/ABAFramework.GenericApi.Template.csproj` | `scripts/pack-template.sh` |
 | `dev-contexts` | `templates/aba-api/tools/new_context.py` | `scripts/verify-starter.sh` |

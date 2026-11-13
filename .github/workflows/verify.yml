@@ -19,8 +19,12 @@ jobs:
           python3 scripts/test_release_attestation.py
       - name: Verify implementation status catalog, task backlog and evidence links
         run: |
+          python3 scripts/status_matrix.py --write
+          git diff --exit-code -- README.md docs/IMPLEMENTATION-STATUS.md
           python3 scripts/test_status_matrix.py
           python3 scripts/status_matrix.py --check
+      - name: Prove CI-only collector opt-in refuses unsafe execution
+        run: python3 scripts/test_otel_collector_gate.py
       - name: Regressions for AI planner/QA runner
         run: python3 scripts/test_task_protocol.py
       - name: Recorded QA gates (includes architecture, AI checks, .NET build and C# smoke)
@@ -161,6 +165,23 @@ jobs:
       - name: Verify real Keycloak OIDC, JWKS and tenant 204/401/403
         run: bash scripts/verify-keycloak-oidc.sh
 
+  otel-collector:
+    # CI-only no-secrets loopback receiver; no production telemetry destination.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Prove genuine generated API OTLP/gRPC spans and metrics
+        env:
+          CI: "true"
+          ABA_ENABLE_OTEL_COLLECTOR_DRILL: "yes"
+        run: bash scripts/verify-otel-collector.sh
+
   supply-chain:
     runs-on: ubuntu-latest
     permissions:
@@ -269,6 +290,7 @@ jobs:
       - container-startup
       - package-template
       - keycloak-oidc
+      - otel-collector
       - supply-chain
       - container-security
     runs-on: ubuntu-latest

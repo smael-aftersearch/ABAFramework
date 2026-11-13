@@ -620,27 +620,34 @@
       "owner": "Platform",
       "priority": "P1",
       "delivered": "Optional tracing/metrics instrumentation and OTLP exporter wiring",
-      "remaining": "Prove export to a real collector and enforce PII/sampling policy",
+      "remaining": "Verify exact-head collector trace/metric export and approve production PII/sampling/correlation policy",
       "acceptance": "Collector receives correlated spans/metrics without secrets",
       "evidence": [
         "templates/aba-api/src/Aba.Starter.Platform/Observability/AbaObservabilityServices.cs"
       ],
       "tests": [
-        "templates/aba-api/tests/Aba.Starter.Api.Tests/AbaPlatformTests.cs"
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/AbaPlatformTests.cs",
+        "scripts/verify-otel-collector.sh"
       ]
     },
     {
       "id": "otel-collector",
       "area": "Observability",
       "feature": "Collector pipeline and export integration test",
-      "status": "not_started",
+      "status": "partial",
       "owner": "Platform / Operations",
       "priority": "P1",
-      "delivered": "Not implemented",
-      "remaining": "Add isolated OTLP receiver/collector to CI and verify trace/metric export",
+      "delivered": "Authored an isolated CI-only OTLP/gRPC Collector receiver and debug-export pipeline with a generated API trace/metric smoke probe; exact-head CI verification pending",
+      "remaining": "Pass the new real collector CI and select/approve production collector routing, HTTPS/mTLS, PII controls, sampling and retention",
       "acceptance": "Collector observes test request traces and identifies service correctly",
-      "evidence": [],
-      "tests": []
+      "evidence": [
+        "infra/otel-collector-ci.yaml",
+        "scripts/verify-otel-collector.sh"
+      ],
+      "tests": [
+        "scripts/verify-otel-collector.sh",
+        "scripts/test_otel_collector_gate.py"
+      ]
     },
     {
       "id": "ops-audit",
