@@ -23,9 +23,11 @@ public enum CacheOutagePolicy
 public sealed class ReadThroughQueryCache(
     ScopedJsonCache cache,
     ILogger<ReadThroughQueryCache>? logger = null,
-    AbaCacheLoadGate? loadGate = null)
+    AbaCacheLoadGate? loadGate = null,
+    AbaCacheSourceLoadBudget? sourceLoadBudget = null)
 {
     private readonly AbaCacheLoadGate _loadGate = loadGate ?? new();
+    private readonly AbaCacheSourceLoadBudget _sourceLoadBudget = sourceLoadBudget ?? new();
 
     public async Task<T> GetOrLoadAsync<T>(
         string scope,
@@ -48,6 +50,7 @@ public sealed class ReadThroughQueryCache(
         ct.ThrowIfCancellationRequested();
         using var lease = await _loadGate.EnterAsync(scopedKey, ct);
 
+        var readFailed = false;
         try
         {
             var cached = await cache.TryGetAsync<T>(scope, key, ct);
@@ -58,12 +61,21 @@ public sealed class ReadThroughQueryCache(
         {
             logger?.LogWarning(ex,
                 "Read-through cache unavailable; using authoritative source for query.");
-            // Load exactly once. Exceptions here MUST propagate; no silent
-            // default values, stale secrets or fabricated data.
-            return await loadFromSource(ct);
+            readFailed = true;
         }
 
+        // Budget only applies to explicit, non-authoritative query fallback.
+        // It also covers a healthy-cache MISS: the subsequent write might
+        // fail, so defer source work if this host is already overloaded.
+        // The singleton budget bounds concurrent source calls within ONE
+        // process; it cannot coordinate different replicas.
+        using var permit = outagePolicy == CacheOutagePolicy.UseAuthoritativeSource
+            ? _sourceLoadBudget.EnterOrThrow()
+            : null;
+        ct.ThrowIfCancellationRequested();
         var fresh = await loadFromSource(ct);
+        if (readFailed)
+            return fresh; // Do not issue a second Redis request on a failed read.
         try
         {
             await cache.PutAsync(scope, key, fresh, ttl, ct);
