@@ -12,6 +12,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Wolverine;
+using Wolverine.EntityFrameworkCore;
 using Wolverine.RabbitMQ;
 using Xunit;
 
@@ -235,10 +236,24 @@ public sealed class AbruptCrashWindowTests
             if (release != "invoke-outbox")
                 throw new InvalidOperationException("The parent did not release the broker crash probe.");
 
+            // A direct InvokeAsync handler can wait on the unavailable broker
+            // before the local invocation returns. This drill explicitly uses
+            // Wolverine's documented EF Core transactional outbox outside a
+            // message handler, so the SQL row and durable outbound envelope
+            // commit together *without* waiting for a RabbitMQ acknowledgement.
+            // The separate BrokerOutageDrill still covers handler middleware.
             await using (var scope = brokerHost.Services.CreateAsyncScope())
             {
-                var bus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
-                await bus.InvokeAsync(new AbaTransactionalOutboxProbe(id, FailAfterPublish: false));
+                var outbox = scope.ServiceProvider.GetRequiredService<
+                    IDbContextOutbox<AbaPlatformDbContext>>();
+                outbox.DbContext.IdempotencyReceipts.Add(new IdempotencyReceipt
+                {
+                    Scope = "aba-outbox-transaction",
+                    Key = id.ToString("N"),
+                    CreatedUtc = DateTimeOffset.UtcNow
+                });
+                await outbox.PublishAsync(new AbaDurabilityProbe(id));
+                await outbox.SaveChangesAndFlushMessagesAsync();
             }
 
             if (await ReceiptCountAsync(provider, connection,
