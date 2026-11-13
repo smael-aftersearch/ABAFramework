@@ -6,6 +6,11 @@
 
 # ABA .NET 10 testing strategy and agent contract
 
+The root solution presents the optional Academy sample, reusable Framework
+projects and smoke tests under `/Academy/`, `/Framework/` and `/Tests/`.
+The generic starter has its own solution, with API, Framework and test projects
+grouped separately; generated context modules are placed under `/Modules/`.
+
 **Status:** policy for the current starter and target testing architecture, last reviewed 2026-11-12. A planned test is **not** an implemented or executed test.
 
 ## Purpose and source of truth

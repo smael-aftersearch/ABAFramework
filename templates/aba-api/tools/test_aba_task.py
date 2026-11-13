@@ -149,6 +149,29 @@ class ContractSurfaceTests(unittest.TestCase):
 
 
 class ContextScaffoldingTests(unittest.TestCase):
+    def test_generated_projects_are_grouped_under_modules_and_tests(self):
+        solution = ET.fromstring(
+            '<Solution><Folder Name="/API/"><Project Path="src/Pilot.Api/Pilot.Api.csproj" />'
+            '</Folder></Solution>')
+        context_module.add_solution_project(
+            solution, "/Modules/", "src/Modules/Catalog/Domain/Pilot.Catalog.Domain.csproj")
+        context_module.add_solution_project(
+            solution, "/Tests/", "tests/Pilot.Catalog.Tests/Pilot.Catalog.Tests.csproj")
+
+        grouped = {
+            folder.attrib["Name"]: {project.attrib["Path"] for project in folder.iter("Project")}
+            for folder in solution.findall("Folder")
+        }
+        self.assertIn("src/Modules/Catalog/Domain/Pilot.Catalog.Domain.csproj",
+                      grouped["/Modules/"])
+        self.assertIn("tests/Pilot.Catalog.Tests/Pilot.Catalog.Tests.csproj",
+                      grouped["/Tests/"])
+        with self.assertRaisesRegex(ValueError, "already registered"):
+            context_module.add_solution_project(
+                solution, "/Tests/", "tests/Pilot.Catalog.Tests/Pilot.Catalog.Tests.csproj")
+        with self.assertRaisesRegex(ValueError, "start and end"):
+            context_module.add_solution_project(solution, "Tests", "tests/Invalid.csproj")
+
     def test_with_db_scaffold_supports_design_time_migrations_without_inventing_schema(self):
         files, _ = context_module.files_for("ContextProbe", "Pilot.QuickStart", with_db=True)
         factory_path = Path(

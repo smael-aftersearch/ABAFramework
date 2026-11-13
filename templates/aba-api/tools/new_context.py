@@ -19,13 +19,27 @@ def identity():
         raise ValueError("Expected exactly one root solution")
     solution = solutions[0]
     tree = ET.parse(solution)
-    api_paths = [x.attrib["Path"] for x in tree.getroot().findall("Project")
+    api_paths = [x.attrib["Path"] for x in tree.getroot().iter("Project")
                  if x.attrib["Path"].endswith(".Api.csproj") and x.attrib["Path"].startswith("src/")]
     if len(api_paths) != 1:
         raise ValueError("Expected one API composition root")
     api = ROOT / api_paths[0]
     ns = api.stem.removesuffix(".Api")
     return solution, tree, api, ns
+
+
+def add_solution_project(solution_root, folder_name, path):
+    """Keep generated projects inside visible, purpose-specific solution folders."""
+    if not folder_name.startswith("/") or not folder_name.endswith("/"):
+        raise ValueError("Solution folder paths must start and end with '/'.")
+    if any(project.attrib.get("Path") == path
+           for project in solution_root.iter("Project")):
+        raise ValueError(f"Project is already registered in the solution: {path}")
+    folder = next((item for item in solution_root.findall("Folder")
+                   if item.attrib.get("Name") == folder_name), None)
+    if folder is None:
+        folder = ET.SubElement(solution_root, "Folder", Name=folder_name)
+    ET.SubElement(folder, "Project", Path=path)
 
 
 def proj(refs=(), extra=()):
@@ -362,10 +376,16 @@ def check():
     catalog = json.loads(CATALOG.read_text())
     records = catalog["contexts"]
     seen = set()
+    project_folders = {
+        folder.attrib.get("Name"): {
+            project.attrib.get("Path") for project in folder.iter("Project")
+        }
+        for folder in xml.getroot().findall("Folder")
+    }
     # A context's ownership metadata is part of its API. Two owners for the
     # same declared responsibility are not allowed to pass CI.
     responsibility_owners = {}
-    declared = {x.attrib["Path"] for x in xml.getroot().findall("Project")}
+    declared = {x.attrib["Path"] for x in xml.getroot().iter("Project")}
     for record in records:
         name = record["name"]
         if not IDENT.fullmatch(name) or name.lower() in seen:
@@ -391,6 +411,9 @@ def check():
         for rel in projects:
             if not (ROOT / rel).is_file() or rel.as_posix() not in declared:
                 raise ValueError(f"Missing project in solution: {rel}")
+            solution_folder = "/Tests/" if rel.parts[0] == "tests" else "/Modules/"
+            if rel.as_posix() not in project_folders.get(solution_folder, set()):
+                raise ValueError(f"Project is outside solution folder {solution_folder}: {rel}")
             project_xml = ET.parse(ROOT / rel).getroot()
             refs = project_xml.findall(".//ProjectReference")
             if rel.parent.name in ("Domain", "Contracts"):
@@ -487,7 +510,8 @@ def create(name, with_db=False):
     ET.SubElement(group, "ProjectReference",
                   Include=f"../Modules/{name}/Infrastructure/{ns}.{name}.Infrastructure.csproj")
     for rel in projects:
-        ET.SubElement(xml.getroot(), "Project", Path=rel.as_posix())
+        folder = "/Tests/" if rel.parts[0] == "tests" else "/Modules/"
+        add_solution_project(xml.getroot(), folder, rel.as_posix())
     ET.indent(xml, space="  ")
     ET.indent(api_tree, space="  ")
     catalog = json.loads(CATALOG.read_text())

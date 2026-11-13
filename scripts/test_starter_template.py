@@ -10,6 +10,26 @@ ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE = ROOT / 'templates' / 'aba-api'
 
 class GenericTemplateTests(unittest.TestCase):
+    def test_repository_solution_groups_academy_framework_and_tests(self):
+        solution = ET.parse(ROOT / 'ABA.Net10.Phase1.slnx').getroot()
+        folder_projects = {folder.attrib['Name']: {
+            project.attrib['Path'] for project in folder.iter('Project')
+        } for folder in solution.findall('Folder')}
+        self.assertEqual(set(folder_projects), {'/Academy/', '/Framework/', '/Tests/'})
+        self.assertEqual(folder_projects['/Framework/'], {
+            'src/Framework/Aba.Caching/Aba.Caching.csproj',
+            'src/Framework/Aba.Foundation/Aba.Foundation.csproj',
+            'src/Framework/Aba.LocalMessaging/Aba.LocalMessaging.csproj'})
+        self.assertEqual(folder_projects['/Tests/'], {
+            'tests/Aba.SmokeTests/Aba.SmokeTests.csproj'})
+        declared = set().union(*folder_projects.values())
+        actual = {
+            path.relative_to(ROOT).as_posix()
+            for path in ROOT.rglob('*.csproj')
+            if path.relative_to(ROOT).parts[0] not in ('templates', 'artifacts', 'packaging')
+        }
+        self.assertEqual(declared, actual)
+
     def test_versioned_template_pack_script_matches_metadata(self):
         package = ET.parse(ROOT / "packaging/ABAFramework.GenericApi.Template.csproj")
         version = package.findtext("./PropertyGroup/Version")
@@ -31,11 +51,19 @@ class GenericTemplateTests(unittest.TestCase):
 
     def test_starter_solution_and_projects_are_consistent(self):
         slnx = ET.parse(TEMPLATE / 'Aba.Starter.slnx').getroot()
-        declared = {p.attrib['Path'] for p in slnx.findall('Project')}
+        declared = {p.attrib['Path'] for p in slnx.iter('Project')}
         actual = {p.relative_to(TEMPLATE).as_posix() for p in TEMPLATE.rglob('*.csproj')}
-        self.assertEqual(len(declared), 3)
-        self.assertEqual(len(actual), 4)
-        self.assertEqual(actual - declared, {'tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj'})
+        self.assertEqual(declared, actual)
+        folders = {folder.attrib['Name']: {
+            project.attrib['Path'] for project in folder.iter('Project')}
+            for folder in slnx.findall('Folder')}
+        self.assertEqual(set(folders), {'/API/', '/Framework/', '/Tests/'})
+        self.assertEqual(folders['/API/'], {'src/Aba.Starter.Api/Aba.Starter.Api.csproj'})
+        self.assertEqual(folders['/Framework/'], {
+            'src/Aba.Starter.Platform/Aba.Starter.Platform.csproj'})
+        self.assertEqual(folders['/Tests/'], {
+            'tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj',
+            'tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj'})
         for project in TEMPLATE.rglob('*.csproj'):
             ET.parse(project)
 

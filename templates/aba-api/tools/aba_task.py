@@ -209,13 +209,23 @@ def verify(level: str) -> dict:
             return result(level, evidence)
 
         s = solution[0].name
+        unit_projects = sorted((ROOT / "tests").glob("*.Tests/*.csproj"))
+        if not unit_projects:
+            evidence.append({
+                "title": "Unit test project discovery", "status": "FAIL", "exit_code": None,
+                "command": [], "output_tail": "Expected at least one *.Tests project",
+            })
+            return result(level, evidence)
         commands = [
             (["dotnet", "restore", s], "Restore generated solution"),
             (["dotnet", "build", s, "-c", "Release", "--no-restore"],
              "Compile generated solution"),
-            (["dotnet", "test", s, "-c", "Release", "--no-build"],
-             "Run default xUnit tests"),
         ]
+        commands.extend((
+            ["dotnet", "test", project.relative_to(ROOT).as_posix(),
+             "-c", "Release", "--no-build"],
+            f"Run {project.parent.name} unit tests",
+        ) for project in unit_projects)
         for command, title in commands:
             if not execute(command, title):
                 return result(level, evidence)

@@ -6,7 +6,7 @@ Status: Accepted | Date: 2026-11-12
 
 The domain-neutral starter ships no signing secret and no fake authentication middleware. Production requires an HTTPS OIDC authority and audience. The default xUnit suite uses a disposable **test-only** symmetric signing key injected into ASP.NET Core's actual `JwtBearerOptions` through WebApplicationFactory. This exercises the real signature, issuer, audience and lifetime validators without a network dependency. It tests positive and negative tokens. It does not replace testing a real externally hosted identity provider, external JWT key rotation, federation, organization membership or tenant data isolation.
 
-The separate integration project covers real databases/Redis/Wolverine; its tests fail closed when their three connection strings are missing, and it is excluded from the default solution.
+The integration project covers real databases/Redis/Wolverine. It is visible in the solution under `/Tests/`, but the default test command runs only service-free unit-test projects. Integration tests fail closed when required connection strings are missing.
 
 ## Consequences
 

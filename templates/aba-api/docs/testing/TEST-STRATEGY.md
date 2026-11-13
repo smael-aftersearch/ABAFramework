@@ -11,12 +11,17 @@
 ```bash
 dotnet restore Aba.Starter.slnx
 dotnet build Aba.Starter.slnx -c Release --no-restore
-dotnet test Aba.Starter.slnx -c Release --no-build
+dotnet test tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj -c Release --no-build
 ```
+
+Solution Explorer groups the API, Framework and test projects under `/API/`,
+`/Framework/` and `/Tests/`. The real-service integration project is visible
+under `/Tests/`, while the default test command targets only unit-test projects
+that do not require external services.
 
 ## Optional real-service integration suite
 
-A separate **integration test project outside the default solution** lives in `tests/Aba.Starter.Platform.IntegrationTests`. It contains actual PostgreSQL, SQL Server, Redis, RabbitMQ, Kafka and Wolverine tests. Running ordinary `dotnet test Aba.Starter.slnx` stays fast and needs no external services; running the dedicated integration test project requires the relevant external connections and fails closed if they are absent, rather than falsely recording a PASS. Set `ABA_TEST_POSTGRESQL`, `ABA_TEST_SQLSERVER`, `ABA_TEST_REDIS`, `ABA_TEST_RABBITMQ` and `ABA_TEST_KAFKA`, then execute `dotnet test tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj`. Repo-level `scripts/verify-platform-services.sh` builds and tests this isolated suite on a fresh generated API and CI provisions actual containers.
+A separate integration test project lives in `tests/Aba.Starter.Platform.IntegrationTests`. It contains actual PostgreSQL, SQL Server, Redis, RabbitMQ, Kafka and Wolverine tests. The project is listed in the solution for visibility and builds with the solution, while the default test command stays fast and service-free. Running the dedicated integration project requires the relevant external connections and fails closed if they are absent, rather than falsely recording a PASS. Set `ABA_TEST_POSTGRESQL`, `ABA_TEST_SQLSERVER`, `ABA_TEST_REDIS`, `ABA_TEST_RABBITMQ` and `ABA_TEST_KAFKA`, then execute `dotnet test tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj`. Repo-level `scripts/verify-platform-services.sh` builds and tests this isolated suite on a fresh generated API and CI provisions actual containers.
 
 ## Transactional Outbox acceptance gate
 

@@ -42,6 +42,7 @@ public sealed class AbaPlatformDbContextModelSnapshot : ModelSnapshot
             b.Property(x => x.ChangeTicket).HasMaxLength(128).IsRequired();
             b.Property(x => x.IssuedUtc).IsRequired();
             b.Property(x => x.ExpiresUtc).IsRequired();
+            b.Property(x => x.ConsumedUtc);
         });
     }
 }

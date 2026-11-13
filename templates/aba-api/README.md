@@ -28,10 +28,12 @@ If running from a shell that doesn't choose a launch profile, set `ASPNETCORE_EN
 
 ```bash
 dotnet build Aba.Starter.slnx -c Release
-dotnet test Aba.Starter.slnx -c Release --no-build
+dotnet test tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj -c Release --no-build
 ```
 
-To run **real external-service tests**, configure the three `ABA_TEST_*` connection strings and run `dotnet test tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj`. This suite is intentionally excluded from the default solution; it fails if an external connection is missing.
+Solution Explorer groups the API, Framework and all test projects under separate solution folders. The integration project appears under `Tests` but stays out of the default test command because it requires real services.
+
+To run **real external-service tests**, configure the `ABA_TEST_*` connection strings and run `dotnet test tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj`. It fails closed if an external connection is missing.
 
 ## NuGet dependency audit and SPDX inventory
 
@@ -50,8 +52,7 @@ dotnet package list --project Aba.Starter.slnx --vulnerable --include-transitive
 python3 tools/supply_chain.py --root . --solution Aba.Starter.slnx --audit-json artifacts/supply-chain/audit.json --output artifacts/supply-chain/sbom.spdx.json
 ```
 
-The optional real-service integration test project is outside the
-default solution but is now **restored and audited separately in the same CI**,
+The optional real-service integration test project is also **audited separately in the same CI**,
 with its own advisory JSON and SPDX 2.3 package inventory.
 This does **not** scan container images, pin image digests, sign packages,
 verify provenance or authorize deployment.

@@ -63,5 +63,6 @@ for required in \
   fi
 done
 dotnet build "$TMP/from-package/Pilot.Packaged.slnx" -c Release
-dotnet test "$TMP/from-package/Pilot.Packaged.slnx" -c Release --no-build
+dotnet test "$TMP/from-package/tests/Pilot.Packaged.Api.Tests/Pilot.Packaged.Api.Tests.csproj" \
+  -c Release --no-build
 echo "PASS: versioned ABA NuGet template package installs and generates a tested new API"
