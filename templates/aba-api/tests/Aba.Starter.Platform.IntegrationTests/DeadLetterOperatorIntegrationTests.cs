@@ -142,7 +142,9 @@ public sealed class DeadLetterOperatorIntegrationTests
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
                 admin.RequestReplayAsync(dead.Id, dead.MessageType, dead.ExceptionType,
                     splitPermission, "ticket-test-123"));
-            await Assert.ThrowsAsync<ArgumentException>(() =>
+            // Missing authenticated sub is an authorization denial, not
+            // an argument-shape error, under the new exact-one-sub rule.
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
                 admin.InspectAsync(dead.Id, splitSubject, "ticket-test-123"));
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
                 admin.RequestReplayAsync(dead.Id, dead.MessageType, dead.ExceptionType,
