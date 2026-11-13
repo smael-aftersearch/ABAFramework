@@ -118,7 +118,11 @@ configuration, permissions, key rotation and rollback limits.
 By default limits are per-process. To opt in set
 `Platform__RateLimit__Shared__Enabled=true`,
 `Platform__RateLimit__Shared__Namespace=your-app` (same value on every replica),
-and a secure `ConnectionStrings__AbaRedis`. The local limiter remains active.
+and a secure `ConnectionStrings__AbaRedis`. Outside Development the opted-in
+limiter **refuses plaintext Redis** unless its connection string specifies
+`ssl=true`; require independent certificate/ACL/proxy policy approval before
+production. Development-only disposable Redis may remain plaintext.
+The local limiter remains active.
 Redis failure returns 503 instead of silently relaxing a cross-replica quota;
 quota denial is 429, liveness is exempt, and readiness probes Redis.
 Only the authenticated JWT subject and tenant or the actual anonymous TCP peer

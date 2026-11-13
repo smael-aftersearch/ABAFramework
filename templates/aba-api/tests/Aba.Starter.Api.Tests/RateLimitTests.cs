@@ -32,28 +32,69 @@ public sealed class RateLimitTests
     [Fact]
     public void SharedQuotaOptInRequiresRedisAndApplicationNamespace()
     {
-        Assert.False(AbaSharedRateLimitOptions.FromConfiguration(Settings()).Enabled);
+        Assert.False(AbaSharedRateLimitOptions.FromConfiguration(Settings(), true).Enabled);
         Assert.Throws<InvalidOperationException>(() =>
             AbaSharedRateLimitOptions.FromConfiguration(Settings(
-                ("Platform:RateLimit:Shared:Enabled", "true"))));
+                ("Platform:RateLimit:Shared:Enabled", "true")), true));
         Assert.Throws<InvalidOperationException>(() =>
             AbaSharedRateLimitOptions.FromConfiguration(Settings(
                 ("Platform:RateLimit:Shared:Enabled", "true"),
-                ("ConnectionStrings:AbaRedis", "127.0.0.1:6379"))));
+                ("ConnectionStrings:AbaRedis", "127.0.0.1:6379")), true));
         foreach (var invalid in new[] { "../other", "UPPER", "ab", "tenant|escape" })
             Assert.Throws<InvalidOperationException>(() =>
                 AbaSharedRateLimitOptions.FromConfiguration(Settings(
                     ("Platform:RateLimit:Shared:Enabled", "true"),
                     ("Platform:RateLimit:Shared:Namespace", invalid),
-                    ("ConnectionStrings:AbaRedis", "127.0.0.1:6379"))));
+                    ("ConnectionStrings:AbaRedis", "127.0.0.1:6379")), true));
         var settings = AbaSharedRateLimitOptions.FromConfiguration(Settings(
             ("Platform:RateLimit:Shared:Enabled", "true"),
             ("Platform:RateLimit:Shared:Namespace", "orders-api"),
             ("ConnectionStrings:AbaRedis", "127.0.0.1:6379"),
-            ("Platform:RateLimit:PermitLimit", "3")));
+            ("Platform:RateLimit:PermitLimit", "3")), true);
         Assert.True(settings.Enabled);
         Assert.Equal(3, settings.PermitLimit);
         Assert.Equal("orders-api", settings.Namespace);
+    }
+
+    [Theory]
+    [InlineData("127.0.0.1:6379")]
+    [InlineData("127.0.0.1:6379,ssl=false")]
+    public void NonDevelopmentSharedQuotaRejectsPlaintextRedis(string connection)
+    {
+        Assert.Throws<InvalidOperationException>(() =>
+            AbaSharedRateLimitOptions.FromConfiguration(Settings(
+                ("Platform:RateLimit:Shared:Enabled", "true"),
+                ("Platform:RateLimit:Shared:Namespace", "orders-api"),
+                ("ConnectionStrings:AbaRedis", connection)), false));
+    }
+
+    [Fact]
+    public void NonDevelopmentSharedQuotaAcceptsTlsAndDisabledModeNeedsNoRedis()
+    {
+        var settings = AbaSharedRateLimitOptions.FromConfiguration(Settings(
+            ("Platform:RateLimit:Shared:Enabled", "true"),
+            ("Platform:RateLimit:Shared:Namespace", "orders-api"),
+            ("ConnectionStrings:AbaRedis", "127.0.0.1:6379,ssl=true")), false);
+        Assert.True(settings.Enabled);
+        Assert.Equal("orders-api", settings.Namespace);
+        // Invariant: disabled opt-in never creates a Redis security dependency.
+        Assert.False(AbaSharedRateLimitOptions.FromConfiguration(Settings(), false).Enabled);
+    }
+
+    [Fact]
+    public void UnsignedTenantHeaderAndClaimsCannotChangeAnonymousQuotaPartition()
+    {
+        var context = new DefaultHttpContext();
+        context.Connection.RemoteIpAddress = IPAddress.Parse("192.0.2.25");
+        // An untrusted identity has claims but no authenticated principal.
+        context.User = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim("sub", "fake"), new Claim("tenant_id", "fake-tenant")]));
+        context.Request.Headers["X-Tenant-ID"] = "tenant-one";
+        var first = AbaRateLimitOptions.PartitionKey(context);
+        context.Request.Headers["X-Tenant-ID"] = "tenant-two";
+        context.Request.Headers["X-Forwarded-For"] = "198.51.100.7";
+        Assert.Equal("ip:192.0.2.25", first);
+        Assert.Equal(first, AbaRateLimitOptions.PartitionKey(context));
     }
 
     [Theory]
