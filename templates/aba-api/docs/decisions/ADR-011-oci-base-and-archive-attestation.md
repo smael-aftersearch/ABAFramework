@@ -16,8 +16,9 @@ tags alone are disallowed.
 
 tools/oci_base_lock.py is a fail-closed validator for only the
 trusted SDK/runtime stages, exactly the reviewed SHA256 digest and
-non-root runtime USER $APP_UID. Its independent negative tests
-deliberately inject altered digests, floating references,
+exactly one active `USER $APP_UID` instruction in the runtime stage and no
+`USER` instruction in another stage. Its independent negative tests deliberately
+inject altered digests, floating references,
 untrusted registries, extra image stages, missing lock or
 root execution and require rejection. Both upstream and generated
 build/scan workflows invoke the validator before building.

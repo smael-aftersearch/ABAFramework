@@ -77,7 +77,10 @@ test -f "$OUTPUT/src/Modules/BoundaryProbe/_Docs/ownership.yaml"
 test -f "$OUTPUT/tests/Pilot.QuickStart.BoundaryProbe.Tests/Pilot.QuickStart.BoundaryProbe.Tests.csproj"
 dotnet restore "$SOLUTION"
 dotnet build "$SOLUTION" -c Release --no-restore
-dotnet test "$SOLUTION" -c Release --no-build
+for TEST_PROJECT in "$OUTPUT"/tests/*.Tests/*.csproj; do
+  test -f "$TEST_PROJECT"
+  dotnet test "$TEST_PROJECT" -c Release --no-build
+done
 URL="http://127.0.0.1:5167"
 DLL="$OUTPUT/src/Pilot.QuickStart.Api/bin/Release/net10.0/Pilot.QuickStart.Api.dll"
 test -f "$DLL"

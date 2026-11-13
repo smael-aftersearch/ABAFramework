@@ -4,6 +4,26 @@
 
 Before any production deployment, require standards-based OIDC/JWT validation, granular authorization, tenant identity/isolation, CSRF and CORS decisions, request limits and rate limits, secure secret loading, migrations, backup/recovery, threat modeling, monitoring, vulnerability checks, real provider idempotency and webhook signature verification, and a deployment security review. Follow the next milestone acceptance gates.
 
+## Repository secret scanning
+
+Root CI and the generated API CI run the official Gitleaks OCI image pinned by
+immutable digest. The scanner checks both the checked-out file tree and
+reachable Git history, disables inline `gitleaks:allow` bypasses, uses an empty
+ignore file, and captures output so a detected value is not copied into CI
+logs. Positive and negative fixtures construct a synthetic GitHub-shaped token
+at runtime; no credential literal is stored in source.
+Locally, the scanner reports `NOT_RUN` with exit code 2 when Docker CLI or its
+daemon is unavailable; the Docker-backed regression fixtures skip only in that
+local case. CI (`CI=true`) fails if Docker is unavailable, so its positive and
+negative scanner cases cannot be silently skipped.
+
+This is a static detector, not a production secret manager. It does not provide
+secure secret loading, rotation, least-privilege access, guarantee detection,
+revoke a leaked value or remove it from Git history. Production secret-store
+selection and rotation remain Operations/Security decisions. Any real finding
+must be treated as exposed and handled through the approved rotation process;
+deleting the latest copy alone does not revoke it.
+
 ## Security of the new generic API template (not Academy)
 
 The generated API implements ASP.NET JWT bearer middleware, fails closed outside Development without an HTTPS Authority/Audience, requires authentication by default, and includes an explicit protected route with a negative `401` test. Optional `Platform:Tenancy:Enabled` checks a JWT `tenant_id` claim in the default/fallback authorization policies; it never accepts a raw tenant header as authority. A real disposable Keycloak OIDC/JWKS CI test verifies signed-token acceptance and audience/tenant-claim denial, and EF tenant query/write guards are tested on both SQL providers. These checks are **not full production identity/membership management, key rotation, SQL Row-Level Security or protection against raw/bulk SQL operations**. Do not deploy multi-tenant data without the owning business context implementing and testing tenant membership and row-level access.
@@ -133,3 +153,13 @@ authenticated identities and unchanged trusted/peer partitions. Exact PR
 head checks must pass before calling this revision verified. **This does not
 grant roles or prove organization membership, production RLS, SQL session
 spoofing prevention or Redis gateway/ACL approval.**
+
+## Generic API browser-origin policy
+
+The generic `aba-api` host uses an explicit `Api:Cors:AllowedOrigins`
+allow-list. An empty list grants no browser origin access; wildcard origins,
+non-HTTPS production origins, and values containing paths or credentials are
+rejected during startup. Development may allow HTTP loopback origins. The
+policy does not enable credential cookies and does not replace JWT or tenant
+authorization. Each deployment must provide its own reviewed origin list in
+secure configuration; see the starter README for the configuration key.

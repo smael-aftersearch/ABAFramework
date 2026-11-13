@@ -111,19 +111,59 @@ These authored tests require exact PR-head CI for executed PASS evidence.
 ## Open limits
 
 This is **one-process** miss coalescing, not a distributed Redis
-lock across multiple replicas. During an actual Redis outage, each
-explicit source-fallback request can still execute after a prior permit
-is released; no distributed source load budget or cross-replica stampede
-protection exists, and not every loader can be safely retried.
+lock across multiple replicas unless the opt-in coordination below is
+enabled. Local mode remains the default and retains its prior behavior.
 The service does not authorize cache scopes, enforce PII retention,
 guarantee cross-replica invalidation or replace the authoritative DB.
 Do not use it to cache permissions, payments, accounting or
-business invariants. Rate limits, quota distribution and
-multi-node invalidation require owner-specific design.
+business invariants. Multi-node invalidation and query authorization
+remain owner-specific.
 
 CI tests: CacheSingleFlightTests, ReadThroughCacheTests,
 AbaExternalInfrastructureTests.LiveRedisCollapsesConcurrentMissesAcrossRequestScopes
 and isolated RedisRestartDrillTests, plus generated workflows.
+
+## Opt-in Redis coordination across replicas
+
+`Platform:Cache:DistributedCoordination:Enabled=true` requires the Redis
+provider, an explicit unique application namespace and Redis connection.
+After a cache miss, the coordinator takes a token-owned, expiring
+per-scoped-key lease, reserves one of the configured cluster-wide source
+load slots, and re-reads the cache before running the loader. Leases renew
+while a loader is active and use compare-token renewal/release; lock keys
+contain only the already hashed scope/key. A shared Redis counter also
+limits attempted source loads per configured fixed window. Settings are
+opt-in and validated; Production requires `ssl=true`. The coordinator
+uses its own long-lived Redis multiplexer because the ASP.NET distributed
+cache owns and disposes its own connection. A persistent, nonsecret settings
+fingerprint rejects replicas that reuse a namespace with different budgets;
+changing budgets requires a new namespace. The
+`aba-cache-coordination` readiness check probes this connection and verifies
+the fingerprint when distributed coordination is enabled; it is healthy
+without resolving Redis in the disabled default mode.
+
+If Redis cannot grant/renew a lease or the shared source budget is
+exhausted, the loader does not run. In distributed mode this is true even
+when the caller selected `UseAuthoritativeSource`: without a shared permit,
+the Platform fails closed instead of creating uncoordinated replica load.
+The source callback receives a cancellation token linked to lease loss and
+must honor cancellation. If a callback ignores cancellation, the Platform
+checks the linked token again before returning or caching its result. The
+unit suite includes a cancellation-blind loader that finishes after lease
+loss and asserts that its value is neither returned nor cached. This cannot
+undo side effects inside an ill-behaved callback; loader owners still need
+to observe cancellation. This is load coordination, not a correctness lock,
+tenant membership grant, business idempotency, cross-replica invalidation or
+a promise that Redis failover preserves leases/counters. A Redis failover,
+eviction policy, multi-region setup and callback cancellation behavior need
+real provider-backed review before Production use.
+
+`AbaDistributedCacheCoordinationIntegrationTests` exercises independent
+service providers against one Redis server for same-key collapse, shared
+concurrency and serial-load budgets, configuration-drift rejection, and
+fail-closed behavior with an unreachable server. These tests are authored;
+the live Redis cases require the exact current test head and a disposable
+Redis service to run.
 
 ## Malformed cached query payload recovery (Queue B run 9)
 

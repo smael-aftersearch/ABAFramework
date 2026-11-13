@@ -2,6 +2,7 @@
 """No-SDK validation of the reusable, domain-neutral dotnet-new template."""
 import json
 from pathlib import Path
+import re
 import unittest
 from xml.etree import ElementTree as ET
 
@@ -9,13 +10,38 @@ ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE = ROOT / 'templates' / 'aba-api'
 
 class GenericTemplateTests(unittest.TestCase):
+    def test_repository_solution_groups_academy_framework_and_tests(self):
+        solution = ET.parse(ROOT / 'ABA.Net10.Phase1.slnx').getroot()
+        folder_projects = {folder.attrib['Name']: {
+            project.attrib['Path'] for project in folder.iter('Project')
+        } for folder in solution.findall('Folder')}
+        self.assertEqual(set(folder_projects), {'/Academy/', '/Framework/', '/Tests/'})
+        self.assertEqual(folder_projects['/Framework/'], {
+            'src/Framework/Aba.Caching/Aba.Caching.csproj',
+            'src/Framework/Aba.Foundation/Aba.Foundation.csproj',
+            'src/Framework/Aba.LocalMessaging/Aba.LocalMessaging.csproj'})
+        self.assertEqual(folder_projects['/Tests/'], {
+            'tests/Aba.SmokeTests/Aba.SmokeTests.csproj'})
+        declared = set().union(*folder_projects.values())
+        actual = {
+            path.relative_to(ROOT).as_posix()
+            for path in ROOT.rglob('*.csproj')
+            if path.relative_to(ROOT).parts[0] not in ('templates', 'artifacts', 'packaging')
+        }
+        self.assertEqual(declared, actual)
+
     def test_versioned_template_pack_script_matches_metadata(self):
         package = ET.parse(ROOT / "packaging/ABAFramework.GenericApi.Template.csproj")
         version = package.findtext("./PropertyGroup/Version")
         self.assertEqual("0.3.0-preview.2", version)
         script = (ROOT / "scripts/pack-template.sh").read_text()
         self.assertIn("PackageVersion=" + version, script)
+        self.assertIn("-p:PackageVersion=" + version, script)
+        self.assertNotIn("/p:PackageVersion=", script)
         self.assertIn("ABAFramework.GenericApi.Template." + version + ".nupkg", script)
+        self.assertIn('PACKAGE_ID="ABAFramework.GenericApi.Template"', script)
+        self.assertIn('dotnet new uninstall "$PACKAGE_ID"', script)
+        self.assertIn('dotnet new uninstall 2>/dev/null | grep -Fq "$PACKAGE_ID"', script)
 
     def test_dotnet_new_metadata(self):
         meta = json.loads((TEMPLATE / '.template.config/template.json').read_text())
@@ -25,11 +51,19 @@ class GenericTemplateTests(unittest.TestCase):
 
     def test_starter_solution_and_projects_are_consistent(self):
         slnx = ET.parse(TEMPLATE / 'Aba.Starter.slnx').getroot()
-        declared = {p.attrib['Path'] for p in slnx.findall('Project')}
+        declared = {p.attrib['Path'] for p in slnx.iter('Project')}
         actual = {p.relative_to(TEMPLATE).as_posix() for p in TEMPLATE.rglob('*.csproj')}
-        self.assertEqual(len(declared), 3)
-        self.assertEqual(len(actual), 4)
-        self.assertEqual(actual - declared, {'tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj'})
+        self.assertEqual(declared, actual)
+        folders = {folder.attrib['Name']: {
+            project.attrib['Path'] for project in folder.iter('Project')}
+            for folder in slnx.findall('Folder')}
+        self.assertEqual(set(folders), {'/API/', '/Framework/', '/Tests/'})
+        self.assertEqual(folders['/API/'], {'src/Aba.Starter.Api/Aba.Starter.Api.csproj'})
+        self.assertEqual(folders['/Framework/'], {
+            'src/Aba.Starter.Platform/Aba.Starter.Platform.csproj'})
+        self.assertEqual(folders['/Tests/'], {
+            'tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj',
+            'tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj'})
         for project in TEMPLATE.rglob('*.csproj'):
             ET.parse(project)
 
@@ -37,10 +71,36 @@ class GenericTemplateTests(unittest.TestCase):
         for path in ('AGENTS.md', 'docs/ai/INDEX.md', 'docs/testing/TEST-STRATEGY.md',
                      'metadata/contexts.json', 'README.md', 'global.json',
                      '.agents/skills/aba-engineering/SKILL.md',
-                     '.agents/skills/aba-engineering/agents/openai.yaml'):
+                     '.agents/skills/aba-engineering/agents/openai.yaml',
+                     '.gitleaks.toml', '.gitleaksignore',
+                     'tools/secret_scan.py', 'tools/test_secret_scan.py'):
             with self.subTest(path=path):
                 self.assertTrue((TEMPLATE / path).is_file())
         self.assertEqual(json.loads((TEMPLATE / 'metadata/contexts.json').read_text())['contexts'], [])
+
+    def test_secret_scan_is_digest_pinned_redacted_and_packaged(self):
+        scanner = (TEMPLATE / 'tools/secret_scan.py').read_text()
+        test_tool = (TEMPLATE / 'tools/test_secret_scan.py').read_text()
+        template_workflow = (TEMPLATE / '.github/workflows/ci.yml').read_text()
+        root_workflow = (ROOT / '.github/workflows/verify.yml').read_text()
+        config = (TEMPLATE / '.gitleaks.toml').read_text()
+        digest = re.search(r'@sha256:([0-9a-f]{64})', scanner)
+        self.assertIsNotNone(digest)
+        self.assertIn('--redact=100', scanner)
+        self.assertIn('--ignore-gitleaks-allow', scanner)
+        self.assertIn('--log-opts=--all', scanner)
+        self.assertIn('capture_output=True', scanner)
+        self.assertNotIn('[allowlists]', config)
+        self.assertEqual((TEMPLATE / '.gitleaksignore').read_text().strip(), '')
+        self.assertIn('test_clean_fixture_passes', test_tool)
+        self.assertIn('test_synthetic_credential_fails_and_is_redacted', test_tool)
+        self.assertIn('secret-scan:', template_workflow)
+        self.assertIn('fetch-depth: 0', template_workflow)
+        self.assertIn('secret-scan:', root_workflow)
+        self.assertIn('secret-scan', root_workflow.split('  template-provenance:', 1)[1])
+        for required in ('tools/secret_scan.py', 'tools/test_secret_scan.py',
+                         '.gitleaks.toml', '.gitleaksignore'):
+            self.assertIn(required, (ROOT / 'scripts/pack-template.sh').read_text())
 
     def test_platform_providers_messaging_and_redis_are_real_packages(self):
         package = (TEMPLATE / 'src/Aba.Starter.Platform/Aba.Starter.Platform.csproj').read_text()
@@ -48,10 +108,77 @@ class GenericTemplateTests(unittest.TestCase):
                      'Npgsql.EntityFrameworkCore.PostgreSQL',
                      'Microsoft.Extensions.Caching.StackExchangeRedis',
                      'WolverineFx.EntityFrameworkCore', 'WolverineFx.Postgresql',
-                     'WolverineFx.SqlServer'):
+                     'WolverineFx.SqlServer', 'WolverineFx.RabbitMQ', 'WolverineFx.Kafka'):
             self.assertIn(name, package)
         program = (TEMPLATE / 'src/Aba.Starter.Api/Program.cs').read_text()
         self.assertIn('builder.AddAbaPlatform()', program)
+
+    def test_optional_rabbit_transport_is_guarded_and_has_real_broker_cases(self):
+        options = (TEMPLATE / 'src/Aba.Starter.Platform/Messaging/AbaMessagingOptions.cs').read_text()
+        service = (TEMPLATE / 'src/Aba.Starter.Platform/Messaging/AbaWolverineServices.cs').read_text()
+        platform = (TEMPLATE / 'src/Aba.Starter.Platform/AbaPlatformSetup.cs').read_text()
+        fast_tests = (TEMPLATE / 'tests/Aba.Starter.Api.Tests/AbaMessagingOptionsTests.cs').read_text()
+        broker_tests = (TEMPLATE / 'tests/Aba.Starter.Platform.IntegrationTests/RabbitMqIntegrationTests.cs').read_text()
+        kafka_tests = (TEMPLATE / 'tests/Aba.Starter.Platform.IntegrationTests/KafkaIntegrationTests.cs').read_text()
+        redis_coordination_tests = (TEMPLATE / 'tests/Aba.Starter.Platform.IntegrationTests/AbaDistributedCacheCoordinationIntegrationTests.cs').read_text()
+        workflow = (TEMPLATE / '.github/workflows/integration.yml').read_text()
+        compose = (ROOT / 'infra/compose.platform.yaml').read_text()
+        starter_compose = (TEMPLATE / 'compose.yaml').read_text()
+        self.assertIn('RabbitMQ', options)
+        self.assertIn('Production RabbitMQ requires amqps://', options)
+        self.assertIn('Production Kafka requires SASL_SSL', options)
+        self.assertIn('PublisherConfirmationsEnabled = true', service)
+        self.assertIn('PublisherConfirmationTrackingEnabled = true', service)
+        self.assertIn('Action<WolverineOptions>? configureMessaging', platform)
+        self.assertIn('ProductionRequiresTlsAndNonGuestCredentials', fast_tests)
+        self.assertIn('RabbitMqDurableDeliveryHandlesDuplicatePayloadOnce', broker_tests)
+        self.assertIn('BrokerOutageDrill', broker_tests)
+        self.assertIn('BrokerCrashDrill', broker_tests)
+        self.assertIn('job.services.rabbitmq.id', workflow)
+        self.assertIn('Category=BrokerOutageDrill', workflow)
+        self.assertIn('Category=BrokerCrashDrill', workflow)
+        outage_step = workflow.split(
+            '- name: Pause and recover only the disposable CI RabbitMQ service', 1
+        )[1].split('- name: Destructive drills only against disposable local CI databases', 1)[0]
+        self.assertEqual(outage_step.count('        run:'), 1)
+        self.assertEqual(outage_step.count("--logger 'console;verbosity=normal'"), 1)
+        self.assertIn('rabbitmq:4.4.0-management-alpine', compose)
+        self.assertIn('127.0.0.1:56729:5672', compose)
+        self.assertIn('WolverineFx.Kafka', (TEMPLATE / 'src/Aba.Starter.Platform/Aba.Starter.Platform.csproj').read_text())
+        self.assertIn('KafkaDurableDeliveryHandlesDuplicatePayloadOnce', kafka_tests)
+        self.assertIn('AutoOffsetReset.Earliest', kafka_tests)
+        self.assertIn('new AbaDurabilityProbe(messageId, Guid.NewGuid())', kafka_tests)
+        self.assertIn('new AbaDurabilityProbe(messageId, Guid.NewGuid())', broker_tests)
+        self.assertIn('Guid PublishNonce = default', (TEMPLATE / 'src/Aba.Starter.Platform/Messaging/AbaDurabilityProbe.cs').read_text())
+        self.assertIn('Observed {deliveryAttempts} attempts', kafka_tests)
+        self.assertIn('Observed {deliveryAttempts} attempts', broker_tests)
+        self.assertIn('var cacheScope = "tenant-" + Guid.NewGuid()', redis_coordination_tests)
+        self.assertNotIn('"tenant-a"', redis_coordination_tests)
+        self.assertIn('apache/kafka:4.4.0', workflow)
+        self.assertIn('ABA_TEST_KAFKA', workflow)
+        self.assertIn('KAFKA', compose)
+        self.assertIn('127.0.0.1:9092:9092', compose)
+        self.assertIn('profiles: [kafka]', starter_compose)
+        self.assertIn('apache/kafka:4.4.0', starter_compose)
+        kafka_configs = (
+            workflow,
+            (ROOT / '.github/workflows/verify.yml').read_text(),
+            compose,
+            starter_compose,
+        )
+        required_kafka_settings = (
+            'KAFKA_NODE_ID',
+            'KAFKA_PROCESS_ROLES',
+            'KAFKA_CONTROLLER_QUORUM_VOTERS',
+            'KAFKA_CONTROLLER_LISTENER_NAMES',
+            'KAFKA_LISTENER_SECURITY_PROTOCOL_MAP',
+            'KAFKA_ADVERTISED_LISTENERS',
+            'KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS',
+            'KAFKA_TRANSACTION_STATE_LOG_NUM_PARTITIONS',
+        )
+        for config in kafka_configs:
+            for setting in required_kafka_settings:
+                self.assertIn(setting, config)
 
     def test_infrastructure_tests_fail_closed_and_are_separate(self):
         default_project = TEMPLATE / 'tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj'
@@ -125,7 +252,7 @@ class GenericTemplateTests(unittest.TestCase):
         self.assertIn("tools/aba_task.py verify --level build", ci)
         self.assertIn("workflow_dispatch:", integration)
         self.assertIn("tools/aba_task.py verify --level full", integration)
-        for provider in ("postgres", "sqlserver", "redis"):
+        for provider in ("postgres", "sqlserver", "redis", "rabbitmq"):
             self.assertIn(provider + ":", integration)
         self.assertNotIn("publish", ci.casefold())
 
@@ -182,6 +309,10 @@ class GenericTemplateTests(unittest.TestCase):
         task = (TEMPLATE / 'tools/aba_task.py').read_text()
         ci = (ROOT / '.github/workflows/verify.yml').read_text()
         generated_ci = (TEMPLATE / '.github/workflows/integration.yml').read_text()
+        self.assertIn('ABA_TEST_KAFKA', external)
+        self.assertIn('ABA_TEST_KAFKA', task)
+        self.assertIn('apache/kafka:4.4.0', ci)
+        self.assertIn('apache/kafka:4.4.0', generated_ci)
         self.assertIn("Category!=RecoveryDrill", external)
         self.assertIn("Category!=RecoveryDrill", task)
         for workflow in (ci, generated_ci):
@@ -266,8 +397,12 @@ class GenericTemplateTests(unittest.TestCase):
             self.assertIn(required, code)
         self.assertIn("Category!=RecoveryDrill&Category!=CrashDrill", script)
         self.assertIn("Category!=RecoveryDrill&Category!=CrashDrill", task)
+        self.assertIn("Category!=BrokerCrashDrill", script)
+        self.assertIn("Category!=BrokerCrashDrill", task)
         self.assertIn("Category=CrashDrill", workflow)
         self.assertIn("Category=CrashDrill", script)
+        self.assertIn("Category=BrokerCrashDrill", workflow)
+        self.assertIn("ABA_ENABLE_BROKER_OUTAGE_DRILL", workflow)
 
     def test_real_redis_restart_is_isolated_and_fail_closed(self):
         source = (TEMPLATE / 'tests/Aba.Starter.Platform.IntegrationTests/RedisRestartDrillTests.cs').read_text()
@@ -285,6 +420,33 @@ class GenericTemplateTests(unittest.TestCase):
             self.assertIn("Category=RedisRestartDrill", workflow)
         for value in (script, task):
             self.assertIn('Category!=CrashDrill&Category!=RedisRestartDrill', value)
+
+    def test_opt_in_distributed_cache_coordination_is_bounded_and_fail_closed(self):
+        options = (TEMPLATE / 'src/Aba.Starter.Platform/Caching/AbaCacheDistributedCoordinationOptions.cs').read_text()
+        coordinator = (TEMPLATE / 'src/Aba.Starter.Platform/Caching/AbaRedisCacheMissCoordinator.cs').read_text()
+        health_check = (TEMPLATE / 'src/Aba.Starter.Platform/Caching/AbaCacheDistributedCoordinationHealthCheck.cs').read_text()
+        cache = (TEMPLATE / 'src/Aba.Starter.Platform/Caching/ReadThroughQueryCache.cs').read_text()
+        unit_tests = (TEMPLATE / 'tests/Aba.Starter.Api.Tests/AbaCacheDistributedCoordinationTests.cs').read_text()
+        integration_tests = (TEMPLATE / 'tests/Aba.Starter.Platform.IntegrationTests/AbaDistributedCacheCoordinationIntegrationTests.cs').read_text()
+        adr = (TEMPLATE / 'docs/decisions/ADR-010-cache-singleflight-redis-restart.md').read_text()
+        self.assertIn('AbaCacheDistributedCoordinationOptions', options)
+        self.assertIn('AbaCacheDistributedCoordinationOptions', coordinator)
+        self.assertIn('IAbaCacheMissCoordinator', cache)
+        self.assertIn('aba-cache-coordination', (TEMPLATE / 'src/Aba.Starter.Platform/Caching/AbaCachingServices.cs').read_text())
+        self.assertIn('VerifyReadinessAsync(cancellationToken)', health_check)
+        self.assertIn('Platform:Cache:DistributedCoordination:Enabled', adr)
+        for value in (coordinator, integration_tests):
+            self.assertIn('MaxConcurrentSourceLoads', value)
+            self.assertIn('MaxSourceLoadsPerWindow', value)
+        for marker in ('SharedRedisCoordinatesSameMissAcrossIndependentHosts',
+                       'SharedRedisEnforcesClusterSourceLoadRateBudgetAcrossHosts',
+                       'SharedRedisEnforcesConcurrentSourceLoadBudgetAcrossHosts',
+                       'SharedRedisRejectsDifferentCoordinationSettingsInOneNamespace',
+                       'DistributedFallbackFailsClosedWhenRedisCannotGrantCoordination'):
+            self.assertIn(marker, integration_tests)
+        self.assertIn('AbaCacheCoordinationConfigurationMismatchException', coordinator)
+        self.assertIn('DistributedCoordinationFailureNeverFallsBackToSource', unit_tests)
+        self.assertIn('LeaseLost', cache)
 
     def test_scanned_image_archive_has_attested_provenance_and_tamper_rejection(self):
         workflow = (ROOT / '.github/workflows/verify.yml').read_text()

@@ -130,10 +130,13 @@ def plan(task: str, files: list[str]) -> dict:
 
 
 def redact_output(content: str) -> str:
-    """Do not persist configured DB/Redis credentials in a verification artifact."""
+    """Do not persist configured DB/Redis/broker credentials in a verification artifact."""
     for name in (
         "ABA_TEST_POSTGRESQL", "ABA_TEST_SQLSERVER", "ABA_TEST_REDIS",
+        "ABA_TEST_RABBITMQ",
         "ConnectionStrings__AbaDatabase", "ConnectionStrings__AbaRedis",
+        "ConnectionStrings__AbaRabbitMQ", "ConnectionStrings__AbaKafka",
+        "Platform__Messaging__Kafka__SaslPassword",
         "Authentication__ClientSecret",
     ):
         secret = os.environ.get(name)
@@ -206,19 +209,32 @@ def verify(level: str) -> dict:
             return result(level, evidence)
 
         s = solution[0].name
+        unit_projects = sorted((ROOT / "tests").glob("*.Tests/*.csproj"))
+        if not unit_projects:
+            evidence.append({
+                "title": "Unit test project discovery", "status": "FAIL", "exit_code": None,
+                "command": [], "output_tail": "Expected at least one *.Tests project",
+            })
+            return result(level, evidence)
         commands = [
             (["dotnet", "restore", s], "Restore generated solution"),
             (["dotnet", "build", s, "-c", "Release", "--no-restore"],
              "Compile generated solution"),
-            (["dotnet", "test", s, "-c", "Release", "--no-build"],
-             "Run default xUnit tests"),
         ]
+        commands.extend((
+            ["dotnet", "test", project.relative_to(ROOT).as_posix(),
+             "-c", "Release", "--no-build"],
+            f"Run {project.parent.name} unit tests",
+        ) for project in unit_projects)
         for command, title in commands:
             if not execute(command, title):
                 return result(level, evidence)
 
     if level == "full":
-        required = ("ABA_TEST_POSTGRESQL", "ABA_TEST_SQLSERVER", "ABA_TEST_REDIS")
+        required = (
+            "ABA_TEST_POSTGRESQL", "ABA_TEST_SQLSERVER", "ABA_TEST_REDIS",
+            "ABA_TEST_RABBITMQ", "ABA_TEST_KAFKA",
+        )
         missing = [key for key in required if not os.environ.get(key)]
         if missing:
             evidence.append({
@@ -239,8 +255,8 @@ def verify(level: str) -> dict:
         proj = projects[0].relative_to(ROOT).as_posix()
         for command, title in (
             (["dotnet", "restore", proj], "Restore external integration project"),
-            (["dotnet", "test", proj, "-c", "Release", "--filter", "Category!=RecoveryDrill&Category!=CrashDrill&Category!=RedisRestartDrill"],
-             "Run real PostgreSQL, SQL Server, Redis and messaging tests"),
+            (["dotnet", "test", proj, "-c", "Release", "--filter", "Category!=RecoveryDrill&Category!=CrashDrill&Category!=RedisRestartDrill&Category!=BrokerOutageDrill&Category!=BrokerCrashDrill"],
+             "Run real PostgreSQL, SQL Server, Redis, RabbitMQ, Kafka and messaging tests"),
         ):
             if not execute(command, title):
                 break

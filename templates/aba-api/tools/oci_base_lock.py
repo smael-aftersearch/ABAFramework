@@ -52,23 +52,36 @@ def verify(root: Path) -> dict:
             raise OciLockError("OCI base image SHA256 must be an immutable 64-character digest")
 
     found = {}
+    user_instructions = {}
+    active_stage = None
     for line in dockerfile.splitlines():
         if line.lstrip().startswith("#"):
             continue
-        if not line.strip().upper().startswith("FROM"):
+        stripped = line.strip()
+        if not stripped:
             continue
-        match = FROM.fullmatch(line.strip())
-        if match is None:
-            raise OciLockError("Dockerfile FROM must explicitly name a locked stage")
-        ref, stage = match.groups()
-        if stage not in STAGES or stage in found:
-            raise OciLockError("Unexpected or duplicate container build stage")
-        if ref != images[stage]["name"] + "@" + images[stage]["digest"]:
-            raise OciLockError("Dockerfile base does not match the reviewed immutable digest lock")
-        found[stage] = ref
+        if stripped.upper().startswith("FROM"):
+            match = FROM.fullmatch(stripped)
+            if match is None:
+                raise OciLockError("Dockerfile FROM must explicitly name a locked stage")
+            ref, stage = match.groups()
+            if stage not in STAGES or stage in found:
+                raise OciLockError("Unexpected or duplicate container build stage")
+            if ref != images[stage]["name"] + "@" + images[stage]["digest"]:
+                raise OciLockError("Dockerfile base does not match the reviewed immutable digest lock")
+            found[stage] = ref
+            user_instructions[stage] = []
+            active_stage = stage
+            continue
+        user = re.fullmatch(r"USER\s+(.+?)\s*", stripped, re.I)
+        if user is not None:
+            if active_stage is None:
+                raise OciLockError("Dockerfile USER instruction must follow a locked stage")
+            user_instructions[active_stage].append(user.group(1).strip())
     if set(found) != set(STAGES):
         raise OciLockError("Missing build/runtime stage or additional FROM statement")
-    if "USER $APP_UID" not in dockerfile or re.search(r"(?im)^\s*USER\s+root\s*$", dockerfile):
+    if (user_instructions.get("runtime") != ["$APP_UID"]
+            or any(user_instructions[stage] for stage in user_instructions if stage != "runtime")):
         raise OciLockError("Generated runtime image must remain explicitly nonroot")
     return found
 

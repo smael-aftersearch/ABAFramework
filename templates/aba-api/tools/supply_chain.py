@@ -191,7 +191,7 @@ def main():
     target = parser.add_mutually_exclusive_group(required=True)
     target.add_argument("--solution", type=Path)
     target.add_argument("--project", type=Path,
-                        help="Scan an additional .csproj outside the default .slnx")
+                        help="Scan an additional .csproj independently from the solution package inventory")
     parser.add_argument("--audit-json", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()

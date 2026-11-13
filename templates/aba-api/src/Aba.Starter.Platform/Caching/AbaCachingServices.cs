@@ -5,14 +5,19 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using StackExchange.Redis;
 
 namespace Aba.Starter.Platform.Caching;
 
 public static class AbaCachingServices
 {
-    public static IServiceCollection AddAbaCaching(this IServiceCollection services, IConfiguration config)
+    public static IServiceCollection AddAbaCaching(
+        this IServiceCollection services, IConfiguration config, bool isDevelopment = false)
     {
         var provider = config["Platform:Cache:Provider"] ?? "Memory";
+        var distributedCoordination = AbaCacheDistributedCoordinationOptions.FromConfiguration(
+            config, isDevelopment);
+        services.AddSingleton(distributedCoordination);
         if (provider.Equals("Memory", StringComparison.OrdinalIgnoreCase))
             services.AddDistributedMemoryCache();
         else if (provider.Equals("Redis", StringComparison.OrdinalIgnoreCase))
@@ -26,6 +31,19 @@ public static class AbaCachingServices
                 o.InstanceName = "aba:";
             });
             services.AddHealthChecks().AddCheck<AbaRedisHealthCheck>("aba-redis", tags: ["ready"]);
+            if (distributedCoordination.Enabled)
+            {
+                var redisOptions = ConfigurationOptions.Parse(connection);
+                redisOptions.AbortOnConnectFail = false;
+                redisOptions.ConnectTimeout = 1500;
+                redisOptions.SyncTimeout = 1500;
+                redisOptions.AsyncTimeout = 1500;
+                services.AddSingleton<IConnectionMultiplexer>(_ =>
+                    ConnectionMultiplexer.Connect(redisOptions));
+                // A dedicated long-lived connection keeps cache and coordination
+                // adapter lifetimes independent.
+                services.AddSingleton<IAbaCacheMissCoordinator, AbaRedisCacheMissCoordinator>();
+            }
         }
         else
             throw new InvalidOperationException("Platform:Cache:Provider must be Memory or Redis.");
@@ -48,6 +66,8 @@ public static class AbaCachingServices
         services.AddSingleton(new AbaCacheSourceLoadBudget(sourceLimit));
         services.AddScoped<ScopedJsonCache>();
         services.AddScoped<ReadThroughQueryCache>();
+        services.AddHealthChecks().AddCheck<AbaCacheDistributedCoordinationHealthCheck>(
+            "aba-cache-coordination", tags: ["ready"]);
         return services;
     }
 }

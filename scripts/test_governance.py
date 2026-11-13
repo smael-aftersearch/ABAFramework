@@ -20,7 +20,7 @@ def expect(root: Path, expected_ok: bool, label: str, code: str = ''):
 expect(source, True, 'Clean repository accepted')
 with tempfile.TemporaryDirectory(prefix='aba-governance-') as folder:
     root = Path(folder)/'repo'
-    shutil.copytree(source, root, ignore=shutil.ignore_patterns('bin','obj','.git','local-data'))
+    shutil.copytree(source, root, ignore=shutil.ignore_patterns('bin','obj','.git','.vs','local-data'))
     project = root/'samples/Academy/Payments/Academy.Payments.csproj'
     project.write_text(project.read_text().replace('</ItemGroup>',
         '  <ProjectReference Include="../Accounting/Academy.Accounting.csproj" />\n  </ItemGroup>', 1))
@@ -28,13 +28,13 @@ with tempfile.TemporaryDirectory(prefix='aba-governance-') as folder:
 
 with tempfile.TemporaryDirectory(prefix='aba-governance-') as folder:
     root = Path(folder)/'repo'
-    shutil.copytree(source, root, ignore=shutil.ignore_patterns('bin','obj','.git','local-data'))
+    shutil.copytree(source, root, ignore=shutil.ignore_patterns('bin','obj','.git','.vs','local-data'))
     (root/'samples/Academy/Identity/_Docs/ownership.yaml').unlink()
     expect(root, False, 'Missing ownership metadata rejected', 'ABA004')
 
 with tempfile.TemporaryDirectory(prefix='aba-governance-') as folder:
     root = Path(folder)/'repo'
-    shutil.copytree(source, root, ignore=shutil.ignore_patterns('bin','obj','.git','local-data'))
+    shutil.copytree(source, root, ignore=shutil.ignore_patterns('bin','obj','.git','.vs','local-data'))
     contracts = root/'samples/Academy/Payments.Contracts/PaymentContracts.cs'
     contracts.write_text(contracts.read_text().replace('PaymentCapturedV1', 'PaymentCaptured'))
     expect(root, False, 'Unversioned event contract rejected', 'ABA003')

@@ -6,6 +6,11 @@
 
 # ABA .NET 10 testing strategy and agent contract
 
+The root solution presents the optional Academy sample, reusable Framework
+projects and smoke tests under `/Academy/`, `/Framework/` and `/Tests/`.
+The generic starter has its own solution, with API, Framework and test projects
+grouped separately; generated context modules are placed under `/Modules/`.
+
 **Status:** policy for the current starter and target testing architecture, last reviewed 2026-11-12. A planned test is **not** an implemented or executed test.
 
 ## Purpose and source of truth
@@ -224,6 +229,28 @@ pass readiness plus tenant-isolated cache hits. Untrusted
 container IDs, remote hosts or missing CI opt-in fail closed.
 Standard external tests exclude RedisRestartDrill.
 
+## Generic RabbitMQ and Kafka transport tests
+
+`RabbitMqIntegrationTests.cs` and `KafkaIntegrationTests.cs` route only a
+synthetic technical probe through a random test queue/topic and check duplicate
+payload delivery against both SQL providers. The separately gated RabbitMQ
+`BrokerOutageDrill` accepts only a loopback endpoint and the exact disposable,
+labeled `rabbitmq:4.4.0-management-alpine` CI container; it pauses that broker,
+checks that a durable outbox effect is not delivered while paused, always
+unpauses it, then verifies delivery. Ordinary full verification excludes the
+container pause operation and the workflow invokes it explicitly. Exact-head
+CI must execute these tests before they count as passing evidence. No production
+broker topology, retry/dead-letter policy, business consumer, Kafka failover or
+external side effect is covered.
+
+`BrokerCrashDrill` adds a separately gated producer-process-kill boundary:
+while the verified RabbitMQ CI container is paused, a child commits a
+synthetic PostgreSQL/Wolverine outbox command, then the parent SIGKILLs that
+child. A fresh host must recover the outgoing message; an intentional
+duplicate logical delivery must leave exactly one technical effect. This
+case is authored and awaits exact-head CI. It does not certify a business
+Outbox, customer handler, provider effect or production broker failover.
+
 ## Reviewed pinned OCI bases and attestations
 
 Root and generated CI must validate oci-base-lock.json and both
@@ -240,8 +267,11 @@ registry-published digest.
 The opt-in `ops-load` probe (`scripts/ci_loopback_load.py`) has a bounded
 40-request/four-worker loopback-only acceptance case, rejects redirects and
 non-200 responses, and is not a production performance SLO. Additional
-`scripts/test_ci_loopback_load.py` regressions require a new private-mode JSON
-artifact and reject file traversal, arbitrary absolute paths, existing files
-and symlink destinations **before any HTTP request**. Only a disposable CI
-runner with the explicit opt-in may execute the full probe; the generated
+`scripts/test_ci_loopback_load.py` regressions require a new JSON artifact
+(and assert mode `0600` on POSIX) and reject file traversal, arbitrary absolute
+paths, existing files and symlink destinations **before any HTTP request**.
+On Windows, symlink creation is tested when the host permits it; otherwise
+that single platform-specific case is skipped while the other path and request
+guards still run. Only a disposable CI runner with the explicit opt-in may
+execute the full probe; the generated
 application's real `otel-collector` job still provides end-to-end evidence.

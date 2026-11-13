@@ -18,7 +18,7 @@ Name the context using actual business language. Record its owning data, rules, 
 
 ## Delivered technical adapters versus missing release gates
 
-EF Core 10 for **PostgreSQL and SQL Server**, provider-neutral technical migrations, Redis distributed caching, Wolverine 6 durable relational messaging, JWT claims, optional EF tenant query/write guards, and an injectable read-through query cache are implemented and exercised in automated tests. An additional production-startup connection-string TLS guard is newly authored and must pass its own CI. **Delivered as optional technical reference only**: provider-specific PostgreSQL/SQL Server RLS policy generators and trusted tenant-scoped transaction work with cross-tenant direct SQL/EF bulk negative tests. **Not delivered for a real business**: owner-approved RLS/DBA roles, real handlers/contracts/migrations, live IdP memberships, arbitrary crash/dead-letter replay, business authorization, production backup/restore, collector validation, load/security certification and public deployment. The authoritative task/status catalog is in the source ABAFramework repository at `docs/IMPLEMENTATION-STATUS.md`; a generated customer project must maintain its own business-specific roadmap.
+EF Core 10 for **PostgreSQL and SQL Server**, provider-neutral technical migrations, Redis distributed caching, Wolverine 6 durable relational messaging with an **opt-in RabbitMQ adapter**, JWT claims, optional EF tenant query/write guards, and an injectable read-through query cache are implemented and exercised in automated tests. RabbitMQ remains disabled by default and requires product-owned routes. The adapter's technical broker tests must pass the current exact-head CI before the implementation catalog marks it verified. An additional production-startup connection-string TLS guard is newly authored and must pass its own CI. **Delivered as optional technical reference only**: provider-specific PostgreSQL/SQL Server RLS policy generators and trusted tenant-scoped transaction work with cross-tenant direct SQL/EF bulk negative tests. **Not delivered for a real business**: owner-approved RLS/DBA roles, real handlers/contracts/migrations, live IdP memberships, arbitrary crash/dead-letter replay, business authorization, production backup/restore, collector validation, load/security certification and public deployment. The authoritative task/status catalog is in the source ABAFramework repository at `docs/IMPLEMENTATION-STATUS.md`; a generated customer project must maintain its own business-specific roadmap.
 
 ## Security
 
@@ -100,7 +100,10 @@ serializable transactions and provider-specific concurrency retries.
 The new dead-letter operator builds on Wolverine's durable storage,
 requires a separately authenticated permission claim and change
 ticket, and creates an audit record before marking one explicit
-message for replay. No HTTP management route or tenant-unsafe
+message for replay. Inspection yields a five-minute one-time token
+whose hash is persisted and bound to the envelope, operator and ticket;
+consumption is atomic so concurrent use cannot queue the same receipt
+twice. No HTTP management route or tenant-unsafe
 multi-tenant mode is enabled. Business message handlers must still
 be idempotent and compensate external side effects.
 
@@ -129,11 +132,13 @@ real transactions and external effects still need their own tests.
 ## Cache coordination and image release integrity
 
 The technical Platform's singleton AbaCacheLoadGate prevents one-host
-cache-miss fanout for the same hashed scope/key. It never overrides
-bounded-context data authority or tenant membership. The independent
-Redis restart fixture verifies fallback/reconnect on a disposable
-Docker service without affecting unrelated SQL test containers.
-Read ADR-010.
+cache-miss fanout for the same hashed scope/key. The default remains
+host-local. Products may opt into Redis leases, a cluster-wide concurrent
+source ceiling and a fixed-window source-load budget; this mode fails
+closed if Redis cannot grant a permit and never overrides bounded-context
+data authority or tenant membership. The independent Redis restart fixture
+verifies fallback/reconnect on a disposable Docker service without affecting
+unrelated SQL test containers. Read ADR-010.
 
 The template Dockerfile locks trusted .NET 10 multi-architecture
 build/runtime base digests in oci-base-lock.json. Both generated and

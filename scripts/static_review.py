@@ -38,7 +38,7 @@ project_paths = {
 }
 try:
     solution = ET.parse(root / 'ABA.Net10.Phase1.slnx').getroot()
-    solution_paths = {node.attrib['Path'] for node in solution.findall('Project')}
+    solution_paths = {node.attrib['Path'] for node in solution.iter('Project')}
     if project_paths != solution_paths:
         errors.append('Solution/project mismatch: ' + repr(sorted(project_paths ^ solution_paths)))
 except Exception as exc:

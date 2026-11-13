@@ -6,6 +6,9 @@ using Wolverine.EntityFrameworkCore;
 using Wolverine.ErrorHandling;
 using Wolverine.Postgresql;
 using Wolverine.SqlServer;
+using Wolverine.RabbitMQ;
+using Wolverine.Kafka;
+using Confluent.Kafka;
 using JasperFx;
 using Microsoft.Extensions.Hosting;
 
@@ -18,8 +21,16 @@ namespace Aba.Starter.Platform.Messaging;
 public static class AbaWolverineServices
 {
     public static void AddAbaWolverine(this WebApplicationBuilder builder, AbaDatabaseOptions database)
+        => AddAbaWolverine(builder, database, configureMessaging: null);
+
+    public static void AddAbaWolverine(
+        this WebApplicationBuilder builder,
+        AbaDatabaseOptions database,
+        Action<WolverineOptions>? configureMessaging)
     {
-        if (!builder.Configuration.GetValue<bool>("Platform:Messaging:Enabled"))
+        var messaging = AbaMessagingOptions.FromConfiguration(
+            builder.Configuration, builder.Environment.IsDevelopment());
+        if (!messaging.Enabled)
             return;
 
         if (!database.Enabled || string.IsNullOrWhiteSpace(database.ConnectionString))
@@ -43,6 +54,54 @@ public static class AbaWolverineServices
             options.UseEntityFrameworkCoreTransactions();
             options.Policies.UseDurableLocalQueues();
             options.Policies.AutoApplyTransactions();
+
+            if (messaging.Transport == AbaMessagingTransport.RabbitMq)
+            {
+                var rabbitMq = options.UseRabbitMq(messaging.RabbitMqConnectionString!);
+                // The relational outbox may only delete a message after the
+                // broker confirms it. Tracking makes a rejected publish throw
+                // so the durable envelope remains available for retry.
+                rabbitMq.ConfigureChannelCreation(channel =>
+                {
+                    channel.PublisherConfirmationsEnabled = true;
+                    channel.PublisherConfirmationTrackingEnabled = true;
+                });
+                if (messaging.AutoProvisionInDevelopment)
+                    rabbitMq.AutoProvision();
+            }
+            else if (messaging.Transport == AbaMessagingTransport.Kafka)
+            {
+                var kafka = options.UseKafka(messaging.KafkaBootstrapServers!);
+                kafka.ConfigureClient(client =>
+                {
+                    if (!Enum.TryParse<SecurityProtocol>(
+                        messaging.KafkaSecurityProtocol, true, out var securityProtocol))
+                        throw new InvalidOperationException("The validated Kafka security protocol is unavailable.");
+                    client.SecurityProtocol = securityProtocol;
+
+                    if (!string.IsNullOrWhiteSpace(messaging.KafkaSaslMechanism))
+                    {
+                        if (!Enum.TryParse<SaslMechanism>(
+                            messaging.KafkaSaslMechanism, true, out var saslMechanism))
+                            throw new InvalidOperationException("The validated Kafka SASL mechanism is unavailable.");
+                        client.SaslMechanism = saslMechanism;
+                        client.SaslUsername = messaging.KafkaSaslUsername;
+                        client.SaslPassword = messaging.KafkaSaslPassword;
+                    }
+                });
+                kafka.ConfigureProducers(producer =>
+                {
+                    producer.EnableIdempotence = true;
+                    producer.Acks = Acks.All;
+                });
+                if (messaging.AutoProvisionInDevelopment)
+                    kafka.AutoProvision();
+            }
+
+            // Products add their own assembly discovery and explicitly versioned
+            // message routes here. Platform provides no business queue or policy.
+            configureMessaging?.Invoke(options);
+
             // In explicitly opted-in Development tests only, create Wolverine
             // relational envelope resources before processing messages.
             // No schema DDL at ordinary startup unless a local test explicitly

@@ -7,6 +7,7 @@ verification is performed only by the main-branch provenance Actions job.
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -47,12 +48,18 @@ class SignedArtifactVerifierTests(unittest.TestCase):
         self.log = self.root / "gh-calls.jsonl"
         self.env = dict(os.environ, PATH=str(bin_dir) + os.pathsep + os.environ["PATH"],
                         GH_TOKEN="ci-fixture-not-a-secret", GITHUB_REPOSITORY="owner/repo",
-                        GITHUB_SHA=GOOD_SHA, GH_CALL_LOG=str(self.log))
+                        GITHUB_SHA=GOOD_SHA, GH_CALL_LOG=str(self.log),
+                        TMPDIR=str(self.root))
 
     def verify(self, **env_updates):
         env = dict(self.env)
         env.update(env_updates)
-        return subprocess.run(["bash", str(SCRIPT), str(self.artifact), str(self.output)],
+        # Resolve bash from the fixture's explicit PATH. Windows CreateProcess
+        # otherwise prefers the WSL bash shim in System32 over Git Bash.
+        bash = shutil.which("bash", path=env.get("PATH"))
+        if not bash:
+            self.fail("bash is required to run the signed-artifact verifier")
+        return subprocess.run([bash, str(SCRIPT), str(self.artifact), str(self.output)],
                               env=env, text=True, capture_output=True, check=False)
 
     def calls(self):

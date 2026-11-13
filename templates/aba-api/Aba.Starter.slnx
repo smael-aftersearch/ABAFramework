@@ -1,5 +1,12 @@
 <Solution>
-  <Project Path="src/Aba.Starter.Api/Aba.Starter.Api.csproj" />
-  <Project Path="src/Aba.Starter.Platform/Aba.Starter.Platform.csproj" />
-  <Project Path="tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj" />
+  <Folder Name="/API/">
+    <Project Path="src/Aba.Starter.Api/Aba.Starter.Api.csproj" />
+  </Folder>
+  <Folder Name="/Framework/">
+    <Project Path="src/Aba.Starter.Platform/Aba.Starter.Platform.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj" />
+    <Project Path="tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj" />
+  </Folder>
 </Solution>

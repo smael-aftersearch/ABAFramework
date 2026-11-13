@@ -24,7 +24,7 @@
 
 ## Executable task and test protocol
 
-For each material request, run `python3 scripts/task_protocol.py plan --task "<request>" --file "<changed/path>"` to suggest owner(s), reading sources and success/negative/invariant test cases. Confirm every proposed owner from metadata and source; a suggestion is not permission. Implement source + focused tests + relevant docs together. Run `python3 scripts/task_protocol.py verify --profile static --output artifacts/verification/static.json` and where .NET 10 exists use `--profile all --output artifacts/verification/full.json`; the runner records PASS, FAIL and NOT_RUN and fails closed on missing runtime. Read `.agents/skills/aba-engineering/references/testing-and-evidence.md` for complete guidance.
+For each material request, run `python3 scripts/task_protocol.py plan --task "<request>" --file "<changed/path>"` to suggest business-context candidates, technical component owners, reading sources and success/negative/invariant test cases. These are separate candidate lists: Platform/Host ownership does not imply business ownership. Confirm every candidate from metadata and source; a suggestion is not permission. Implement source + focused tests + relevant docs together. Run `python3 scripts/task_protocol.py verify --profile static --output artifacts/verification/static.json` and where .NET 10 exists use `--profile all --output artifacts/verification/full.json`; the runner records PASS, FAIL and NOT_RUN and fails closed on missing runtime. Read `.agents/skills/aba-engineering/references/testing-and-evidence.md` for complete guidance.
 
 ## Before finishing a material task
 
@@ -45,8 +45,12 @@ poison envelope before claiming recovery coverage.
 
 ## Cache and OCI source-of-truth boundaries
 
-The generic read-through cache has a host-wide per-scoped-key load
-gate, not a distributed lock or tenant permission grant. The isolated
+The generic read-through cache defaults to a host-wide per-scoped-key
+load gate. Its opt-in Redis coordinator adds best-effort distributed
+miss leases and shared source-load budgets; neither grants tenant
+permission nor enforces business correctness. Distributed coordination
+fails closed without a live permit and requires identical settings for
+every replica sharing its namespace. The isolated
 RedisRestartDrill must only stop its exact CI-provisioned redis:7-alpine
 container and is excluded from standard tests. For release changes,
 the Dockerfile and oci-base-lock.json must agree exactly; both

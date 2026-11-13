@@ -7,6 +7,8 @@ public sealed class AbaPlatformDbContext(DbContextOptions<AbaPlatformDbContext> 
 {
     public DbSet<IdempotencyReceipt> IdempotencyReceipts => Set<IdempotencyReceipt>();
     public DbSet<AbaAuditRecord> AuditRecords => Set<AbaAuditRecord>();
+    public DbSet<AbaDeadLetterInspectionReceipt> DeadLetterInspectionReceipts =>
+        Set<AbaDeadLetterInspectionReceipt>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -32,6 +34,18 @@ public sealed class AbaPlatformDbContext(DbContextOptions<AbaPlatformDbContext> 
             entity.Property(x => x.Key).HasMaxLength(200).IsRequired();
             entity.Property(x => x.CreatedUtc).IsRequired();
         });
+        modelBuilder.Entity<AbaDeadLetterInspectionReceipt>(entity =>
+        {
+            entity.ToTable("aba_deadletter_inspection_receipts");
+            entity.HasKey(x => x.EnvelopeId);
+            entity.Property(x => x.TokenHash).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.MessageType).HasMaxLength(1024).IsRequired();
+            entity.Property(x => x.ExceptionType).HasMaxLength(1024).IsRequired();
+            entity.Property(x => x.OperatorSubject).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.ChangeTicket).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.IssuedUtc).IsRequired();
+            entity.Property(x => x.ExpiresUtc).IsRequired();
+        });
     }
 }
 
@@ -40,4 +54,21 @@ public sealed class IdempotencyReceipt
     public string Scope { get; set; } = "";
     public string Key { get; set; } = "";
     public DateTimeOffset CreatedUtc { get; set; }
+}
+
+/// <summary>
+/// Short-lived, one-time proof that one operator inspected one exact dead-letter
+/// envelope. Only the SHA-256 token digest is persisted.
+/// </summary>
+public sealed class AbaDeadLetterInspectionReceipt
+{
+    public Guid EnvelopeId { get; set; }
+    public string TokenHash { get; set; } = "";
+    public string MessageType { get; set; } = "";
+    public string ExceptionType { get; set; } = "";
+    public string OperatorSubject { get; set; } = "";
+    public string ChangeTicket { get; set; } = "";
+    public DateTimeOffset IssuedUtc { get; set; }
+    public DateTimeOffset ExpiresUtc { get; set; }
+    public DateTimeOffset? ConsumedUtc { get; set; }
 }

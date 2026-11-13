@@ -8,6 +8,23 @@ permissions:
   contents: read
 
 jobs:
+  secret-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Positive, negative and no-disclosure scanner regressions
+        run: python3 tools/test_secret_scan.py
+      - name: Fail closed on secrets in source or reachable Git history
+        run: python3 tools/secret_scan.py --root .
+
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15

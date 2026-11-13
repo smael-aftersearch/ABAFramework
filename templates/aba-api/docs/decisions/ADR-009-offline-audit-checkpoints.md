@@ -26,7 +26,8 @@ must NOT be registered in the ordinary API configuration. The V1
 signature canonically covers purpose, tenant, sequence, lowercase
 SHA-256 digest, UTC issue ticks and offline signer key ID, with HMAC-SHA256.
 Verify uses constant-time comparison of raw digests and refuses a
-malformed version, key ID, timestamp, sequence or signature.
+malformed version, key ID, timestamp, sequence, null/malformed digest,
+or signature.
 
 The operator stores the signed checkpoint and signing-key rotation
 metadata in an *independently permissioned immutable archive*.

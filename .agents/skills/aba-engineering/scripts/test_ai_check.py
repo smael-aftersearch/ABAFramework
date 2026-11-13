@@ -31,9 +31,24 @@ unknown = ai_check.task_brief(ROOT, 'rename an unrelated local variable', [])
 assert 'UNRESOLVED' in unknown, unknown
 print('PASS: task brief does not invent a business owner')
 
+platform_brief = ai_check.task_brief(
+    ROOT,
+    'Review read-through cache resilience',
+    ['templates/aba-api/src/Aba.Starter.Platform/Caching/ReadThroughQueryCache.cs'],
+)
+assert 'Possible owning contexts: UNRESOLVED' in platform_brief, platform_brief
+assert 'Possible technical owners: Platform' in platform_brief, platform_brief
+assert 'templates/aba-api/docs/architecture.md' in platform_brief, platform_brief
+assert 'samples/Academy/Host/openapi-v1.json' not in platform_brief, platform_brief
+assert 'docs/ABA-COMPLIANCE-MATRIX.md' not in platform_brief, platform_brief
+print('PASS: task brief separates generic technical ownership from business contexts')
+
 with tempfile.TemporaryDirectory(prefix='aba-ai-readiness-') as folder:
     repo = Path(folder) / 'repo'
-    shutil.copytree(ROOT, repo, ignore=shutil.ignore_patterns('bin', 'obj', '.git', 'local-data', '__pycache__'))
+    # Visual Studio's index can be locked while the suite runs on Windows;
+    # it is generated workspace state, not part of the repository fixture.
+    shutil.copytree(ROOT, repo, ignore=shutil.ignore_patterns(
+        'bin', 'obj', '.git', '.vs', 'local-data', '__pycache__'))
 
     target = repo / 'docs/ai/knowledge-map.json'
     original = target.read_text(encoding='utf-8')
@@ -42,6 +57,20 @@ with tempfile.TemporaryDirectory(prefix='aba-ai-readiness-') as folder:
     assert any('AI008' in error and 'UNOWNED.md' in error for error in errors), errors
     target.write_text(original, encoding='utf-8')
     print('PASS: missing indexed documentation rejected')
+
+    original_map = target.read_text(encoding='utf-8')
+    target.write_text(
+        original_map.replace(
+            'templates/aba-api/src/Aba.Starter.Platform/',
+            'templates/aba-api/src/Aba.Starter.Platform.MISSING/',
+            1,
+        ),
+        encoding='utf-8',
+    )
+    errors = ai_check.validate_repo(repo)
+    assert any('AI010' in error and 'Platform' in error for error in errors), errors
+    target.write_text(original_map, encoding='utf-8')
+    print('PASS: stale technical-owner path mappings rejected')
 
     policy = repo / 'docs/testing/TEST-STRATEGY.md'
     policy.unlink()

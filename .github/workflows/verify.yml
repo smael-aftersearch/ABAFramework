@@ -3,6 +3,23 @@ on:
   push:
   pull_request:
 jobs:
+  secret-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Positive, negative and no-disclosure scanner regressions
+        run: python3 templates/aba-api/tools/test_secret_scan.py
+      - name: Fail closed on secrets in source or reachable Git history
+        run: python3 templates/aba-api/tools/secret_scan.py --root .
+
   governance-and-runtime:
     runs-on: ubuntu-latest
     steps:
@@ -82,20 +99,85 @@ jobs:
         options: >-
           --health-cmd "redis-cli ping" --health-interval 3s
           --health-timeout 3s --health-retries 20
+      rabbitmq:
+        image: rabbitmq:4.4.0-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: aba_ci
+          RABBITMQ_DEFAULT_PASS: aba-ci-local-only
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 3s --health-timeout 3s --health-retries 30
+          --label aba.test.disposable=true
+      kafka:
+        image: apache/kafka:4.4.0
+        env:
+          KAFKA_NODE_ID: 1
+          KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_HOST://localhost:9092,PLAINTEXT://kafka:19092
+          KAFKA_PROCESS_ROLES: broker,controller
+          KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+          KAFKA_LISTENERS: CONTROLLER://:29093,PLAINTEXT_HOST://:9092,PLAINTEXT://:19092
+          KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+          KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+          CLUSTER_ID: 4L6g3nShT-eMCtK--X86sw
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS: 1
+          KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+          KAFKA_TRANSACTION_STATE_LOG_NUM_PARTITIONS: 1
+          KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+          KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+          KAFKA_SHARE_COORDINATOR_STATE_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_SHARE_COORDINATOR_STATE_TOPIC_MIN_ISR: 1
+          KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+        ports:
+          - 9092:9092
+        options: >-
+          --health-cmd "bash -c 'exec 3<>/dev/tcp/127.0.0.1/9092'"
+          --health-interval 5s --health-timeout 5s --health-retries 30
+          --label aba.test.disposable=true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - name: Verify real PostgreSQL, SQL Server and Redis with generated project
+      - name: Verify real PostgreSQL, SQL Server, Redis, RabbitMQ and Kafka with generated project
         env:
           ABA_TEST_POSTGRESQL: "Host=localhost;Port=5432;Database=aba_ci;Username=aba_ci;Password=aba-ci-local-only"
           ABA_TEST_SQLSERVER: "Server=localhost,1433;Database=aba_ci;User Id=sa;Password=Aba_CiOnly_2026!;TrustServerCertificate=True"
           ABA_TEST_REDIS: "localhost:6379,abortConnect=false"
+          ABA_TEST_RABBITMQ: "amqp://aba_ci:aba-ci-local-only@localhost:5672/%2F"
+          ABA_TEST_KAFKA: "localhost:9092"
           ABA_ENABLE_SHARED_RATE_LIMIT_PROCESS_DRILL: "yes"
           ABA_ENABLE_DESTRUCTIVE_CI_DRILLS: "yes"
         run: |
           bash scripts/verify-platform-services.sh
+
+      - name: Verify RabbitMQ outage and durable outbox recovery
+        env:
+          CI: "true"
+          ABA_ENABLE_BROKER_OUTAGE_DRILL: "yes"
+          ABA_TEST_POSTGRESQL: "Host=localhost;Port=5432;Database=aba_ci;Username=aba_ci;Password=aba-ci-local-only"
+          ABA_TEST_RABBITMQ: "amqp://aba_ci:aba-ci-local-only@localhost:5672/%2F"
+          ABA_TEST_RABBITMQ_CONTAINER_ID: ${{ job.services.rabbitmq.id }}
+        run: |
+          dotnet test templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj \
+            -c Release --filter 'Category=BrokerOutageDrill' \
+            --logger 'console;verbosity=normal'
+
+      - name: Kill the outbox producer during RabbitMQ outage and recover
+        env:
+          CI: "true"
+          ABA_ENABLE_DESTRUCTIVE_CI_DRILLS: "yes"
+          ABA_ENABLE_BROKER_OUTAGE_DRILL: "yes"
+          ABA_TEST_POSTGRESQL: "Host=localhost;Port=5432;Database=aba_ci;Username=aba_ci;Password=aba-ci-local-only"
+          ABA_TEST_RABBITMQ: "amqp://aba_ci:aba-ci-local-only@localhost:5672/%2F"
+          ABA_TEST_RABBITMQ_CONTAINER_ID: ${{ job.services.rabbitmq.id }}
+        run: |
+          dotnet test templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj \
+            -c Release --filter 'Category=BrokerCrashDrill' \
+            --logger 'console;verbosity=normal'
 
   redis-restart:
     # Isolated from the relational/Redis integration job so stopping this CI
@@ -305,6 +387,7 @@ jobs:
       - otel-collector
       - supply-chain
       - container-security
+      - secret-scan
     runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
@@ -335,7 +418,7 @@ jobs:
           PACKAGE="$(find artifacts/provenance -maxdepth 1 -name '*.nupkg' -type f -print -quit)"
           test -n "$PACKAGE"
           bash scripts/verify_attested_artifact.sh "$PACKAGE" artifacts/provenance/verified-attestation.json
-      - name: Download scanned Docker archive after all eight prerequisite jobs passed
+      - name: Download scanned Docker archive after all verification prerequisites passed
         uses: actions/download-artifact@v4
         with:
           name: aba-runtime-image-security

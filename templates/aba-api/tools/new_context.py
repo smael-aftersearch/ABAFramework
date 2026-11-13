@@ -19,13 +19,27 @@ def identity():
         raise ValueError("Expected exactly one root solution")
     solution = solutions[0]
     tree = ET.parse(solution)
-    api_paths = [x.attrib["Path"] for x in tree.getroot().findall("Project")
+    api_paths = [x.attrib["Path"] for x in tree.getroot().iter("Project")
                  if x.attrib["Path"].endswith(".Api.csproj") and x.attrib["Path"].startswith("src/")]
     if len(api_paths) != 1:
         raise ValueError("Expected one API composition root")
     api = ROOT / api_paths[0]
     ns = api.stem.removesuffix(".Api")
     return solution, tree, api, ns
+
+
+def add_solution_project(solution_root, folder_name, path):
+    """Keep generated projects inside visible, purpose-specific solution folders."""
+    if not folder_name.startswith("/") or not folder_name.endswith("/"):
+        raise ValueError("Solution folder paths must start and end with '/'.")
+    if any(project.attrib.get("Path") == path
+           for project in solution_root.iter("Project")):
+        raise ValueError(f"Project is already registered in the solution: {path}")
+    folder = next((item for item in solution_root.findall("Folder")
+                   if item.attrib.get("Name") == folder_name), None)
+    if folder is None:
+        folder = ET.SubElement(solution_root, "Folder", Name=folder_name)
+    ET.SubElement(folder, "Project", Path=path)
 
 
 def proj(refs=(), extra=()):
@@ -39,6 +53,19 @@ def proj(refs=(), extra=()):
         body.append('  </ItemGroup>')
     body.append('</Project>')
     return '\n'.join(body) + '\n'
+
+
+def ef_design_reference():
+    """Keep generated context tooling on the same EF Core Design version as Platform."""
+    platform_project = ROOT / "src/Aba.Starter.Platform/Aba.Starter.Platform.csproj"
+    platform_xml = ET.parse(platform_project).getroot()
+    versions = [item.attrib.get("Version") for item in platform_xml.findall(".//PackageReference")
+                if item.attrib.get("Include") == "Microsoft.EntityFrameworkCore.Design"]
+    if len(versions) != 1 or not versions[0]:
+        raise ValueError("Platform must declare exactly one versioned EF Core Design package.")
+    version = versions[0]
+    return (f'<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="{version}">'
+            '<PrivateAssets>all</PrivateAssets></PackageReference>')
 
 
 def files_for(name, ns, with_db=False):
@@ -78,7 +105,10 @@ def files_for(name, ns, with_db=False):
             f"        return services;\n    }}\n}}\n",
         mod / "Contracts" / "README.md":
             f"# {name} public contracts\n\nNo business events or DTOs have been published. "
-            "Introduce V1 only when owner-approved business requirements exist.\n",
+            "Introduce V1 only when owner-approved business requirements exist. "
+            "The context checker requires public types to be explicitly versioned "
+            "and listed in ownership metadata; published names must be locally owned, "
+            "and consumed names must be explicitly versioned.\n",
         testdir / "ModuleRegistrationTests.cs":
             f"using {prefix}.Infrastructure;\n"
             f"using Microsoft.Extensions.DependencyInjection;\nusing Xunit;\n"
@@ -91,6 +121,17 @@ def files_for(name, ns, with_db=False):
     }
     if with_db:
         # Infrastructure-owned EF model shell; no fictional business entities.
+        files[mod / "Infrastructure" / infra] = proj(
+            [f"../Application/{app}",
+             f"../../../{ns}.Platform/{ns}.Platform.csproj"],
+            [ef_design_reference()])
+        files[testdir / testproj] = proj(
+            [f"../../src/Modules/{name}/Infrastructure/{infra}"],
+            ['<FrameworkReference Include="Microsoft.AspNetCore.App" />',
+             '<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />',
+             '<PackageReference Include="xunit" Version="2.9.3" />',
+             '<PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />',
+             ef_design_reference()])
         db_context = mod / "Infrastructure" / "Persistence" / f"{name}DbContext.cs"
         files[db_context] = (
             "using Microsoft.EntityFrameworkCore;\n"
@@ -98,6 +139,86 @@ def files_for(name, ns, with_db=False):
             f"public sealed class {name}DbContext(DbContextOptions<{name}DbContext> options)"
             " : DbContext(options)\n{\n"
             "    // Add ONLY context-owned EF mappings after real requirements exist.\n"
+            "}\n"
+        )
+        db_context_factory = mod / "Infrastructure" / "Persistence" / f"{name}DbContextFactory.cs"
+        files[db_context_factory] = (
+            "using Microsoft.EntityFrameworkCore;\n"
+            "using Microsoft.EntityFrameworkCore.Design;\n"
+            f"namespace {prefix}.Infrastructure;\n"
+            f"public sealed class {name}DbContextFactory : IDesignTimeDbContextFactory<{name}DbContext>\n"
+            "{\n"
+            f"    public {name}DbContext CreateDbContext(string[] args)\n"
+            "    {\n"
+            "        var provider = Environment.GetEnvironmentVariable(\"ABA_DB_PROVIDER\");\n"
+            "        var connection = Environment.GetEnvironmentVariable(\"ABA_DB_CONNECTION\");\n"
+            "        if (string.IsNullOrWhiteSpace(connection))\n"
+            "            throw new InvalidOperationException(\"Set ABA_DB_CONNECTION for EF design-time operations.\");\n"
+            f"        var options = new DbContextOptionsBuilder<{name}DbContext>();\n"
+            "        switch (provider?.Trim().ToLowerInvariant())\n"
+            "        {\n"
+            "            case \"postgresql\":\n"
+            "            case \"postgres\":\n"
+            "                options.UseNpgsql(connection);\n"
+            "                break;\n"
+            "            case \"sqlserver\":\n"
+            "            case \"mssql\":\n"
+            "                options.UseSqlServer(connection);\n"
+            "                break;\n"
+            "            default:\n"
+            "                throw new InvalidOperationException(\"ABA_DB_PROVIDER must be PostgreSql or SqlServer.\");\n"
+            "        }\n"
+            f"        return new {name}DbContext(options.Options);\n"
+            "    }\n"
+            "}\n"
+        )
+        files[testdir / "DesignTimeMigrationFactoryTests.cs"] = (
+            f"using {prefix}.Infrastructure;\n"
+            "using Xunit;\n"
+            f"namespace {prefix}.Tests;\n"
+            "public sealed class DesignTimeMigrationFactoryTests\n"
+            "{\n"
+            "    [Theory]\n"
+            "    [InlineData(\"PostgreSql\", \"Npgsql.EntityFrameworkCore.PostgreSQL\")]\n"
+            "    [InlineData(\"SqlServer\", \"Microsoft.EntityFrameworkCore.SqlServer\")]\n"
+            "    public void DesignFactorySelectsEitherProviderWithoutConnecting(string provider, string expected)\n"
+            "    {\n"
+            "        using var environment = new EfEnvironment(provider,\n"
+            "            provider == \"PostgreSql\"\n"
+            "                ? \"Host=localhost;Database=aba;Username=app;Password=test\"\n"
+            "                : \"Server=localhost;Database=aba;User ID=sa;Password=Test!12345;TrustServerCertificate=True\");\n"
+            f"        using var db = new {name}DbContextFactory().CreateDbContext([]);\n"
+            "        Assert.Equal(expected, db.Database.ProviderName);\n"
+            "    }\n"
+            "\n"
+            "    [Fact]\n"
+            "    public void DesignFactoryRejectsMissingConnectionAndUnknownProvider()\n"
+            "    {\n"
+            "        using (var missing = new EfEnvironment(\"PostgreSql\", null))\n"
+            "            Assert.Throws<InvalidOperationException>(() =>\n"
+            f"                new {name}DbContextFactory().CreateDbContext([]));\n"
+            "        using (var unknown = new EfEnvironment(\"oracle\", \"Host=localhost;Password=test\"))\n"
+            "            Assert.Throws<InvalidOperationException>(() =>\n"
+            f"                new {name}DbContextFactory().CreateDbContext([]));\n"
+            "    }\n"
+            "\n"
+            "    private sealed class EfEnvironment : IDisposable\n"
+            "    {\n"
+            "        private readonly string? _previousProvider;\n"
+            "        private readonly string? _previousConnection;\n"
+            "        public EfEnvironment(string? provider, string? connection)\n"
+            "        {\n"
+            "            _previousProvider = Environment.GetEnvironmentVariable(\"ABA_DB_PROVIDER\");\n"
+            "            _previousConnection = Environment.GetEnvironmentVariable(\"ABA_DB_CONNECTION\");\n"
+            "            Environment.SetEnvironmentVariable(\"ABA_DB_PROVIDER\", provider);\n"
+            "            Environment.SetEnvironmentVariable(\"ABA_DB_CONNECTION\", connection);\n"
+            "        }\n"
+            "        public void Dispose()\n"
+            "        {\n"
+            "            Environment.SetEnvironmentVariable(\"ABA_DB_PROVIDER\", _previousProvider);\n"
+            "            Environment.SetEnvironmentVariable(\"ABA_DB_CONNECTION\", _previousConnection);\n"
+            "        }\n"
+            "    }\n"
             "}\n"
         )
         module_registration = mod / "Infrastructure" / "ModuleRegistration.cs"
@@ -164,7 +285,14 @@ def files_for(name, ns, with_db=False):
             f"# {name} owned persistence\n\n"
             "This optional EF Core DbContext has no business entities and no migrations yet. "
             "Create context-owned migrations only after real data/rules are defined. "
-            "Use the shared database provider selection but do not share other contexts' tables.\n"
+            "The generated design-time factory reads ABA_DB_PROVIDER and ABA_DB_CONNECTION; "
+            "these are design-time environment variables and must not be committed. "
+            "From the repository root, create a migration with "
+            f"dotnet ef migrations add <Name> --project src/Modules/{name}/Infrastructure/{infra} "
+            f"--startup-project src/Modules/{name}/Infrastructure/{infra} "
+            f"--context {name}DbContext --output-dir Persistence/Migrations. "
+            "Apply and test each approved context migration against both PostgreSQL and SQL Server. "
+            "Do not share another context's tables or copy Platform technical migrations.\n"
         )
     docs = mod / "_Docs"
     metadata = {
@@ -189,15 +317,75 @@ def files_for(name, ns, with_db=False):
     return files, projects
 
 
+CONTRACT_TYPE = re.compile(
+    r"^[ \t]*public[ \t]+(?:(?:sealed|abstract|partial|static|readonly|ref)[ \t]+)*"
+    r"(?:record(?:[ \t]+(?:class|struct))?|class|interface|struct|enum|delegate)"
+    r"[ \t]+([A-Za-z_][A-Za-z0-9_]*)",
+    re.MULTILINE,
+)
+CONTRACT_VERSION = re.compile(
+    r"^(?:[A-Za-z_][A-Za-z0-9_]*\.)*[A-Za-z_][A-Za-z0-9_]*V[1-9][0-9]*$"
+)
+
+
+def validate_contract_surface(context_name, contracts_dir, owned_contracts, publishes, consumes):
+    """Validate contract names and metadata shape without approving business semantics."""
+    declarations = set()
+    for source in contracts_dir.rglob("*.cs"):
+        declarations.update(CONTRACT_TYPE.findall(source.read_text(encoding="utf-8")))
+
+    if not isinstance(owned_contracts, list) or any(
+        not isinstance(item, str) or not item.strip() for item in owned_contracts
+    ):
+        raise ValueError(f"Invalid publicContracts ownership list: {context_name}")
+    if len(owned_contracts) != len(set(owned_contracts)):
+        raise ValueError(f"Duplicate publicContracts ownership entry: {context_name}")
+
+    unversioned = sorted(name for name in declarations if not re.search(r"V[1-9][0-9]*$", name))
+    if unversioned:
+        raise ValueError(
+            f"Unversioned public type(s) in {context_name}.Contracts: {unversioned}; use explicit V1/V2."
+        )
+    if declarations != set(owned_contracts):
+        raise ValueError(
+            f"{context_name} Contracts declarations differ from ownership metadata: "
+            f"code={sorted(declarations)}, ownership={sorted(owned_contracts)}"
+        )
+
+    for field_name, values in (("publishes", publishes), ("consumes", consumes)):
+        if not isinstance(values, list) or any(
+            not isinstance(item, str) or not CONTRACT_VERSION.fullmatch(item)
+            for item in values
+        ):
+            raise ValueError(
+                f"{context_name} context-map {field_name} must list explicitly versioned contract names."
+            )
+        if len(values) != len(set(values)):
+            raise ValueError(f"Duplicate {field_name} contract in {context_name} context-map.")
+
+    unknown_published = sorted(set(publishes) - declarations)
+    if unknown_published:
+        raise ValueError(
+            f"{context_name} publishes contract(s) absent from its owned Contracts project: "
+            f"{unknown_published}"
+        )
+
+
 def check():
     solution, xml, api, ns = identity()
     catalog = json.loads(CATALOG.read_text())
     records = catalog["contexts"]
     seen = set()
+    project_folders = {
+        folder.attrib.get("Name"): {
+            project.attrib.get("Path") for project in folder.iter("Project")
+        }
+        for folder in xml.getroot().findall("Folder")
+    }
     # A context's ownership metadata is part of its API. Two owners for the
     # same declared responsibility are not allowed to pass CI.
     responsibility_owners = {}
-    declared = {x.attrib["Path"] for x in xml.getroot().findall("Project")}
+    declared = {x.attrib["Path"] for x in xml.getroot().iter("Project")}
     for record in records:
         name = record["name"]
         if not IDENT.fullmatch(name) or name.lower() in seen:
@@ -223,6 +411,9 @@ def check():
         for rel in projects:
             if not (ROOT / rel).is_file() or rel.as_posix() not in declared:
                 raise ValueError(f"Missing project in solution: {rel}")
+            solution_folder = "/Tests/" if rel.parts[0] == "tests" else "/Modules/"
+            if rel.as_posix() not in project_folders.get(solution_folder, set()):
+                raise ValueError(f"Project is outside solution folder {solution_folder}: {rel}")
             project_xml = ET.parse(ROOT / rel).getroot()
             refs = project_xml.findall(".//ProjectReference")
             if rel.parent.name in ("Domain", "Contracts"):
@@ -238,13 +429,22 @@ def check():
                 if (dest.is_relative_to(other) and not dest.is_relative_to(other / name)
                         and dest.parent.name != "Contracts"):
                     raise ValueError(f"Forbidden cross-context implementation dependency: {rel}")
+        context_docs = {}
         for filename in ("ownership.yaml", "context-map.yaml", "ai-rules.yaml"):
             info = json.loads((ROOT / "src/Modules" / name / "_Docs" / filename).read_text())
             if info.get("context") != name:
                 raise ValueError(f"Wrong metadata owner: {name}/{filename}")
+            context_docs[filename] = info
             if filename == "ownership.yaml":
                 if info.get("owner") != name or info.get("owns") != owned:
                     raise ValueError(f"Root and context ownership metadata drift: {name}")
+        validate_contract_surface(
+            name,
+            ROOT / "src/Modules" / name / "Contracts",
+            owned.get("publicContracts"),
+            context_docs["context-map.yaml"].get("publishes"),
+            context_docs["context-map.yaml"].get("consumes"),
+        )
         # Text imports are checked as a conservative pre-compiler guard. Real
         # compilation and runtime/architecture tests are additional CI gates.
         for source in (ROOT / "src/Modules" / name).rglob("*.cs"):
@@ -310,7 +510,8 @@ def create(name, with_db=False):
     ET.SubElement(group, "ProjectReference",
                   Include=f"../Modules/{name}/Infrastructure/{ns}.{name}.Infrastructure.csproj")
     for rel in projects:
-        ET.SubElement(xml.getroot(), "Project", Path=rel.as_posix())
+        folder = "/Tests/" if rel.parts[0] == "tests" else "/Modules/"
+        add_solution_project(xml.getroot(), folder, rel.as_posix())
     ET.indent(xml, space="  ")
     ET.indent(api_tree, space="  ")
     catalog = json.loads(CATALOG.read_text())

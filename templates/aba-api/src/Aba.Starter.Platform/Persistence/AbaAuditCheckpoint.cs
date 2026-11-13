@@ -41,7 +41,7 @@ public static class AbaAuditCheckpointCodec
             throw new ArgumentException("Invalid signed audit checkpoint version or sequence.");
         AbaAuditLedger.ValidateIdentifier(item.TenantId, "checkpoint tenant");
         AbaAuditLedger.ValidateIdentifier(item.KeyId, "checkpoint signer key ID", 48);
-        if (item.HeadDigest.Length != 64 ||
+        if (string.IsNullOrEmpty(item.HeadDigest) || item.HeadDigest.Length != 64 ||
             !item.HeadDigest.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f') ||
             item.IssuedUtc.Offset != TimeSpan.Zero)
             throw new ArgumentException("Invalid checkpoint digest or UTC timestamp.");

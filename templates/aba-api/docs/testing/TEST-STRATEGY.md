@@ -11,12 +11,17 @@
 ```bash
 dotnet restore Aba.Starter.slnx
 dotnet build Aba.Starter.slnx -c Release --no-restore
-dotnet test Aba.Starter.slnx -c Release --no-build
+dotnet test tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj -c Release --no-build
 ```
+
+Solution Explorer groups the API, Framework and test projects under `/API/`,
+`/Framework/` and `/Tests/`. The real-service integration project is visible
+under `/Tests/`, while the default test command targets only unit-test projects
+that do not require external services.
 
 ## Optional real-service integration suite
 
-A separate **integration test project outside the default solution** lives in `tests/Aba.Starter.Platform.IntegrationTests`. It contains actual PostgreSQL, SQL Server, Redis and Wolverine tests. Running ordinary `dotnet test Aba.Starter.slnx` stays fast and needs no external services; running the dedicated integration test project **requires all external connections** and fails closed if any are absent, rather than falsely recording a PASS. Set `ABA_TEST_POSTGRESQL`, `ABA_TEST_SQLSERVER` and `ABA_TEST_REDIS`, then execute `dotnet test tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj`. Repo-level `scripts/verify-platform-services.sh` builds and tests this isolated suite on a fresh generated API and CI provisions actual containers.
+A separate integration test project lives in `tests/Aba.Starter.Platform.IntegrationTests`. It contains actual PostgreSQL, SQL Server, Redis, RabbitMQ, Kafka and Wolverine tests. The project is listed in the solution for visibility and builds with the solution, while the default test command stays fast and service-free. Running the dedicated integration project requires the relevant external connections and fails closed if they are absent, rather than falsely recording a PASS. Set `ABA_TEST_POSTGRESQL`, `ABA_TEST_SQLSERVER`, `ABA_TEST_REDIS`, `ABA_TEST_RABBITMQ` and `ABA_TEST_KAFKA`, then execute `dotnet test tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj`. Repo-level `scripts/verify-platform-services.sh` builds and tests this isolated suite on a fresh generated API and CI provisions actual containers.
 
 ## Transactional Outbox acceptance gate
 
@@ -26,6 +31,30 @@ The real-service integration suite invokes `AbaTransactionalOutboxProbe` against
 - default domain-neutral quick start remains external-service-free.
 
 This is stronger than a connectivity test, but it is still not a crash/restart or broker outage test.
+
+## Optional RabbitMQ transport and outage tests
+
+`RabbitMqIntegrationTests` routes only the technical `AbaDurabilityProbe`
+through a test-owned queue. It publishes the same payload twice and checks
+that both envelopes reached the durable inbox while the effect receipt remains
+unique, once against each SQL provider. `BrokerOutageDrill` pauses only the
+exact labeled `rabbitmq:4.4.0-management-alpine` CI service on loopback, checks
+that the transactional outbox state commits without delivery during the
+outage, resumes the broker and requires eventual delivery. The fixture always
+unpauses its verified disposable container. It is excluded from `--level full`
+and invoked by an explicit CI step. It is technical evidence only; actual
+product contracts, handler compensation, retry limits, DLQ policy and
+production cluster recovery stay with their owners.
+
+## Optional Kafka durable delivery test
+
+`KafkaIntegrationTests.cs` sends a synthetic technical probe to a random topic
+using the durable relational outbox and inbox, once with PostgreSQL and once
+with SQL Server. It publishes the same payload twice and asserts two delivery
+attempts but one database effect. The manually dispatched integration workflow
+provisions the official Apache Kafka 4.4.0 single-node image. The case is
+authored until exact-head CI executes it; it does not certify production Kafka
+security, topology, failover, retry policy or business consumer behavior.
 
 ## New changes
 
@@ -154,8 +183,11 @@ checkpoint mismatch, missing old signing keys and concurrent
 append sequencing. The Wolverine integration suite uses a
 synthetic poison message to verify quarantine, denied anonymous
 or type-mismatched requests, operator-authorized replay after
-repair and chain verification. These are technical tests, not
-business workflow or live operator identity approval.
+repair and chain verification. The operator suite also proves the one-time
+inspection token is stored only as a hash, bound to the envelope, types,
+subject and ticket, expires, and can be consumed by at most one of two
+concurrent replay requests on each SQL provider. These are technical tests,
+not business workflow or live operator identity approval.
 
 ## Real SIGKILL and externally signed audit prefix cases
 
@@ -190,6 +222,23 @@ technical handler, not a domain consumer or external payment.
 
 **Verified execution:** [root CI 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289) passed 26/26 standard real-service tests, 7/7 provider-native recovery cases, and 8/8 separate SIGKILL fault-injection tests. Both SQL engines proved one committed technical effect after an actual pre-ACK crash and subsequent redelivery. The later safety preflight tests require separate CI evidence.
 
+## Broker outage plus producer SIGKILL
+
+`BrokerCrashDrill` combines the synthetic transactional outbox with a real
+process kill. A child starts its RabbitMQ producer host, then the parent
+pauses only the exact labeled loopback CI broker before allowing a technical
+outbox command to commit in PostgreSQL. The parent verifies one committed
+command receipt and no consumer effect, kills the child, restores the broker,
+and starts a fresh host. Acceptance requires recovered delivery, one
+idempotent effect receipt, and another delivery attempt from an intentional
+duplicate logical message without a second effect.
+
+This category is excluded from ordinary integration runs and requires both
+destructive-drill and broker-outage opt-ins. It is authored but unverified
+until exact-head CI executes it. It covers only generic technical recovery;
+it does not certify a business Outbox, business consumer ACK handling,
+external provider side effects, live broker failover or Production behavior.
+
 ## Real Redis restart and host-wide cache stampede
 
 CacheSingleFlightTests checks 24 concurrent request scopes coalescing
@@ -206,7 +255,25 @@ real restart/reconnect, healthy readiness and scope isolation.
 The normal integration suite excludes RedisRestartDrill; the
 generated manually dispatched workflow and root CI give it a
 dedicated disposable container. No production Redis restart or
-distributed lock is claimed.
+distributed lock is claimed by the default mode.
+
+`AbaCacheDistributedCoordinationTests` covers opt-in configuration and
+the read-after-lock, shared-permit and fail-closed invariants with a fake
+coordinator. `AbaDistributedCacheCoordinationIntegrationTests` creates
+separate service providers against one Redis backend to prove same-key
+miss collapse, shared concurrent-source limits and a shared serial-load
+budget, and readiness reports the separate coordination connection.
+The authored shared-cache invalidation case writes the same key under two
+isolated scopes through one provider, removes one scoped entry, and requires
+the second independent provider to observe that miss while the other scope
+remains available. This does not prove a versioned invalidation-event
+backplane or tenant authorization.
+Its unreachable-Redis case verifies that an explicitly permitted
+authoritative-source fallback still does not call the source without a
+shared coordinator permit; a configuration-drift case rejects replicas
+that share a namespace but disagree on the budgets. These authored cases are not live-provider PASS
+evidence until the integration project executes them against the current
+Redis fixture.
 
 ## Immutable Docker base and attested scanned archive
 

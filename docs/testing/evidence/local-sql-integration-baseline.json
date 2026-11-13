@@ -1,0 +1,65 @@
+{
+  "name": "Local SQL integration baseline",
+  "status": "PASS",
+  "generated_utc": "2026-11-13T13:35:28Z",
+  "scope": "Isolated local PostgreSQL and SQL Server databases; temporary resources were cleaned up.",
+  "providers": [
+    { "provider": "PostgreSQL", "version": "17" },
+    { "provider": "SQL Server", "version": "17.0.1000.7" }
+  ],
+  "project": "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj",
+  "command": "dotnet test tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj -c Release --no-build --no-restore --filter <filter> --logger 'console;verbosity=minimal'",
+  "filters": [
+    {
+      "filter": "FullyQualifiedName~AbaExternalInfrastructureTests.BothRealDatabasesApplyMigrationsAndEnforceUniqueClaims|FullyQualifiedName~AbaExternalInfrastructureTests.WolverineDurableLocalMessageProcessesOnActualDatabase|FullyQualifiedName~AbaExternalInfrastructureTests.EfStateAndWolverineOutboxCommitOrRollbackTogether|FullyQualifiedName~AbaExternalInfrastructureTests.IdempotencyReceiptRollsBackWithSameDbContextWork|FullyQualifiedName~AbaExternalInfrastructureTests.ConcurrentSameKeyClaimsHaveOneWinnerAndNoDuplicateWork",
+      "result": "PASS",
+      "passed": 10,
+      "failed": 0
+    },
+    {
+      "filter": "FullyQualifiedName~TenantDatabaseBoundaryTests",
+      "result": "PASS",
+      "passed": 2,
+      "failed": 0
+    },
+    {
+      "filter": "FullyQualifiedName~RowLevelSecurityTests",
+      "result": "PASS",
+      "passed": 2,
+      "failed": 0
+    },
+    {
+      "filter": "FullyQualifiedName~AuditLedgerIntegrationTests",
+      "result": "PASS",
+      "passed": 4,
+      "failed": 0
+    },
+    {
+      "filter": "FullyQualifiedName~AuditAnchoredCheckpointIntegrationTests",
+      "result": "PASS",
+      "passed": 2,
+      "failed": 0
+    },
+    {
+      "filter": "FullyQualifiedName~DurabilityRecoveryTests",
+      "result": "PASS",
+      "passed": 2,
+      "failed": 0
+    },
+    {
+      "filter": "FullyQualifiedName~DeadLetterOperatorIntegrationTests",
+      "result": "PASS",
+      "passed": 2,
+      "failed": 0
+    }
+  ],
+  "total": { "passed": 24, "failed": 0, "skipped": 0 },
+  "not_run": [
+    "RabbitMQ transport and outage integration",
+    "Kafka transport integration",
+    "Redis distributed cache integration",
+    "Docker backup/restore and service-restart drills",
+    "Docker SIGKILL fault-injection tests"
+  ],
+  "limitations": "This is historical local technical integration evidence for the listed cases only. It does not prove business-context authorization, production deployment policy, or the unrun infrastructure cases."
+}

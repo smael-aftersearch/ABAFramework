@@ -18,7 +18,7 @@ Read `docs/ai/INDEX.md`, `docs/architecture.md`, `docs/testing/TEST-STRATEGY.md`
 - Cache outage bypass is explicit and only for non-authoritative queries after proper tenant authorization. Never use read-through cache fallback for security decisions, idempotency or business invariants.
 - Keep the generated `.github/workflows/ci.yml` and manually triggered integration workflow. Do not bypass failures, disable tests or grant write token permissions to make a release pass.
 - Every material change requires a positive case, a negative case and invariant checks, plus updates to relevant tests and documentation.
-- For Platform/DB changes, test against **both** PostgreSQL and SQL Server plus Redis with `bash scripts/verify-platform-services.sh`. Do not confuse an offline provider-name test with an actual database transaction. Execute `dotnet test` and `dotnet build` after modifications; report PASS/FAIL/NOT_RUN truthfully.
+- For Platform/DB/messaging changes, test against **both** PostgreSQL and SQL Server plus Redis, RabbitMQ and Kafka with `bash scripts/verify-platform-services.sh`. Do not confuse an offline provider-name test with an actual database transaction. Execute `dotnet test` and `dotnet build` after modifications; report PASS/FAIL/NOT_RUN truthfully. Run the separately gated `BrokerOutageDrill` only against its exact labeled disposable broker container.
 - Keep generated Dockerfile multi-stage and the container runtime non-root. Never expose Development-compose ports publicly; test that Production rejects missing OIDC config with `bash scripts/verify-container-starter.sh`.
 - Never claim production ready without integration, security, migration, load and recovery tests.
 

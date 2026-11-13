@@ -1,6 +1,7 @@
 using Aba.Starter.Platform.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Wolverine;
+using Microsoft.EntityFrameworkCore;
 
 namespace Aba.Starter.Platform.Messaging;
 
@@ -8,18 +9,31 @@ namespace Aba.Starter.Platform.Messaging;
 /// Internal technical probe for integration-test verification of durable delivery.
 /// It is not a business integration contract and no HTTP endpoint publishes it.
 /// </summary>
-public sealed record AbaDurabilityProbe(Guid Id);
+/// <param name="PublishNonce">Distinguishes intentional repeated publishes with the same logical id.</param>
+public sealed record AbaDurabilityProbe(Guid Id, Guid PublishNonce = default);
 
 public static class AbaDurabilityProbeHandler
 {
-    public static void Handle(AbaDurabilityProbe message, AbaPlatformDbContext db)
+    public static async Task Handle(
+        AbaDurabilityProbe message,
+        AbaPlatformDbContext db,
+        EfIdempotencyStore idempotencyStore,
+        CancellationToken ct)
     {
+        // A broker may redeliver after a lost ACK. Keep the technical effect
+        // idempotent under the same durable EF transaction as the receipt.
+        var key = message.Id.ToString("N");
         db.IdempotencyReceipts.Add(new IdempotencyReceipt
         {
-            Scope = "aba-durability-probe",
-            Key = message.Id.ToString("N"),
+            Scope = "aba-durability-probe-attempt",
+            Key = $"{key}:{Guid.NewGuid():N}",
             CreatedUtc = DateTimeOffset.UtcNow
         });
+        // The unique key is the concurrent claim. A check-then-insert races when
+        // independent broker deliveries start together and would roll back the
+        // per-delivery attempt receipt along with the losing handler transaction.
+        if (!await idempotencyStore.TryClaimAsync("aba-durability-probe", key, ct))
+            return;
         // Wolverine EF transactional middleware performs SaveChanges and outbox flushing.
     }
 }
