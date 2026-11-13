@@ -234,3 +234,14 @@ IDs, signs the exact Docker-save artifact with SLSA provenance
 and requires a mutated same-name archive to fail. Test evidence
 must distinguish this archive provenance from signing a
 registry-published digest.
+
+## CI loopback-load evidence integrity (Queue A)
+
+The opt-in `ops-load` probe (`scripts/ci_loopback_load.py`) has a bounded
+40-request/four-worker loopback-only acceptance case, rejects redirects and
+non-200 responses, and is not a production performance SLO. Additional
+`scripts/test_ci_loopback_load.py` regressions require a new private-mode JSON
+artifact and reject file traversal, arbitrary absolute paths, existing files
+and symlink destinations **before any HTTP request**. Only a disposable CI
+runner with the explicit opt-in may execute the full probe; the generated
+application's real `otel-collector` job still provides end-to-end evidence.
