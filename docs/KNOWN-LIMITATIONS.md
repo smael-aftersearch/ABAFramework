@@ -88,10 +88,12 @@ HIGH vulnerabilities. Always inspect the exact CI run.
 The generic API includes an opt-in HMAC-SHA256 audit ledger for PostgreSQL
 and SQL Server (serializable transactional append, opaque actor/action IDs,
 per-tenant sequence and chained digests, key rotation and verification).
-Real-provider CI verifies chain integrity, tamper rejection and concurrent
-appends. Customer business event selection, IdP membership, immutable
-external digest checkpoints, HMAC key custody, PII retention policy,
-least-privileged DB roles and deployment are **not** implemented.
+Real-provider CI verifies chain integrity, tamper rejection, concurrent
+appends and a separately signed checkpoint that pins a historical prefix.
+These are technical capabilities; no independent immutable archive or
+production signer is deployed. Customer business event selection, trusted
+IdP membership, off-DB checkpoint custody, HMAC/signing key custody, PII
+retention policy, least-privileged DB roles and deployment remain open.
 
 The generic Wolverine operator is opt-in and **service-only**: it requires
 durable messaging, the signed audit ledger, an authenticated operator
@@ -100,16 +102,19 @@ inspected envelope with matching message/exception types can be marked
 for replay; the message body stays private. Tenant mode is disabled
 pending tenant-specific store authorization. Replay does not guarantee
 a business outcome or prevent duplicate external side effects.
-The synthetic poison-message SQL integration test is being verified
-in GitHub Actions. See the template runbook and ADRs 006/007.
+The synthetic poison-message SQL integration test passes on both providers
+in the latest reviewed PR #31 head CI. This remains technical coverage only;
+production operator entitlements and tenant store authorization are open.
+See the template runbook and ADRs 006/007.
 
-**Latest HMAC/DLQ evidence:** [eight successful CI jobs](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43320400760)
-verify HMAC tampering and key rotation under concurrent append on both
-relational providers, plus quarantined poison-message replay by
-an explicitly authorized technical operator. This does not
+**Latest HMAC/DLQ evidence:** [PR #31 head CI](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43417678561)
+passed audit tamper detection and key rotation under concurrent append on
+both relational providers, signed historical-prefix verification on both
+providers, and quarantined poison-message replay by an explicitly authorized
+technical operator. This does not
 implement production operator entitlements, multi-tenant dead-letter
-isolation, legally compliant audit storage, signed checkpoints or
-business consumer compensation.
+isolation, legally compliant audit storage, independent immutable checkpoint
+archival or business consumer compensation.
 
 ## Current crash/drift boundaries
 
