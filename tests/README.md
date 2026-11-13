@@ -135,3 +135,9 @@ the disposable generated API is additionally exercised by
 `scripts/ci_loopback_load.py`; numerical p50/p95, aggregate failures and
 throughput are uploaded as `aba-loopback-load-baseline`. This is a CI-only
 single-process liveness diagnostic, not a production capacity/SLO claim.
+The evidence writer accepts only fresh `artifacts/load/<safe-name>.json` paths,
+refuses traversal, absolute paths, existing files and symlink outputs before
+sending requests, and uses exclusive creation with private mode `0600`.
+The additional happy/negative/invariant tests in the same Python suite check
+that prior evidence and unrelated files are never overwritten. These are
+local/CI technical security controls, not approved production telemetry storage.
