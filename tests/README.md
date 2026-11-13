@@ -111,3 +111,17 @@ rejection before Docker build. Root CI signs the scanned Docker
 image archive only on pushes to main and rejects modified bytes;
 generated products inherit only their own lock verification
 and scanner, not upstream signatures.
+
+## CI-only OTLP Collector end-to-end
+
+`scripts/verify-otel-collector.sh` starts a versioned OpenTelemetry Collector
+with the confined `infra/otel-collector-ci.yaml` OTLP/gRPC receiver, generates
+a fresh API, enables instrumentation in Development and requires the Collector
+to actually observe both `ResourceSpans` and `ResourceMetrics` with the
+`Pilot.Collector` service identity and HTTP server request metric. A synthetic
+sensitive header must not appear in captured telemetry. Docker maps receiver
+port 4317 to the GitHub runner loopback only. `scripts/test_otel_collector_gate.py`
+proves the drill cannot run without both `CI=true` and
+`ABA_ENABLE_OTEL_COLLECTOR_DRILL=yes`. The real collector job is a
+prerequisite for main-only signed provenance. PR CI must pass before this
+is described as verified; no production collector/credentials are deployed.
