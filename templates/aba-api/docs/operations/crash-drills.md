@@ -50,9 +50,15 @@ generated `--level full` task runner exclude it.
    provisioned queue before signalling over a private local named pipe.
    This verifies broker topology readiness, not merely web-host startup.
    The same private named pipe carries only fixed, non-secret worker phases
-   (started, resolved, published, flushed, verified); the parent includes
-   completed phases in timeout diagnostics. A missing committed marker is
-   still a FAIL and cannot be reclassified as a successful crash recovery.
+   (started, resolved, published, flush-started, SQL-committed, verified).
+   Wolverine can wait for broker confirmation *after* its EF Core outbox
+   commits. The child therefore launches the SaveChanges/flush operation and
+   uses an independent SQL connection to prove the committed receipt while
+   the broker is paused, instead of waiting for the post-commit AMQP flush.
+   The child scope stays alive until SIGKILL, and the new host must still
+   recover the same persisted message with exactly one idempotent effect.
+   The parent includes completed phases in timeout diagnostics. A missing
+   committed marker is still a FAIL.
    If the warmup does not commit its unique receipt within 45 seconds,
    the drill fails before any broker pause or process kill.
    The parent validates and pauses
