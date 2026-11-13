@@ -41,3 +41,13 @@ A context update and its outgoing event share **one JSON envelope**. `DurableCon
 A business context's `.csproj` may reference another context's `*.Contracts` project, but never another's implementation. There is a single composition-root exception for `Academy.Host` and a test harness exception for the console smoke project. The enforceable checks live in `scripts/governance.py` and compare source project edges to `context-map.yaml`. Negative tests prove failures for illegal private dependencies, missing ownership metadata and unversioned contracts.
 
 `AGENTS.md` and each `ai-rules.yaml` provide navigation instructions for coding agents. `docs/decisions/` preserves tradeoffs. Later phases must keep governance green as the infrastructure is replaced.
+
+## Tenant-scoped SQL open failure cleanup (Queue C)
+
+The domain-neutral `AbaTenantSqlScope.RunAsync` keeps its connection lifecycle
+inside a `try/finally`, including the provider `OpenAsync` call. A provider
+that opens part of a connection and then faults must be closed; no tenant
+callback or transaction may run. This changes technical cleanup only, not
+membership authorization, owning business schema, SQL Server session-context
+privileges or approved production RLS migrations. The disposable failure test
+and real SQL tenant-boundary tests are recorded in `tests/README.md`.

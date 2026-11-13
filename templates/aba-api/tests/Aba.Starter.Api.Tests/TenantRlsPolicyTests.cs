@@ -1,4 +1,6 @@
 using Aba.Starter.Platform.Persistence;
+using System.Data;
+using System.Data.Common;
 using Xunit;
 
 namespace Aba.Starter.Api.Tests;
@@ -60,6 +62,84 @@ public sealed class TenantRlsPolicyTests
             await AbaTenantSqlScope.RunAsync(conn, "SqlServer", new FakeTenant(null),
                 (c, t, ct) => Task.FromResult(1)));
         Assert.Equal(System.Data.ConnectionState.Closed, conn.State);
+    }
+
+    [Fact]
+    public async Task FailedOpenClosesPartiallyOpenedTenantConnectionBeforeItCanBeReused()
+    {
+        await using var connection = new PartiallyOpenedConnection();
+        var invoked = false;
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            AbaTenantSqlScope.RunAsync(connection, "PostgreSql", new FakeTenant("tenant-alpha"),
+                (c, t, ct) =>
+                {
+                    invoked = true;
+                    return Task.FromResult(1);
+                }));
+        Assert.Equal("synthetic open failure", error.Message);
+        Assert.Equal(1, connection.OpenCalls);
+        Assert.Equal(1, connection.CloseCalls);
+        Assert.Equal(ConnectionState.Closed, connection.State);
+        Assert.False(invoked); // A failed OpenAsync never reaches business SQL.
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("../foreign")]
+    [InlineData("tenant other")]
+    public async Task InvalidTenantCannotReachSqlEvenWhenProviderCouldOpen(string? tenantId)
+    {
+        await using var connection = new PartiallyOpenedConnection();
+        var invoked = false;
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            AbaTenantSqlScope.RunAsync(connection, "PostgreSql", new FakeTenant(tenantId),
+                (c, t, ct) =>
+                {
+                    invoked = true;
+                    return Task.FromResult(1);
+                }));
+        Assert.Equal(0, connection.OpenCalls);
+        Assert.Equal(0, connection.CloseCalls);
+        Assert.Equal(ConnectionState.Closed, connection.State);
+        Assert.False(invoked);
+    }
+
+    // A provider can transition to Open before OpenAsync reports a failure.
+    // This disposable fake models exactly that failure boundary; the real SQL
+    // provider happy/foreign-tenant cases remain in RowLevelSecurityTests.
+    private sealed class PartiallyOpenedConnection : DbConnection
+    {
+        private ConnectionState _state = ConnectionState.Closed;
+        public int OpenCalls { get; private set; }
+        public int CloseCalls { get; private set; }
+        public override string ConnectionString { get; set; } = "";
+        public override string Database => "disposable";
+        public override string DataSource => "disposable";
+        public override string ServerVersion => "0";
+        public override ConnectionState State => _state;
+        public override void ChangeDatabase(string databaseName) =>
+            throw new NotSupportedException();
+        public override void Open() => throw new NotSupportedException();
+        public override Task OpenAsync(CancellationToken cancellationToken)
+        {
+            OpenCalls++;
+            _state = ConnectionState.Open;
+            return Task.FromException(new InvalidOperationException("synthetic open failure"));
+        }
+        public override void Close()
+        {
+            CloseCalls++;
+            _state = ConnectionState.Closed;
+        }
+        public override Task CloseAsync()
+        {
+            Close();
+            return Task.CompletedTask;
+        }
+        protected override DbTransaction BeginDbTransaction(IsolationLevel isolationLevel) =>
+            throw new NotSupportedException();
+        protected override DbCommand CreateDbCommand() =>
+            throw new NotSupportedException();
     }
 
     private sealed record FakeTenant(string? TenantId) : Aba.Starter.Platform.Security.IRequestTenant;

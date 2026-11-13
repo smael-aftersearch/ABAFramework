@@ -100,9 +100,11 @@ public static class AbaTenantSqlScope
         if (engine == "SqlServer" && connection is not SqlConnection)
             throw new ArgumentException("SqlServer RLS requires a SqlConnection.");
 
-        await connection.OpenAsync(cancellationToken);
         try
         {
+            // Even an unsuccessful OpenAsync can leave a provider connection
+            // partially open. Always close it before returning to the caller.
+            await connection.OpenAsync(cancellationToken);
             await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
             try
             {
