@@ -100,7 +100,7 @@ gateway and production-scale approvals. Other C statuses stay
 
 ### Queue C — authenticated-principal isolation (execution 5/10; 2026-11-13)
 
-Technical identity-boundary patch for `api-shared-limits` and `auth-raw-sql`:
+Technical identity-boundary patch in [PR #17](https://github.com/smael-aftersearch/ABAFramework/pull/17) ([exact-head checks](https://github.com/smael-aftersearch/ABAFramework/pull/17/checks)) for `api-shared-limits` and `auth-raw-sql`:
 the rate-limit subject and tenant claim now must come from the **same single authenticated identity**.
 Tenant authorization refuses a split authenticated/unsigned principal or two authenticated
 identities; ambiguous quota requests use the TCP peer instead of borrowing an unsigned subject.

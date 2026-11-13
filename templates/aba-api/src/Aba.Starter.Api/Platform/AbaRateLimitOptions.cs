@@ -35,7 +35,7 @@ public sealed record AbaRateLimitOptions(int PermitLimit, int WindowSeconds)
                 identity.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (!string.IsNullOrWhiteSpace(subject))
             {
-                var tenant = Aba.Starter.Platform.Security.AbaTenantClaims.Resolve(user, "tenant_id") ?? "";
+                var tenant = Aba.Starter.Platform.Security.AbaTenantClaims.Resolve(context.User, "tenant_id") ?? "";
                 var bytes = Encoding.UTF8.GetBytes(
                     $"tenant={tenant.Length}:{tenant}|subject={subject.Length}:{subject}");
                 return "jwt:" + Convert.ToHexString(SHA256.HashData(bytes)[..12]);
