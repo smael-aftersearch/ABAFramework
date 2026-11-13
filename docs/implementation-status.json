@@ -121,12 +121,13 @@
       "status": "partial",
       "owner": "Operations",
       "priority": "P1",
-      "delivered": "Opt-in atomic Redis quota with two in-process hosts (CI 43344790754), non-Development TLS config guard (CI 43347945447), and CI-gated distinct-OS-process HTTP quota/bypass probe; not deployed",
-      "remaining": "Prove new OS-process drill on exact-head CI and approve gateway trust, Redis certificate identity/ACLs, monitoring and production load controls; disposable processes do not certify real replicas",
+      "delivered": "Opt-in atomic Redis quota with live two-host and distinct-OS-process HTTP probes (CI 43352559984), non-Development TLS guard (CI 43347945447) and single-authenticated-identity quota partition guard (PR CI pending); not deployed",
+      "remaining": "Approve gateway trust, Redis certificate identity/ACLs, monitoring and production load controls; disposable processes do not certify deployed replicas",
       "acceptance": "Verify one limit across two replicas under concurrent load",
       "evidence": [
         "templates/aba-api/src/Aba.Starter.Api/Platform/AbaSharedRateLimit.cs",
-        "templates/aba-api/docs/decisions/ADR-012-shared-redis-rate-limits.md"
+        "templates/aba-api/docs/decisions/ADR-012-shared-redis-rate-limits.md",
+        "templates/aba-api/src/Aba.Starter.Api/Platform/AbaRateLimitOptions.cs"
       ],
       "tests": [
         "templates/aba-api/tests/Aba.Starter.Api.Tests/RateLimitTests.cs",
@@ -247,14 +248,16 @@
       "status": "partial",
       "owner": "Owning business context / Security",
       "priority": "P0",
-      "delivered": "CI-verified tenant-scoped SQL transaction wrapper; direct SQL and EF ExecuteUpdate/ExecuteDelete cross-tenant denial, forged insert rejection and session isolation on both SQL engines",
-      "remaining": "Block SQL-injection tenant session spoofing, adopt real context-aware raw SQL authorization and least-privileged production accounts",
+      "delivered": "CI-verified tenant-scoped SQL transaction wrapper; direct SQL and EF ExecuteUpdate/ExecuteDelete cross-tenant denial, forged insert rejection and session isolation on both SQL engines; technical tenant claim resolver now refuses split/ambiguous principal claims (PR CI pending)",
+      "remaining": "Block SQL-injection tenant session spoofing, adopt real owner-context raw SQL authorization, least-privileged production accounts and DBA/Security approvals",
       "acceptance": "Cross-tenant raw SQL and bulk mutation are denied",
       "evidence": [
-        "templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaTenantRlsPolicies.cs"
+        "templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaTenantRlsPolicies.cs",
+        "templates/aba-api/src/Aba.Starter.Platform/Security/AbaTenantClaims.cs"
       ],
       "tests": [
-        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/RowLevelSecurityTests.cs"
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/RowLevelSecurityTests.cs",
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/AbaPlatformTests.cs"
       ]
     },
     {

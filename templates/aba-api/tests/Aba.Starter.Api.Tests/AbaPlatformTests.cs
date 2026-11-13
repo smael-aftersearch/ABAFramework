@@ -48,6 +48,39 @@ public sealed class AbaPlatformTests
     }
 
     [Fact]
+    public async Task TenantPolicyRejectsSplitAndAmbiguousPrincipalIdentities()
+    {
+        var verifiedWithoutTenant = new ClaimsIdentity(
+            [new Claim("sub", "user-a")], "Bearer");
+        var unsignedForeignTenant = new ClaimsIdentity(
+            [new Claim("tenant_id", "tenant-b")]);
+        var split = new ClaimsPrincipal([verifiedWithoutTenant, unsignedForeignTenant]);
+        Assert.Null(AbaTenantClaims.Resolve(split, "tenant_id"));
+
+        // Two authenticated identities are ambiguous; never combine their claims.
+        var otherAuthenticated = new ClaimsIdentity(
+            [new Claim("tenant_id", "tenant-b")], "Bearer");
+        Assert.Null(AbaTenantClaims.Resolve(
+            new ClaimsPrincipal([verifiedWithoutTenant, otherAuthenticated]), "tenant_id"));
+
+        // A legitimate signed tenant claim remains authoritative even if an unsigned
+        // identity attempts to supply a conflicting tenant.
+        var verifiedWithTenant = new ClaimsIdentity(
+            [new Claim("sub", "user-a"), new Claim("tenant_id", "tenant-a")], "Bearer");
+        var trusted = new ClaimsPrincipal([verifiedWithTenant, unsignedForeignTenant]);
+        Assert.Equal("tenant-a", AbaTenantClaims.Resolve(trusted, "tenant_id"));
+
+        var policy = AbaTenantClaims.BuildPolicy(new AbaTenantOptions(true, "tenant_id"), "Bearer");
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection.AddAuthorization();
+        using var provider = serviceCollection.BuildServiceProvider();
+        var authorization = provider.GetRequiredService<IAuthorizationService>();
+        Assert.False((await authorization.AuthorizeAsync(split, resource: null, policy)).Succeeded);
+        Assert.True((await authorization.AuthorizeAsync(trusted, resource: null, policy)).Succeeded);
+    }
+
+    [Fact]
     public async Task OptInTenancyPolicyRequiresAuthenticatedTenantClaim()
     {
         var configured = new AbaTenantOptions(true, "tenant_id");

@@ -37,12 +37,34 @@ public sealed class AuthenticatedTenantResolver(
 
 public static class AbaTenantClaims
 {
-    /// <summary>Only invoke after the caller's authentication middleware has validated the principal.</summary>
+    /// <summary>
+    /// A composed principal is trusted only when exactly one identity was authenticated.
+    /// Claims in unsigned/secondary identities must not become tenant authorization.
+    /// Authentication middleware must already have validated this identity.
+    /// </summary>
+    public static ClaimsIdentity? TrustedIdentity(ClaimsPrincipal? principal)
+    {
+        ClaimsIdentity? trusted = null;
+        if (principal is null)
+            return null;
+        foreach (var identity in principal.Identities)
+        {
+            if (!identity.IsAuthenticated)
+                continue;
+            if (trusted is not null)
+                return null;
+            trusted = identity;
+        }
+        return trusted;
+    }
+
+    /// <summary>Resolve only the single authenticated identity's claim, never a different identity's claim.</summary>
     public static string? Resolve(ClaimsPrincipal? principal, string claimType)
     {
-        if (principal?.Identity?.IsAuthenticated != true)
+        var identity = TrustedIdentity(principal);
+        if (identity is null)
             return null;
-        var value = principal.FindFirst(claimType)?.Value;
+        var value = identity.FindFirst(claimType)?.Value;
         if (string.IsNullOrWhiteSpace(value) || value.Length > 128
             || !value.All(c => char.IsAsciiLetterOrDigit(c) || c is '_' or '-' or '.'))
             return null;

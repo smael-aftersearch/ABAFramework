@@ -5,8 +5,11 @@ Redis fixed-window quota **in addition** to its existing per-process limiter.
 No business membership or trusted gateway policy is inferred. The default is OFF.
 
 - Validated JWT subject+tenant (or actual TCP peer for anonymous requests) is
-  hashed before being sent to Redis. Client `X-Tenant-ID` and `X-Forwarded-For`
-  do not determine the partition. A unique application namespace must be set.
+  hashed before being sent to Redis. Subject and tenant must come from the
+  **same single authenticated identity**; unsigned secondary or multiple
+  authenticated identities cannot be combined to create extra quota partitions
+  and instead fall back to the connection peer. Client `X-Tenant-ID` and
+  `X-Forwarded-For` do not determine the partition. A unique application namespace must be set.
 - Redis server `TIME` and one atomic Lua `INCR`/`EXPIRE` operation protect
   the shared budget from lost updates and per-replica clock skew.
   A fixed window allows up to twice the quota across adjacent window boundaries.
