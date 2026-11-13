@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Happy, negative and invariant probes without external traffic or infrastructure."""
 import importlib.util
+import json
 import os
 import subprocess
 import sys
@@ -62,6 +63,16 @@ class LoopbackLoadTests(unittest.TestCase):
             Handler.hits = Handler.active = Handler.peak = 0
             Handler.status = 200
 
+    def run_cli(self, output, *, allowed=True):
+        env = os.environ.copy()
+        env.pop("CI", None)
+        env.pop("ABA_ENABLE_LOOPBACK_LOAD_DRILL", None)
+        if allowed:
+            env.update(CI="true", ABA_ENABLE_LOOPBACK_LOAD_DRILL="yes")
+        return subprocess.run([sys.executable, str(SCRIPT), "--url", self.url,
+                               "--output", output], env=env, capture_output=True,
+                              text=True, timeout=10)
+
     def test_success_and_bounded_concurrency(self):
         result = load.probe(self.url, count=12, workers=3)
         self.assertEqual((12, 0), (result["successes"], result["failures"]))
@@ -109,6 +120,51 @@ class LoopbackLoadTests(unittest.TestCase):
             load.probe(self.url, count=load.REQUESTS + 1)
         with self.assertRaises(ValueError):
             load.probe(self.url, workers=load.WORKERS + 1)
+        self.assertEqual(0, Handler.hits)
+
+
+    def test_positive_evidence_is_private_new_json_under_artifacts_load(self):
+        name = f"artifacts/load/queue-a-test-{os.getpid()}.json"
+        target = SCRIPT.parent.parent / name
+        self.addCleanup(target.unlink, missing_ok=True)
+        result = self.run_cli(name)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual(40, Handler.hits)
+        evidence = json.loads(target.read_text(encoding="utf-8"))
+        self.assertEqual((40, 0), (evidence["successes"], evidence["failures"]))
+        self.assertEqual(0o600, target.stat().st_mode & 0o777)
+        self.assertNotIn(self.url, target.read_text(encoding="utf-8"))
+
+    def test_rejects_escape_absolute_and_existing_outputs_before_http(self):
+        directory = SCRIPT.parent.parent / "artifacts" / "load"
+        directory.mkdir(parents=True, exist_ok=True)
+        occupied = directory / f"queue-a-existing-{os.getpid()}.json"
+        occupied.write_text("historical evidence: do not overwrite", encoding="utf-8")
+        self.addCleanup(occupied.unlink, missing_ok=True)
+        for path in ("../README.md", "artifacts/load/../../README.md",
+                     "artifacts/load/../escape.json", str(occupied),
+                     f"artifacts/load/{occupied.name}"):
+            with self.subTest(output=path):
+                result = self.run_cli(path)
+                self.assertEqual(3, result.returncode)
+                self.assertIn("BLOCKED:", result.stderr)
+        self.assertEqual("historical evidence: do not overwrite", occupied.read_text())
+        self.assertEqual(0, Handler.hits)
+
+    def test_rejects_symlink_output_before_http(self):
+        directory = SCRIPT.parent.parent / "artifacts" / "load"
+        directory.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory() as temp:
+            marker = Path(temp) / "private.json"
+            marker.write_text("do not touch", encoding="utf-8")
+            link = directory / f"queue-a-symlink-{os.getpid()}.json"
+            link.symlink_to(marker)
+            try:
+                result = self.run_cli(f"artifacts/load/{link.name}")
+                self.assertEqual(3, result.returncode)
+                self.assertEqual("do not touch", marker.read_text())
+            finally:
+                link.unlink(missing_ok=True)
         self.assertEqual(0, Handler.hits)
 
 
