@@ -98,6 +98,33 @@ gateway and production-scale approvals. Other C statuses stay
 `biz-contracts=partial`, `biz-contract-tests=not_started`,
 `biz-endpoints=not_started`; verified closures **0/7 (0%)**.
 
+### Queue C — authenticated-principal isolation (execution 5/10; 2026-11-13)
+
+Technical identity-boundary patch for `api-shared-limits` and `auth-raw-sql`:
+the rate-limit subject and tenant claim now must come from the **same single authenticated identity**.
+Tenant authorization refuses a split authenticated/unsigned principal or two authenticated
+identities; ambiguous quota requests use the TCP peer instead of borrowing an unsigned subject.
+New positive, tenant-bypass negative and same-partition/health invariants are in
+[`AbaPlatformTests.cs`](templates/aba-api/tests/Aba.Starter.Api.Tests/AbaPlatformTests.cs)
+and [`RateLimitTests.cs`](templates/aba-api/tests/Aba.Starter.Api.Tests/RateLimitTests.cs).
+The latest previous fully verified [main CI 43356449614](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43356449614)
+passed 10/10; the new patch requires its own exact-head PR checks. No independent
+membership, business contracts, DBA migration or production policy is inferred.
+
+| Queue C ID | Current status | Gate still outstanding |
+| --- | --- | --- |
+| `api-shared-limits` | partial | Production gateway, Redis certificate/ACL, load approval |
+| `auth-membership` | not_started (BLOCKED) | Named Identity owner and approved role/membership policy |
+| `auth-sql-rls` | partial (BLOCKED for deployment) | DBA-reviewed owner migrations/least-privilege roles |
+| `auth-raw-sql` | partial | SQL-injection/session spoof defense, business owner and DBA/Security approval |
+| `biz-contracts` | partial (BLOCKED) | Owner-approved V1 schemas and consumers |
+| `biz-contract-tests` | not_started (BLOCKED) | Real producer/consumer contracts |
+| `biz-endpoints` | not_started (BLOCKED) | Actual business rules, requirements and owner |
+
+**Queue C fully closed: 0/7 (0%)**. Evidence: [Queue C #5](https://github.com/smael-aftersearch/ABAFramework/issues/5)
+and [central #6](https://github.com/smael-aftersearch/ABAFramework/issues/6).
+No new tests are described as PASS until their exact-commit workflow completes.
+
 The table records *verified feature closures*, not speculative percentage-complete estimates. For exact feature IDs, acceptance criteria, owners and evidence, follow [the generated backlog](docs/IMPLEMENTATION-STATUS.md). After each substantive code change, update the README and source status JSON only to reflect actual tested changes, regenerate the status matrix, and record the PR/CI evidence in the relevant issue. Automated merge is allowed only after real tests, review and branch-policy gates. Business-owner approvals, production secrets, release policy, and deployment decisions remain outside the authority of these tasks.
 
 
@@ -272,14 +299,14 @@ its **production release gates remain open**. Evidence refers to the last review
 | API | Request correlation IDs | **Implemented** | Validated X-Correlation-ID response header | Correlate logs, traces and message envelopes across services | P1 |
 | API | Liveness and readiness | **Implemented** | Independent liveness and ready-tagged dependencies; injected health failure returns live 200 and ready 503 | Prove real database/Redis outage, reconnection and readiness behavior under load | P0 |
 | API | Authenticated per-identity rate limits | **Implemented** | JWT subject + tenant partition; anonymous TCP peer; Health bypass | Multi-node shared quotas require a gateway | P1 |
-| API | Distributed multi-instance rate limits | **Partial** | Opt-in atomic Redis quota with two in-process hosts (CI 43344790754), non-Development TLS config guard (CI 43347945447), and CI-gated distinct-OS-process HTTP quota/bypass probe; not deployed | Prove new OS-process drill on exact-head CI and approve gateway trust, Redis certificate identity/ACLs, monitoring and production load controls; disposable processes do not certify real replicas | P1 |
+| API | Distributed multi-instance rate limits | **Partial** | Opt-in atomic Redis quota with live two-host and distinct-OS-process HTTP probes (CI 43352559984), non-Development TLS guard (CI 43347945447) and single-authenticated-identity quota partition guard (PR CI pending); not deployed | Approve gateway trust, Redis certificate identity/ACLs, monitoring and production load controls; disposable processes do not certify deployed replicas | P1 |
 | Security | OIDC/JWT signature, issuer and audience | **Implemented** | ASP.NET JWT bearer validation and fail-closed production OIDC config | External real-user IdP configuration and security operations remain | P0 |
 | Security | Real Keycloak OIDC/JWKS test | **Implemented** | Ephemeral Keycloak CI verifies signed 204, missing/malformed 401, tenant 403 | Real IdP key rotation and organization policy not validated | P0 |
 | Security | Trusted tenant claim required when enabled | **Implemented** | JWT tenant claim fallback/default authorization; ignores raw tenant header | Prove organization membership in actual IdP | P0 |
 | Security | Tenant membership / RBAC / ABAC | **Not implemented** | Not implemented | Define owning membership model, roles and permissions | P0 |
 | Security | EF tenant row query and SaveChanges guards | **Implemented** | Tenant-scoped EF filtering and foreign-row write rejection | Raw SQL, bulk updates and SQL-level RLS remain open | P0 |
 | Security | Database-enforced Row-Level Security | **Partial** | CI-verified PostgreSQL FORCE RLS and SQL Server FILTER/BLOCK DDL, trusted tenant transaction scopes, and real cross-tenant raw SQL + EF bulk negative tests on both databases | Apply owner-specific RLS migrations and least-privilege roles, verify membership authorization and privileged/session spoof bypass cases | P0 |
-| Security | Bulk/raw SQL tenant authorization | **Partial** | CI-verified tenant-scoped SQL transaction wrapper; direct SQL and EF ExecuteUpdate/ExecuteDelete cross-tenant denial, forged insert rejection and session isolation on both SQL engines | Block SQL-injection tenant session spoofing, adopt real context-aware raw SQL authorization and least-privileged production accounts | P0 |
+| Security | Bulk/raw SQL tenant authorization | **Partial** | CI-verified tenant-scoped SQL transaction wrapper; direct SQL and EF ExecuteUpdate/ExecuteDelete cross-tenant denial, forged insert rejection and session isolation on both SQL engines; technical tenant claim resolver now refuses split/ambiguous principal claims (PR CI pending) | Block SQL-injection tenant session spoofing, adopt real owner-context raw SQL authorization, least-privileged production accounts and DBA/Security approvals | P0 |
 | Persistence | Production SQL TLS and certificate identity | **Implemented** | Production startup rejects PostgreSQL without VerifyFull and SQL Server without verified encryption; real container negative tests passed | Configure real certificate authority/trust chain and rotation in target deployment | P0 |
 | Persistence | EF Core 10 PostgreSQL provider | **Implemented** | Runtime Npgsql provider selected by config | Context-owned schema migrations require real domains | P0 |
 | Persistence | EF Core 10 Microsoft SQL Server provider | **Implemented** | Runtime EF SqlServer provider selected by config | Context-owned schema migrations require real domains | P0 |
@@ -327,7 +354,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | --- | --- | --- |
 | `auth-membership` | Define owning membership model, roles and permissions — Unauthorized member and cross-organization privilege escalation tests | Not implemented |
 | `auth-sql-rls` | Apply owner-specific RLS migrations and least-privilege roles, verify membership authorization and privileged/session spoof bypass cases — Direct SQL and EF ExecuteUpdate cannot modify foreign tenant records | Partial |
-| `auth-raw-sql` | Block SQL-injection tenant session spoofing, adopt real context-aware raw SQL authorization and least-privileged production accounts — Cross-tenant raw SQL and bulk mutation are denied | Partial |
+| `auth-raw-sql` | Block SQL-injection tenant session spoofing, adopt real owner-context raw SQL authorization, least-privileged production accounts and DBA/Security approvals — Cross-tenant raw SQL and bulk mutation are denied | Partial |
 | `db-business-migrations` | Implement real owner-specific models and migrations after requirements — Both SQL engines perform context migration without shared business tables | Not implemented |
 | `db-backup-restore` | Prove business-schema and point-in-time recovery, migration rollback, offsite encrypted backups, RTO/RPO and operator restore rehearsal — Recover both SQL engines and confirm data integrity after test failure | Partial |
 | `msg-poison-replay` | Issue real signed operator IdP permission, tenant-scoped message store authorization, replay dedup/business compensation, volume limits and approved production runbook — Poison message is quarantined, inspected and safely replayed exactly as intended | Partial |

@@ -48,7 +48,10 @@ The default xUnit suite injects a disposable test-only key into the actual ASP.N
 
 ## Per-identity API rate limiting
 
-`AbaRateLimitOptions` validates runtime limit configuration. Authentication middleware runs **before** the rate limiter so JWT partition keys derive from a validated subject, optionally combined with a verified tenant claim; unknown/anonymous callers are partitioned by peer IP. `/health/live` and `/health/ready` use a no-limiter partition. Headers forwarded by unknown clients are not trusted. This fixed-window limiter is per ASP.NET process; a multi-node deployment must use a shared gateway/limit store, trusted proxy settings and rate/abuse budgets.
+`AbaRateLimitOptions` validates runtime limit configuration. Authentication middleware runs **before** the rate limiter so JWT partition keys derive from a validated subject, optionally combined with a verified tenant claim; unknown/anonymous callers are partitioned by peer IP. `/health/live` and `/health/ready` use a no-limiter partition. Headers forwarded by unknown clients are not trusted. Tenant claims and subject
+must belong to a single authenticated identity; a split or ambiguous principal
+fails closed for tenant resolution and uses the actual TCP peer for quotas.
+This fixed-window limiter is per ASP.NET process; a multi-node deployment must use a shared gateway/limit store, trusted proxy settings and rate/abuse budgets.
 
 ## HTTP errors and dependency health
 

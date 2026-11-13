@@ -26,11 +26,13 @@ public sealed record AbaRateLimitOptions(int PermitLimit, int WindowSeconds)
 
     public static string PartitionKey(HttpContext context)
     {
-        var user = context.User;
-        if (user.Identity?.IsAuthenticated == true)
+        // Never compose an authenticated flag, subject or tenant across identities.
+        // With ambiguous authentication, use the single connection-peer quota.
+        var identity = Aba.Starter.Platform.Security.AbaTenantClaims.TrustedIdentity(context.User);
+        if (identity is not null)
         {
-            var subject = user.FindFirst("sub")?.Value ??
-                user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var subject = identity.FindFirst("sub")?.Value ??
+                identity.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (!string.IsNullOrWhiteSpace(subject))
             {
                 var tenant = Aba.Starter.Platform.Security.AbaTenantClaims.Resolve(user, "tenant_id") ?? "";

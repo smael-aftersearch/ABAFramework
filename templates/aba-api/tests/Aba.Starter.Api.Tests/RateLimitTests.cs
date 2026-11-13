@@ -123,6 +123,36 @@ public sealed class RateLimitTests
     }
 
     [Fact]
+    public void QuotaPartitionCannotComposeClaimsAcrossIdentities()
+    {
+        var context = new DefaultHttpContext();
+        context.Connection.RemoteIpAddress = IPAddress.Parse("192.0.2.25");
+        var verified = new ClaimsIdentity(
+            [new Claim("sub", "alpha"), new Claim("tenant_id", "tenant-one")], "Bearer");
+        context.User = new ClaimsPrincipal(verified);
+        var trustedPartition = AbaRateLimitOptions.PartitionKey(context);
+        Assert.StartsWith("jwt:", trustedPartition);
+
+        context.User = new ClaimsPrincipal([
+            verified, new ClaimsIdentity([
+                new Claim("sub", "attacker"), new Claim("tenant_id", "foreign")])]);
+        context.Request.Headers["X-Tenant-ID"] = "foreign";
+        Assert.Equal(trustedPartition, AbaRateLimitOptions.PartitionKey(context));
+
+        // An unsigned subject cannot borrow authentication from an identity
+        // that has only a tenant claim to create independent Redis/local quotas.
+        context.User = new ClaimsPrincipal([
+            new ClaimsIdentity([new Claim("tenant_id", "tenant-one")], "Bearer"),
+            new ClaimsIdentity([new Claim("sub", "attacker")])]);
+        Assert.Equal("ip:192.0.2.25", AbaRateLimitOptions.PartitionKey(context));
+
+        // Even two authenticated identities cannot synthesize a new JWT quota.
+        context.User = new ClaimsPrincipal([
+            verified, new ClaimsIdentity([new Claim("sub", "attacker")], "Bearer")]);
+        Assert.Equal("ip:192.0.2.25", AbaRateLimitOptions.PartitionKey(context));
+    }
+
+    [Fact]
     public void AnonymousPartitionUsesPeerIpNotSpoofedForwardedHeaders()
     {
         var context = new DefaultHttpContext();
