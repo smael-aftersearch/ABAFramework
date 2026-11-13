@@ -29,6 +29,10 @@ The generic framework has no business membership model and must not invent one.
   a callback against that same transaction. PostgreSQL uses SET LOCAL.
   SQL Server resets SESSION_CONTEXT before pooling; if it cannot reset,
   the connection pool is invalidated.
+- The technical request-tenant resolver requires exactly one authenticated identity
+  and exactly one valid claim of the configured tenant type. Conflicting or repeated
+  same-value claims are ambiguous and rejected before the tenant can reach a SQL
+  scope. An untrusted header or secondary identity cannot supply a fallback.
 - No customer's tables, membership records, global roles or deployment
   configuration are silently created or modified at runtime.
 
