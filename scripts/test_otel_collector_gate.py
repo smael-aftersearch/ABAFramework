@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/verify-otel-collector.sh"
-CONFIG = ROOT / "infra/otel/collector-ci.yaml"
+CONFIG = ROOT / "infra/otel-collector-ci.yaml"
 
 
 class CollectorDrillGuardTests(unittest.TestCase):

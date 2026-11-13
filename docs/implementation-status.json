@@ -641,7 +641,7 @@
       "remaining": "Pass the new real collector CI and select/approve production collector routing, HTTPS/mTLS, PII controls, sampling and retention",
       "acceptance": "Collector observes test request traces and identifies service correctly",
       "evidence": [
-        "infra/otel/collector-ci.yaml",
+        "infra/otel-collector-ci.yaml",
         "scripts/verify-otel-collector.sh"
       ],
       "tests": [

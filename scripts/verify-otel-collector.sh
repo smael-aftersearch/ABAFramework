@@ -34,7 +34,7 @@ docker pull "$IMAGE" >"$TMP/collector-pull.log" 2>&1 || {
 }
 docker run -d --rm --name "$CONTAINER" \
   -p 127.0.0.1:4317:4317 \
-  -v "$ROOT/infra/otel/collector-ci.yaml:/etc/otelcol/config.yaml:ro" \
+  -v "$ROOT/infra/otel-collector-ci.yaml:/etc/otelcol/config.yaml:ro" \
   "$IMAGE" --config=/etc/otelcol/config.yaml >/dev/null
 
 READY=0

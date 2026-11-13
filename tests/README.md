@@ -115,7 +115,7 @@ and scanner, not upstream signatures.
 ## CI-only OTLP Collector end-to-end
 
 `scripts/verify-otel-collector.sh` starts a versioned OpenTelemetry Collector
-with the confined `infra/otel/collector-ci.yaml` OTLP/gRPC receiver, generates
+with the confined `infra/otel-collector-ci.yaml` OTLP/gRPC receiver, generates
 a fresh API, enables instrumentation in Development and requires the Collector
 to actually observe both `ResourceSpans` and `ResourceMetrics` with the
 `Pilot.Collector` service identity and HTTP server request metric. A synthetic
