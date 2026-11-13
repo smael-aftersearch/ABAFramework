@@ -48,7 +48,7 @@ Queue B feature status: `db-business-migrations=not_started`,
 `cache-multinode=not_started`, `cache-stampede=partial`.
 **Verified closures B 0/9 (0%)**. Owner-specific migrations, concurrency and
 business consumers remain **BLOCKED**. Review scoped changes and required
-checks in [the queue B branch comparison](https://github.com/smael-aftersearch/ABAFramework/compare/main...feat/queue-b-cache-inflight-cap-run4-20261113)
+checks in [PR #13 and exact-HEAD CI checks](https://github.com/smael-aftersearch/ABAFramework/pull/13/checks)
 and [Queue B ledger #4](https://github.com/smael-aftersearch/ABAFramework/issues/4).
 
 **Queue C — technical rate-limit progress (execution 2/10; 2026-11-13):**
