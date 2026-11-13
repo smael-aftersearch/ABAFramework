@@ -279,7 +279,7 @@ public sealed class CacheSourceBudgetTests
             (await scoped.TryGetAsync<string>("tenant-a", "report")).Value);
         Assert.Equal(0, gate.InFlightRequests);
         Assert.Equal(0, gate.ActiveKeys);
-        Assert.Equal("previous-value", await query.GetOrLoadAsync(
+        Assert.Equal("previous-value", await query.GetOrLoadAsync<string>(
             "tenant-a", "report", ttl,
             _ => throw new InvalidOperationException("Valid cached hit must be preserved")));
     }
