@@ -79,6 +79,16 @@ tamper and preserved neighbor tenant head. Only generated tenant audit
 rows are deleted by the test. This is authored evidence pending exact
 PR-head CI, not immutable Production audit custody.
 
+## Broker endpoint parsing safety (incremental)
+
+`AbaMessagingOptionsTests` rejects raw CR/LF/TAB/C1 control characters
+before a RabbitMQ URI is parsed or a Kafka bootstrap list is trimmed.
+It preserves valid Production AMQPS credentials, Development Kafka's
+ordinary spaces between bootstrap entries and default-disabled messaging.
+Error text never includes configured credentials or broker addresses.
+These tests are **authored pending exact-head .NET CI**; they do not
+certify a Production broker's identity, TLS trust, ACLs or topic policy.
+
 ## Optional RabbitMQ transport and broker outage test
 
 The generic template's separately built `RabbitMqIntegrationTests.cs` uses a

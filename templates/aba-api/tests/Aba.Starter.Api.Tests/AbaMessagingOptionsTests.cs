@@ -86,6 +86,45 @@ public sealed class AbaMessagingOptionsTests
     }
 
     [Fact]
+    public void ProductionAcceptsValidSecureNonGuestRabbitConnection()
+    {
+        const string connection = "amqps://service:opaque-secret@rabbit.example.test:5671/vhost";
+        var options = Parse(new Dictionary<string, string?>
+        {
+            ["Platform:Messaging:Enabled"] = "true",
+            ["Platform:Messaging:Transport"] = "RabbitMQ",
+            ["ConnectionStrings:AbaRabbitMQ"] = connection
+        }, isDevelopment: false);
+
+        Assert.Equal(AbaMessagingTransport.RabbitMq, options.Transport);
+        Assert.Equal(connection, options.RabbitMqConnectionString);
+    }
+
+    [Theory]
+    [InlineData("amqps://service:opaque-secret@rabbit.example.test:5671/vhost\n")]
+    [InlineData("\ramqps://service:opaque-secret@rabbit.example.test:5671/vhost")]
+    [InlineData("amqps://service:opaque-secret@rabbit.example.test:5671/vhost\t")]
+    [InlineData("amqps://service:opaque-secret@rabbit.example.test:5671/\u0085vhost")]
+    public void RabbitMqRejectsRawControlsBeforeUriParsingWithoutLeakingCredentials(
+        string connection)
+    {
+        foreach (var development in new[] { true, false })
+        {
+            var error = Assert.Throws<InvalidOperationException>(() => Parse(
+                new Dictionary<string, string?>
+                {
+                    ["Platform:Messaging:Enabled"] = "true",
+                    ["Platform:Messaging:Transport"] = "RabbitMQ",
+                    ["ConnectionStrings:AbaRabbitMQ"] = connection
+                }, isDevelopment: development));
+
+            Assert.Contains("absolute amqp:// or amqps:// URI", error.Message);
+            Assert.DoesNotContain("opaque-secret", error.Message, StringComparison.Ordinal);
+            Assert.DoesNotContain("rabbit.example.test", error.Message, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
     public void DevelopmentAcceptsLocalGuestCredentialsAndDevOnlyProvisioning()
     {
         const string connection = "amqp://guest:guest@localhost:5672/%2F";
@@ -138,6 +177,45 @@ public sealed class AbaMessagingOptionsTests
         Assert.Contains("host:port bootstrap servers", error.Message);
         Assert.DoesNotContain("secret", error.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("kafka.example", error.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("localhost:9092\n")]
+    [InlineData("\tlocalhost:9092")]
+    [InlineData("localhost:9092,\r\nkafka.internal:9093")]
+    [InlineData("localhost:9092,\u0085kafka.internal:9093")]
+    public void KafkaRejectsInvisibleControlsBeforeTrimmingBootstrapList(
+        string bootstrapServers)
+    {
+        var error = Assert.Throws<InvalidOperationException>(() => Parse(
+            new Dictionary<string, string?>
+            {
+                ["Platform:Messaging:Enabled"] = "true",
+                ["Platform:Messaging:Transport"] = "Kafka",
+                ["ConnectionStrings:AbaKafka"] = bootstrapServers
+            }, isDevelopment: true));
+
+        Assert.Contains("host:port bootstrap servers", error.Message);
+        Assert.DoesNotContain("localhost", error.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("kafka.internal", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DisabledMessagingNeverParsesControlBearingBrokerEndpoints()
+    {
+        var options = Parse(new Dictionary<string, string?>
+        {
+            ["Platform:Messaging:Enabled"] = "false",
+            ["Platform:Messaging:Transport"] = "Kafka",
+            ["ConnectionStrings:AbaKafka"] = "localhost:9092\n",
+            ["ConnectionStrings:AbaRabbitMQ"] =
+                "amqps://service:opaque-secret@rabbit.example.test/vhost\r"
+        }, isDevelopment: false);
+
+        Assert.False(options.Enabled);
+        Assert.Equal(AbaMessagingTransport.Local, options.Transport);
+        Assert.Null(options.RabbitMqConnectionString);
+        Assert.Null(options.KafkaBootstrapServers);
     }
 
     [Theory]

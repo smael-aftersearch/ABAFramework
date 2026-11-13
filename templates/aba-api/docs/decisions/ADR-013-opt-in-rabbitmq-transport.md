@@ -23,3 +23,18 @@ The generated project carries the version-matched Wolverine RabbitMQ package whi
 ## Verification
 
 The template includes configuration rejection tests, real RabbitMQ duplicate-payload tests against both supported SQL providers, and an isolated broker pause/recovery drill. These prove only the technical probes and exact disposable CI fixture. The exact-head CI run must pass before the capability is marked implemented.
+
+## Fail-closed raw endpoint parsing (technical hardening)
+
+The RabbitMQ adapter now rejects raw control characters in its supplied
+amqp/amqps connection URI *before* `Uri.TryCreate`; URI parsing must not
+silently normalize newline, carriage-return, TAB or other control bytes
+from a secret-bearing address. A generic non-echoing error is returned.
+Valid Development URIs and Production non-guest AMQPS credentials remain
+supported. This is configuration hygiene, not certificate validation,
+approved broker ACLs or Production topology authorization.
+
+Generated API xUnit tests include positive Production AMQPS, negative
+control-bearing URI fixtures in Development and Production, and unchanged
+default-disabled behavior. CI on the exact change HEAD must PASS before
+this is considered executed evidence.
