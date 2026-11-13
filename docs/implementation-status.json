@@ -506,13 +506,14 @@
       "status": "partial",
       "owner": "Platform / Operations",
       "priority": "P0",
-      "delivered": "CI-verified real SIGKILL on both PostgreSQL and SQL Server: uncommitted SQL rollback, durable Wolverine schedule recovery and genuine pre-ACK redelivery after one separately committed idempotent technical effect (8/8 CrashDrill cases)",
+      "delivered": "CI-verified real SIGKILL on both PostgreSQL and SQL Server: uncommitted SQL rollback, durable Wolverine schedule recovery and genuine pre-ACK redelivery after one separately committed idempotent technical effect (8/8 CrashDrill cases); authored CI-only strict crash-marker path, symlink and no-overwrite signalling guards (new exact-head CI required)",
       "remaining": "Owner-specific transactional business Outbox COMMIT/publish/consumer ACK fault tests, external provider side-effect deduplication, broker partitions, multi-node fencing and Production recovery approvals",
       "acceptance": "No message loss across abrupt process death and controlled duplicate deliveries",
       "evidence": [
         "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbruptCrashWindowTests.cs",
         "scripts/verify-platform-services.sh",
-        "templates/aba-api/docs/decisions/ADR-008-kill-window-recovery.md"
+        "templates/aba-api/docs/decisions/ADR-008-kill-window-recovery.md",
+        "templates/aba-api/src/Aba.Starter.Platform/Messaging/AbaDurabilityProbe.cs"
       ],
       "tests": [
         "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbruptCrashWindowTests.cs",
