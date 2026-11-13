@@ -67,8 +67,8 @@ source SHA, for **both** NuGet and Docker-save artifacts. Focused
 `scripts/test_release_attestation.py` cases use a local verifier double
 to prove the positive/negative control flow; only the main-only GitHub
 job can actually prove cryptographic signature acceptance and denial.
-The shared verifier must be present in that job's checked-out source. The artifact, hash, attestation JSON and Trivy
-report are retained. This is stronger than signing a textual Dockerfile,
+The shared verifier must be present in that job's checked-out source.
+The artifact, hash, attestation JSON and Trivy report are retained. This is stronger than signing a textual Dockerfile,
 but it does **not** sign a published OCI registry manifest digest.
 
 Separately, after all upstream CI jobs pass, the template NuGet
