@@ -101,18 +101,37 @@ public sealed class AbaRedisHealthCheck(IDistributedCache cache) : IHealthCheck
     {
         var id = Guid.NewGuid().ToString("N");
         var key = "aba:health:" + id;
+        var wroteProbe = false;
+        HealthCheckResult result;
         try
         {
             await cache.SetStringAsync(key, id,
                 new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(10) },
                 cancellationToken);
+            wroteProbe = true;
             var read = await cache.GetStringAsync(key, cancellationToken);
-            await cache.RemoveAsync(key, cancellationToken);
-            return read == id ? HealthCheckResult.Healthy() : HealthCheckResult.Unhealthy("Redis readback mismatch.");
+            result = read == id
+                ? HealthCheckResult.Healthy()
+                : HealthCheckResult.Unhealthy("Redis readback mismatch.");
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            return HealthCheckResult.Unhealthy("Redis unavailable.", ex);
+            result = HealthCheckResult.Unhealthy("Redis unavailable.", ex);
         }
+
+        // A failed read must not leave probe keys behind until their TTL.
+        // Cleanup failure is a failed readiness probe, never a healthy signal.
+        // Cancellation still propagates; a short probe TTL bounds abandoned keys.
+        if (!wroteProbe)
+            return result;
+        try
+        {
+            await cache.RemoveAsync(key, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return HealthCheckResult.Unhealthy("Redis health-probe cleanup failed.", ex);
+        }
+        return result;
     }
 }
