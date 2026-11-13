@@ -55,7 +55,11 @@ public sealed record AbaMessagingOptions(
         if (transport == AbaMessagingTransport.RabbitMq)
         {
             var connectionString = configuration.GetConnectionString("AbaRabbitMQ");
-            if (!Uri.TryCreate(connectionString, UriKind.Absolute, out var uri)
+            // Uri may normalize leading/trailing control characters before
+            // validating an endpoint. Never silently rewrite an operator
+            // supplied broker address (or the secret-bearing URI).
+            if (connectionString is null || connectionString.Any(char.IsControl)
+                || !Uri.TryCreate(connectionString, UriKind.Absolute, out var uri)
                 || uri.Host.Length == 0
                 || (uri.Scheme != "amqp" && uri.Scheme != "amqps"))
                 throw new InvalidOperationException(
@@ -88,9 +92,14 @@ public sealed record AbaMessagingOptions(
     private static AbaMessagingOptions ParseKafka(
         IConfiguration configuration, bool isDevelopment, bool autoProvision)
     {
-        var bootstrapServers = configuration.GetConnectionString("AbaKafka")?.Trim();
+        // Preserve ordinary spaces around comma-separated endpoints, but
+        // inspect the RAW string first: Trim/TrimEntries would erase CR, LF,
+        // TAB or other controls and silently accept ambiguous broker input.
+        var configuredBootstrap = configuration.GetConnectionString("AbaKafka");
+        var bootstrapServers = configuredBootstrap?.Trim();
         var bootstrapEntries = bootstrapServers?.Split(',', StringSplitOptions.TrimEntries);
-        if (bootstrapEntries is null
+        if (configuredBootstrap is null || configuredBootstrap.Any(char.IsControl)
+            || bootstrapEntries is null
             || bootstrapEntries.Length == 0
             || bootstrapEntries.Any(server => !IsKafkaBootstrapServer(server)))
             throw new InvalidOperationException(

@@ -23,3 +23,16 @@ The version-matched `WolverineFx.Kafka` dependency is shipped by the template wh
 ## Verification
 
 The starter has unit tests for bootstrap validation and secure configuration, plus integration cases that publish duplicate technical probes through Kafka with PostgreSQL and SQL Server and assert two deliveries but one effect. The integration workflow must pass before claiming those live broker cases as executed. Local verification requires a reachable Kafka service via `ABA_TEST_KAFKA`; absent service evidence is `NOT_RUN`.
+
+## Fail-closed Kafka bootstrap input (technical hardening)
+
+Kafka bootstrap endpoints are still a comma-separated `host:port` list
+and may contain ordinary spaces *around* entries. The parser now rejects
+all control characters in the **original** connection-string value before
+`Trim` or `Split(...TrimEntries)`, which would otherwise silently
+remove newline/TAB/CR/C1 characters from a configured broker address.
+The rejection never echoes the endpoint or SASL credentials and does not
+start a broker connection. Tests keep positive multi-server Development
+and authenticated Production configurations, and negative cases for
+leading/trailing/embedded controls. This is not topic/tenant permission,
+TLS trust, cluster failover or a Production broker policy.
