@@ -16,7 +16,7 @@ dotnet test Aba.Starter.slnx -c Release --no-build
 
 ## Optional real-service integration suite
 
-A separate **integration test project outside the default solution** lives in `tests/Aba.Starter.Platform.IntegrationTests`. It contains actual PostgreSQL, SQL Server, Redis and Wolverine tests. Running ordinary `dotnet test Aba.Starter.slnx` stays fast and needs no external services; running the dedicated integration test project **requires all external connections** and fails closed if any are absent, rather than falsely recording a PASS. Set `ABA_TEST_POSTGRESQL`, `ABA_TEST_SQLSERVER` and `ABA_TEST_REDIS`, then execute `dotnet test tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj`. Repo-level `scripts/verify-platform-services.sh` builds and tests this isolated suite on a fresh generated API and CI provisions actual containers.
+A separate **integration test project outside the default solution** lives in `tests/Aba.Starter.Platform.IntegrationTests`. It contains actual PostgreSQL, SQL Server, Redis, RabbitMQ, Kafka and Wolverine tests. Running ordinary `dotnet test Aba.Starter.slnx` stays fast and needs no external services; running the dedicated integration test project requires the relevant external connections and fails closed if they are absent, rather than falsely recording a PASS. Set `ABA_TEST_POSTGRESQL`, `ABA_TEST_SQLSERVER`, `ABA_TEST_REDIS`, `ABA_TEST_RABBITMQ` and `ABA_TEST_KAFKA`, then execute `dotnet test tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj`. Repo-level `scripts/verify-platform-services.sh` builds and tests this isolated suite on a fresh generated API and CI provisions actual containers.
 
 ## Transactional Outbox acceptance gate
 
@@ -26,6 +26,30 @@ The real-service integration suite invokes `AbaTransactionalOutboxProbe` against
 - default domain-neutral quick start remains external-service-free.
 
 This is stronger than a connectivity test, but it is still not a crash/restart or broker outage test.
+
+## Optional RabbitMQ transport and outage tests
+
+`RabbitMqIntegrationTests` routes only the technical `AbaDurabilityProbe`
+through a test-owned queue. It publishes the same payload twice and checks
+that both envelopes reached the durable inbox while the effect receipt remains
+unique, once against each SQL provider. `BrokerOutageDrill` pauses only the
+exact labeled `rabbitmq:4.4.0-management-alpine` CI service on loopback, checks
+that the transactional outbox state commits without delivery during the
+outage, resumes the broker and requires eventual delivery. The fixture always
+unpauses its verified disposable container. It is excluded from `--level full`
+and invoked by an explicit CI step. It is technical evidence only; actual
+product contracts, handler compensation, retry limits, DLQ policy and
+production cluster recovery stay with their owners.
+
+## Optional Kafka durable delivery test
+
+`KafkaIntegrationTests.cs` sends a synthetic technical probe to a random topic
+using the durable relational outbox and inbox, once with PostgreSQL and once
+with SQL Server. It publishes the same payload twice and asserts two delivery
+attempts but one database effect. The manually dispatched integration workflow
+provisions the official Apache Kafka 4.4.0 single-node image. The case is
+authored until exact-head CI executes it; it does not certify production Kafka
+security, topology, failover, retry policy or business consumer behavior.
 
 ## New changes
 
@@ -206,7 +230,20 @@ real restart/reconnect, healthy readiness and scope isolation.
 The normal integration suite excludes RedisRestartDrill; the
 generated manually dispatched workflow and root CI give it a
 dedicated disposable container. No production Redis restart or
-distributed lock is claimed.
+distributed lock is claimed by the default mode.
+
+`AbaCacheDistributedCoordinationTests` covers opt-in configuration and
+the read-after-lock, shared-permit and fail-closed invariants with a fake
+coordinator. `AbaDistributedCacheCoordinationIntegrationTests` creates
+separate service providers against one Redis backend to prove same-key
+miss collapse, shared concurrent-source limits and a shared serial-load
+budget, and readiness reports the separate coordination connection.
+Its unreachable-Redis case verifies that an explicitly permitted
+authoritative-source fallback still does not call the source without a
+shared coordinator permit; a configuration-drift case rejects replicas
+that share a namespace but disagree on the budgets. These authored cases are not live-provider PASS
+evidence until the integration project executes them against the current
+Redis fixture.
 
 ## Immutable Docker base and attested scanned archive
 

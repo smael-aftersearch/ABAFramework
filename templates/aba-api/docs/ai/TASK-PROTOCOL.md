@@ -21,13 +21,13 @@ python3 tools/aba_task.py verify --level static --output artifacts/verification/
 python3 tools/aba_task.py verify --level build --output artifacts/verification/build.json
 ```
 
-Static verification checks executable context governance. Build verification restores and builds the generated .NET solution and runs xUnit. For persistence, messaging and cache changes, configure *all three* real external connections and run:
+Static verification checks executable context governance. Build verification restores and builds the generated .NET solution and runs xUnit. For persistence, messaging and cache changes, configure all five real external service connections (PostgreSQL, SQL Server, Redis, RabbitMQ and Kafka) and run:
 
 ```bash
 python3 tools/aba_task.py verify --level full --output artifacts/verification/full.json
 ```
 
-The `full` level **fails closed** with `NOT_RUN` if the .NET SDK or any real-service connection is unavailable; no runner treats missing evidence as PASS. Commands are fixed arrays (no shell interpolation, no arbitrary user-supplied execution). Default xUnit does not require PostgreSQL, SQL Server or Redis.
+The `full` level **fails closed** with `NOT_RUN` if the .NET SDK or any real-service connection is unavailable; no runner treats missing evidence as PASS. Commands are fixed arrays (no shell interpolation, no arbitrary user-supplied execution). Default xUnit does not require PostgreSQL, SQL Server, Redis, RabbitMQ or Kafka.
 
 ## 4. Close the change with evidence
 
@@ -41,4 +41,4 @@ Verification output tails redact configured PostgreSQL, SQL Server, Redis and cl
 
 ## Generated repository CI
 
-The `.github/workflows/ci.yml` workflow runs on pushes/PRs and uses the portable `aba_task.py verify --level build` runner. `.github/workflows/integration.yml` is an explicit GitHub Actions workflow-dispatch job that provisions disposable PostgreSQL, SQL Server and Redis containers, then executes `verify --level full`. The integration test suite fails closed when service connections are absent. These workflows do not deploy the API or publish a public NuGet package; they supply reproducible evidence only.
+The `.github/workflows/ci.yml` workflow runs on pushes/PRs and uses the portable `aba_task.py verify --level build` runner. `.github/workflows/integration.yml` is an explicit GitHub Actions workflow-dispatch job that provisions disposable PostgreSQL, SQL Server, Redis, RabbitMQ and Kafka containers, then executes `verify --level full` plus the separately guarded RabbitMQ outage drill. The integration test suite fails closed when service connections are absent. These workflows do not deploy the API or publish a public NuGet package; they supply reproducible evidence only.

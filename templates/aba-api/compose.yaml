@@ -1,6 +1,35 @@
 # One-command local demo: docker compose up --build
 # HTTP is bound ONLY to localhost. Not a production deployment specification.
 services:
+  rabbitmq:
+    image: rabbitmq:4.4.0-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: aba_dev
+      RABBITMQ_DEFAULT_PASS: aba_dev_local_only
+    ports:
+      - "127.0.0.1:56729:5672"
+    labels:
+      aba.test.disposable: "true"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 3s
+      retries: 30
+  kafka:
+    profiles: [kafka]
+    image: apache/kafka:4.4.0
+    environment:
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+    ports:
+      - "127.0.0.1:9092:9092"
+    labels:
+      aba.test.disposable: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/9092'"]
+      interval: 5s
+      retries: 30
   api:
     build: .
     ports:

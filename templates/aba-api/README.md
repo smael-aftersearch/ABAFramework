@@ -5,11 +5,13 @@ A reusable .NET 10 starting point. **No example business domain is included.**
 ## Requirements
 
 - .NET 10 SDK.
-- NuGet access for ASP.NET Core OpenAPI, Scalar, JWT bearer, xUnit, EF Core 10, PostgreSQL/SQL Server provider packages, Wolverine 6, Redis and OpenTelemetry (optional services remain off by default).
+- NuGet access for ASP.NET Core OpenAPI, Scalar, JWT bearer, xUnit, EF Core 10, PostgreSQL/SQL Server provider packages, Wolverine 6 with optional RabbitMQ and Kafka transports, Redis and OpenTelemetry (optional services remain off by default).
 
 ## Start locally
 
 With Docker installed, the quickest launch is `docker compose up --build` in the generated project directory. The API and Scalar UI are bound to **localhost:5174 only**; no database or Redis is required unless explicitly enabled. The generated multi-stage Dockerfile uses the non-root .NET runtime user. The image is designed for trusted configurable deployments, but does **not** turn Development mode into a secure publicly exposed server.
+
+The optional Kafka fixture uses the official Apache image and is bound to loopback. Start it only for local Kafka development with `docker compose --profile kafka up -d kafka`; configure the API using the settings in `docs/platform-infrastructure.md`.
 
 You can also run the .NET SDK directly:
 
@@ -156,15 +158,15 @@ When the real owner is known, run `python3 tools/new_context.py create --name In
 
 ## Architecture
 
-Start with `AGENTS.md`, `docs/ai/INDEX.md` and the included `.agents/skills/aba-engineering/SKILL.md`. Add bounded contexts **only for your actual business domains** and record ownership in `metadata/contexts.json`. Avoid premature shared Domain models. EF Core 10 provider selection (PostgreSQL and SQL Server), optional Redis, and Wolverine relational durability are now implemented as technical adapters in the generated Platform project. They are disabled by default to preserve the zero-dependency first run; read `docs/platform-infrastructure.md` before enabling them. Domain migrations, production runbooks and real fault-injection/outbox integration tests remain future work.
+Start with `AGENTS.md`, `docs/ai/INDEX.md` and the included `.agents/skills/aba-engineering/SKILL.md`. Add bounded contexts **only for your actual business domains** and record ownership in `metadata/contexts.json`. Avoid premature shared Domain models. EF Core 10 provider selection (PostgreSQL and SQL Server), optional Redis, and Wolverine relational durability with opt-in RabbitMQ/Kafka transports are available as technical adapters in the generated Platform project. They are disabled by default to preserve the zero-dependency first run; read `docs/platform-infrastructure.md` before enabling them. Domain migrations, production runbooks and business-specific failure tests remain the owning contexts' work.
 
 ## Optional real database, cache, messaging and telemetry
 
-The `src/Aba.Starter.Platform` technical library supports **both** PostgreSQL and Microsoft SQL Server with EF Core 10. Enable exactly one provider per deployment by setting `Platform__Database__Provider=PostgreSql` or `SqlServer` and supply `ConnectionStrings__AbaDatabase` securely. EF Core migration is included for the technical idempotency table. Toggle `Platform__Cache__Provider=Redis` with `ConnectionStrings__AbaRedis`; enable Wolverine relational durability with `Platform__Messaging__Enabled=true`. Enable OpenTelemetry with `Platform__Observability__Enabled=true` and optional OTLP endpoint. A disposable collector verification is run only by upstream CI with explicit opt-in, proving generated HTTP spans, metrics and service identity over local OTLP/gRPC. This does not configure a production collector, approved sampling/PII policy, or off-host export. The `Platform__Tenancy__Enabled=true` flag requires an authenticated tenant claim, but **full tenant data isolation is not implemented**.
+The `src/Aba.Starter.Platform` technical library supports **both** PostgreSQL and Microsoft SQL Server with EF Core 10. Enable exactly one provider per deployment by setting `Platform__Database__Provider=PostgreSql` or `SqlServer` and supply `ConnectionStrings__AbaDatabase` securely. EF Core migration is included for the technical idempotency table. Toggle `Platform__Cache__Provider=Redis` with `ConnectionStrings__AbaRedis`; enable Wolverine relational durability with `Platform__Messaging__Enabled=true`. RabbitMQ uses `Platform__Messaging__Transport=RabbitMQ` with a protected AMQPS URI in Production. Kafka uses `Platform__Messaging__Transport=Kafka`, a credential-free `ConnectionStrings__AbaKafka` bootstrap list and, in Production, `Platform__Messaging__Kafka__SecurityProtocol=SaslSsl` plus supported SASL credentials in protected configuration. Product owners register only their own versioned message routes through the `AddAbaPlatform` callback. Enable OpenTelemetry with `Platform__Observability__Enabled=true` and optional OTLP endpoint. A disposable collector verification is run only by upstream CI with explicit opt-in, proving generated HTTP spans, metrics and service identity over local OTLP/gRPC. This does not configure a production collector, approved sampling/PII policy, or off-host export. The `Platform__Tenancy__Enabled=true` flag requires an authenticated tenant claim, but **full tenant data isolation is not implemented**.
 
 Read [docs/platform-infrastructure.md](docs/platform-infrastructure.md) for configuration details and [docs/architecture.md](docs/architecture.md) for boundaries. The host remains domain-neutral; no Academy context is generated.
 
-**Actual integration evidence:** [GitHub Actions real containers](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43290885904) passed PostgreSQL and SQL Server EF migrations/idempotency, Redis and Wolverine technical message delivery for both engines. Do not infer production-level durability/security from those baseline tests.
+**Actual integration evidence:** [GitHub Actions real containers](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43290885904) passed PostgreSQL and SQL Server EF migrations/idempotency, Redis and Wolverine technical message delivery for both engines. That historical baseline predates the broker adapters. RabbitMQ/Kafka integration cases are authored and require an exact-head CI run; local broker verification remains NOT_RUN without Docker. Do not infer production-level durability/security from the baseline tests.
 
 ## OIDC test-only local discovery
 
@@ -174,7 +176,7 @@ Read [docs/platform-infrastructure.md](docs/platform-infrastructure.md) for conf
 
 ## Cache outage handling
 
-For non-authoritative, already-authorized queries you may use `ReadThroughQueryCache` with `CacheOutagePolicy.UseAuthoritativeSource` to fetch fresh source data when Redis connectivity fails; default remains strict `FailClosed`. Never use this for authentication, tenant authorization, accounting, financial idempotency or other business invariants. See `docs/platform-infrastructure.md`.
+For non-authoritative, already-authorized queries you may use `ReadThroughQueryCache` with `CacheOutagePolicy.UseAuthoritativeSource` to fetch fresh source data when Redis connectivity fails; default remains strict `FailClosed`. With opt-in `Platform:Cache:DistributedCoordination`, a shared lease and source budget are required before the loader runs, so coordinator unavailability still fails closed. Never use this for authentication, tenant authorization, accounting, financial idempotency or other business invariants. See `docs/platform-infrastructure.md` and ADR-010.
 
 ## Request rate limits
 
@@ -201,7 +203,7 @@ production allow-list limited to reviewed application origins.
 
 ## CI is included in every generated repository
 
-The generated project includes `.github/workflows/ci.yml`, which automatically checks agent documentation/architecture governance, .NET 10 restore/build, and xUnit on every Push and PR. A second workflow, `.github/workflows/integration.yml`, is started explicitly with **Run workflow** in GitHub Actions and provisions isolated PostgreSQL, SQL Server and Redis services for the fail-closed Wolverine/EF/Redis integration suite. Both workflows upload JSON test evidence with no production secrets. They do not publish images or deploy without your authorization.
+The generated project includes `.github/workflows/ci.yml`, which automatically checks agent documentation/architecture governance, .NET 10 restore/build, and xUnit on every Push and PR. A second workflow, `.github/workflows/integration.yml`, is started explicitly with **Run workflow** in GitHub Actions and provisions isolated PostgreSQL, SQL Server, Redis, RabbitMQ and Kafka services for the fail-closed Wolverine/EF/cache/broker integration suite. A separate guarded test pauses only the job-owned RabbitMQ container and verifies durable outbox recovery. Both workflows upload JSON test evidence with no production secrets. They do not publish images or deploy without your authorization.
 
 **Latest source verification:** [all 8 GitHub Actions jobs passed](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43320400760),
 including per-provider HMAC audit and Wolverine poison quarantine/replay

@@ -229,11 +229,12 @@
       "status": "implemented",
       "owner": "Platform (opt-in per context)",
       "priority": "P0",
-      "delivered": "Tenant-scoped EF filtering and foreign-row write rejection",
+      "delivered": "Tenant-scoped EF filtering and foreign-row write rejection; TenantDatabaseBoundaryTests passed 2/2 against both live SQL providers.",
       "remaining": "Raw SQL, bulk updates and SQL-level RLS remain open",
       "acceptance": "PostgreSQL and SQL Server deny forged insert and cross-tenant update",
       "evidence": [
-        "templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaTenantDbContext.cs"
+        "templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaTenantDbContext.cs",
+        "artifacts/verification/local-sql-integration.json"
       ],
       "tests": [
         "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/TenantDatabaseBoundaryTests.cs",
@@ -247,12 +248,13 @@
       "status": "implemented",
       "owner": "Owning business context / DBA",
       "priority": "P0",
-      "delivered": "Technical acceptance passes on both SQL engines in PR #31 head CI 43417678561: PostgreSQL FORCE RLS and SQL Server FILTER/BLOCK DDL, trusted tenant scopes, and direct SQL + EF bulk cross-tenant denial",
+      "delivered": "Technical acceptance passes on both SQL engines in PR #31 head CI 43417678561: PostgreSQL FORCE RLS and SQL Server FILTER/BLOCK DDL, trusted tenant scopes, and direct SQL + EF bulk cross-tenant denial; RowLevelSecurityTests passed 2/2 against both live SQL providers.",
       "remaining": "Apply owner-specific RLS migrations and least-privilege roles, verify membership authorization and privileged/session spoof bypass cases",
       "acceptance": "Direct SQL and EF ExecuteUpdate cannot modify foreign tenant records",
       "evidence": [
         "templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaTenantRlsPolicies.cs",
-        "templates/aba-api/docs/decisions/ADR-005-tenant-row-security.md"
+        "templates/aba-api/docs/decisions/ADR-005-tenant-row-security.md",
+        "artifacts/verification/local-sql-integration.json"
       ],
       "tests": [
         "templates/aba-api/tests/Aba.Starter.Api.Tests/TenantRlsPolicyTests.cs",
@@ -266,12 +268,13 @@
       "status": "partial",
       "owner": "Owning business context / Security",
       "priority": "P0",
-      "delivered": "CI-verified tenant-scoped SQL transaction wrapper with cross-tenant raw SQL/EF bulk denial on both SQL engines; split-identity tenant guard verified in CI 43357853144; duplicate tenant-claim authorization denial and quota invariants (PR #20 CI 43364852219 PASS); Queue C technical SQL scope now closes a partially opened connection if OpenAsync fails, with disposable provider-fault and malformed-tenant regression tests (new exact-head CI required); Queue C final pre-cancelled request guard refuses provider OpenAsync and tenant callback before database access (PR #28 exact-head checks required)",
-      "remaining": "Block SQL-injection tenant session spoofing, adopt real owner-context raw SQL authorization, least-privileged production accounts and DBA/Security approvals",
+      "delivered": "CI-verified tenant-scoped SQL transaction wrapper with cross-tenant raw SQL/EF bulk denial on both SQL engines; split-identity tenant guard verified in CI 43357853144; duplicate tenant-claim authorization denial and quota invariants (PR #20 CI 43364852219 PASS); Queue C technical SQL scope now closes a partially opened connection if OpenAsync fails, with disposable provider-fault and malformed-tenant regression tests (new exact-head CI required); Queue C final pre-cancelled request guard refuses provider OpenAsync and tenant callback before database access (PR #28 exact-head checks required); Local tests: RowLevelSecurityTests 2/2 across PostgreSQL 17 and SQL Server 17.0.1000.7; TenantRlsPolicyTests 16/16 reject SQL tautology, PostgreSQL set_config and SQL Server SESSION_CONTEXT payloads before opening a connection; full API xUnit 194/194 (2026-11-13).",
+      "remaining": "Prevent arbitrary SQL callbacks from changing tenant session context via direct set_config/sp_set_session_context calls; adopt real owner-context raw SQL authorization, least-privileged production accounts and DBA/Security approvals.",
       "acceptance": "Cross-tenant raw SQL and bulk mutation are denied",
       "evidence": [
         "templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaTenantRlsPolicies.cs",
-        "templates/aba-api/src/Aba.Starter.Platform/Security/AbaTenantClaims.cs"
+        "templates/aba-api/src/Aba.Starter.Platform/Security/AbaTenantClaims.cs",
+        "artifacts/verification/local-sql-integration.json"
       ],
       "tests": [
         "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/RowLevelSecurityTests.cs",
@@ -306,11 +309,12 @@
       "status": "implemented",
       "owner": "Platform",
       "priority": "P0",
-      "delivered": "Runtime Npgsql provider selected by config",
+      "delivered": "Runtime Npgsql provider selected by config; Local PostgreSQL 17 SQL integration checks passed; see the exact run report.",
       "remaining": "Context-owned schema migrations require real domains",
       "acceptance": "Create provider DbContext and apply technical migrations on PostgreSQL",
       "evidence": [
-        "templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaPersistenceServices.cs"
+        "templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaPersistenceServices.cs",
+        "artifacts/verification/local-sql-integration.json"
       ],
       "tests": [
         "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs"
@@ -323,11 +327,12 @@
       "status": "implemented",
       "owner": "Platform",
       "priority": "P0",
-      "delivered": "Runtime EF SqlServer provider selected by config",
+      "delivered": "Runtime EF SqlServer provider selected by config; Local SQL Server 17.0.1000.7 SQL integration checks passed; see the exact run report.",
       "remaining": "Context-owned schema migrations require real domains",
       "acceptance": "Create provider DbContext and apply technical migrations on SQL Server",
       "evidence": [
-        "templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaPersistenceServices.cs"
+        "templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaPersistenceServices.cs",
+        "artifacts/verification/local-sql-integration.json"
       ],
       "tests": [
         "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs"
@@ -340,11 +345,12 @@
       "status": "implemented",
       "owner": "Platform",
       "priority": "P0",
-      "delivered": "Provider-neutral checked-in EF technical migration",
+      "delivered": "Provider-neutral checked-in EF technical migration; All 10 base migration/idempotency/durable-outbox cases passed across PostgreSQL 17 and SQL Server 17.0.1000.7.",
       "remaining": "Production migration rollback/backup remains unverified",
       "acceptance": "Migration and unique key constraint work on both SQL engines",
       "evidence": [
-        "templates/aba-api/src/Aba.Starter.Platform/Persistence/Migrations/202611120001_InitialTechnicalStore.cs"
+        "templates/aba-api/src/Aba.Starter.Platform/Persistence/Migrations/202611120001_InitialTechnicalStore.cs",
+        "artifacts/verification/local-sql-integration.json"
       ],
       "tests": [
         "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs"
@@ -420,11 +426,12 @@
       "status": "implemented",
       "owner": "Platform",
       "priority": "P0",
-      "delivered": "Same-DbContext work and receipt commit/rollback together",
+      "delivered": "Same-DbContext work and receipt commit/rollback together; Same-DbContext idempotency rollback/commit integration passed for both providers.",
       "remaining": "External provider side effects still require dedicated idempotency",
       "acceptance": "Fault rolls back receipt+work on both databases",
       "evidence": [
-        "templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaPersistenceServices.cs"
+        "templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaPersistenceServices.cs",
+        "artifacts/verification/local-sql-integration.json"
       ],
       "tests": [
         "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs"
@@ -437,11 +444,12 @@
       "status": "implemented",
       "owner": "Platform",
       "priority": "P0",
-      "delivered": "Four concurrent callers; only one same-key transaction commits",
+      "delivered": "Four concurrent callers; only one same-key transaction commits; Concurrent same-key idempotency integration passed for both providers.",
       "remaining": "Cross-service external payment retries need real owning context",
       "acceptance": "One transaction wins on PostgreSQL and SQL Server",
       "evidence": [
-        "templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaPersistenceServices.cs"
+        "templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaPersistenceServices.cs",
+        "artifacts/verification/local-sql-integration.json"
       ],
       "tests": [
         "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs"
@@ -454,11 +462,12 @@
       "status": "implemented",
       "owner": "Platform",
       "priority": "P0",
-      "delivered": "Durable relational messaging with either SQL engine",
+      "delivered": "Durable relational messaging with either SQL engine; Durable local Wolverine delivery passed against both live SQL providers.",
       "remaining": "External broker delivery not yet wired",
       "acceptance": "Technical handler processes durable message in both providers",
       "evidence": [
-        "templates/aba-api/src/Aba.Starter.Platform/Messaging/AbaWolverineServices.cs"
+        "templates/aba-api/src/Aba.Starter.Platform/Messaging/AbaWolverineServices.cs",
+        "artifacts/verification/local-sql-integration.json"
       ],
       "tests": [
         "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs"
@@ -471,11 +480,12 @@
       "status": "implemented",
       "owner": "Platform",
       "priority": "P0",
-      "delivered": "Technical state+outgoing message atomic under precommit fault",
+      "delivered": "Technical state+outgoing message atomic under precommit fault; Transactional EF state plus Wolverine outbox commit/rollback passed for both providers.",
       "remaining": "Real business consumers and crash windows remain open",
       "acceptance": "State and message commit together or both roll back on two DB engines",
       "evidence": [
-        "templates/aba-api/src/Aba.Starter.Platform/Messaging/AbaDurabilityProbe.cs"
+        "templates/aba-api/src/Aba.Starter.Platform/Messaging/AbaDurabilityProbe.cs",
+        "artifacts/verification/local-sql-integration.json"
       ],
       "tests": [
         "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs"
@@ -488,11 +498,12 @@
       "status": "implemented",
       "owner": "Platform",
       "priority": "P1",
-      "delivered": "Persisted scheduled Wolverine message recovers after host restart",
+      "delivered": "Persisted scheduled Wolverine message recovers after host restart; Durable scheduled-message clean restart recovery passed against both providers.",
       "remaining": "Abrupt crash and poison replay remain unverified",
       "acceptance": "Second host delivers message persisted by first host",
       "evidence": [
-        "templates/aba-api/src/Aba.Starter.Platform/Messaging/AbaWolverineServices.cs"
+        "templates/aba-api/src/Aba.Starter.Platform/Messaging/AbaWolverineServices.cs",
+        "artifacts/verification/local-sql-integration.json"
       ],
       "tests": [
         "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/DurabilityRecoveryTests.cs"
@@ -505,13 +516,14 @@
       "status": "partial",
       "owner": "Platform / Operations",
       "priority": "P0",
-      "delivered": "CI-verified opt-in Wolverine poison quarantine, metadata-only inspection and exact-ID audited replay on both SQL providers; single-authenticated-identity claim binding verified in PR #16 CI 43356676386; authored exact-one operator sub claim ambiguity denial and audit/replay no-op regressions (new PR-head CI required)",
+      "delivered": "CI-verified opt-in Wolverine poison quarantine, metadata-only inspection and exact-ID audited replay on both SQL providers; single-authenticated-identity claim binding verified in PR #16 CI 43356676386; authored exact-one operator sub claim ambiguity denial and audit/replay no-op regressions (new PR-head CI required); Dead-letter quarantine and audited replay integration passed for both providers; production operator/tenant policy remains open.",
       "remaining": "Issue real signed operator IdP permission, tenant-scoped message store authorization, replay dedup/business compensation, volume limits and approved production runbook",
       "acceptance": "Poison message is quarantined, inspected and safely replayed exactly as intended",
       "evidence": [
         "templates/aba-api/src/Aba.Starter.Platform/Messaging/AbaDeadLetterAdministration.cs",
         "templates/aba-api/src/Aba.Starter.Platform/Messaging/AbaDurabilityProbe.cs",
-        "templates/aba-api/docs/decisions/ADR-007-wolverine-deadletter-operator.md"
+        "templates/aba-api/docs/decisions/ADR-007-wolverine-deadletter-operator.md",
+        "artifacts/verification/local-sql-integration.json"
       ],
       "tests": [
         "templates/aba-api/tests/Aba.Starter.Api.Tests/DeadLetterOperatorGuardTests.cs",
@@ -543,14 +555,25 @@
       "id": "msg-broker",
       "area": "Messaging",
       "feature": "Optional external RabbitMQ/Kafka transport",
-      "status": "not_started",
+      "status": "partial",
       "owner": "Platform",
       "priority": "P1",
-      "delivered": "Not implemented",
-      "remaining": "Add a versioned optional broker adapter when actual demand exists",
-      "acceptance": "Broker outage, retry and duplicate-delivery integration scenarios pass",
-      "evidence": [],
-      "tests": []
+      "delivered": "Opt-in Wolverine RabbitMQ with tracked publisher confirms plus opt-in Wolverine Kafka; owner-supplied versioned routes; Development-only topology provisioning; RabbitMQ AMQP TLS and Kafka SASL_SSL production guards; Kafka idempotent producer with acks=all; connection/secret redaction. Local API xUnit 208/208, integration project Release build, verify-starter.sh generation/build/test/HTTP smoke (208 xUnit), and pack-template.sh install/build/test (208 xUnit) passed. Both brokers have duplicate-delivery integration cases authored for PostgreSQL and SQL Server; live broker cases remain NOT_RUN locally because Docker Desktop is unavailable and Java is not installed.",
+      "remaining": "Run exact-head integration CI for duplicate delivery through both brokers on both SQL providers and the disposable RabbitMQ outage/recovery drill; review owner-approved Production topology/ACLs, broker membership, retry/dead-letter policy, schema/partition policy and business consumers separately. Generic full verification currently reports NOT_RUN for external services.",
+      "acceptance": "Invalid bootstrap/security configuration is rejected before connection without echoing secret values; Production broker security is enforced; duplicate RabbitMQ and Kafka deliveries yield one technical effect against PostgreSQL and SQL Server; the confirmed durable RabbitMQ outbox delivers after a broker pause/recovery.",
+      "evidence": [
+        "templates/aba-api/src/Aba.Starter.Platform/Messaging/AbaMessagingOptions.cs",
+        "templates/aba-api/src/Aba.Starter.Platform/Messaging/AbaWolverineServices.cs",
+        "templates/aba-api/docs/decisions/ADR-013-opt-in-rabbitmq-transport.md",
+        "templates/aba-api/docs/decisions/ADR-014-opt-in-kafka-transport.md",
+        "templates/aba-api/.github/workflows/integration.yml"
+      ],
+      "tests": [
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/AbaMessagingOptionsTests.cs",
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/RabbitMqIntegrationTests.cs",
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/KafkaIntegrationTests.cs",
+        "templates/aba-api/.github/workflows/integration.yml"
+      ]
     },
     {
       "id": "msg-domain-consumers",
@@ -620,13 +643,16 @@
       "status": "partial",
       "owner": "Platform / Operations",
       "priority": "P1",
-      "delivered": "Host-wide per-tenant/key single-flight read-through with 24-concurrent-call and real 12-caller Redis tests, TTL/cancellation/miss-value fixes; actual CI Redis stop/restart with strict/explicit fallback and reconnect (isolated 2-case drill); CI-verified opt-in per-host concurrency ceiling (default 8, configurable 1..256) for authoritative query loads on cache misses/outage; PR #8 CI 43338197320 PASS 8/8 at cabd2c7; CI-verified per-host capped in-flight cache-miss registrations (default 1024, configurable 1..4096) with fail-fast cross-tenant queue admission and cancellation cleanup (PR #13 CI 43351080430); CI-verified readiness probe cleanup on Redis read timeout/mismatch with fail-closed cleanup errors and unrelated tenant keys preserved (PR #23 CI 43369773557); explicit opt-in repair of invalid JSON query values with strict fail-closed, cancellation no-op and tenant-key isolation tests (PR #29 CI 43383783326 PASS; CI-verified cancellation-after-cache/source guards with cancellation-blind provider regressions (PR #30 source/test CI 43391409289 PASS at 2c8815dd; final-head checks at PR #30))",
-      "remaining": "Add distributed multi-replica miss budget/locking, authorize query scopes, bound total/serial source load across replicas during full Redis outage and verify production Redis topology/TTL race policies",
-      "acceptance": "No excessive authoritative DB load during simultaneous cache misses",
+      "delivered": "Host-wide per-tenant/key single-flight read-through with 24-concurrent-call and real 12-caller Redis tests, TTL/cancellation/miss-value fixes; actual CI Redis stop/restart with strict/explicit fallback and reconnect (isolated 2-case drill); CI-verified opt-in per-host concurrency ceiling (default 8, configurable 1..256) and capped in-flight cache-miss registrations (default 1024, configurable 1..4096); CI-verified Redis readiness cleanup, malformed query payload repair and cancellation guards; authored opt-in Redis distributed per-key miss lease, cross-host concurrent-source slots, fixed-window source-load budget, namespace settings-drift guard and dedicated readiness probe with fail-closed coordinator outage; local API xUnit 194/194, integration project build PASS and unreachable-Redis fail-closed integration case PASS; live multi-host Redis cases NOT RUN because Docker Engine is unavailable; current local verify-starter.sh and pack-template.sh both generated/tested fresh APIs with xUnit 194/194 and passed HTTP smoke",
+      "remaining": "Run exact-head live Redis tests for independent-host miss collapse, shared concurrent and fixed-window source budgets; review Redis failover, lease expiry, eviction and production capacity/TTL policies; owning contexts must authorize each query scope. Active source callbacks must honor cancellation after lease loss",
+      "acceptance": "Independent hosts with matching settings share bounded miss coordination and source-load admission; settings drift or an unavailable coordinator never invokes the authoritative source; business query-scope authorization remains owner-controlled",
       "evidence": [
         "templates/aba-api/src/Aba.Starter.Platform/Caching/AbaCacheLoadGate.cs",
         "templates/aba-api/src/Aba.Starter.Platform/Caching/ReadThroughQueryCache.cs",
         "templates/aba-api/src/Aba.Starter.Platform/Caching/AbaCachingServices.cs",
+        "templates/aba-api/src/Aba.Starter.Platform/Caching/AbaCacheDistributedCoordinationOptions.cs",
+        "templates/aba-api/src/Aba.Starter.Platform/Caching/AbaRedisCacheMissCoordinator.cs",
+        "templates/aba-api/src/Aba.Starter.Platform/Caching/AbaCacheDistributedCoordinationHealthCheck.cs",
         "templates/aba-api/docs/decisions/ADR-010-cache-singleflight-redis-restart.md",
         "templates/aba-api/src/Aba.Starter.Platform/Caching/AbaCacheSourceLoadBudget.cs"
       ],
@@ -635,7 +661,9 @@
         "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/RedisRestartDrillTests.cs",
         "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs",
         "templates/aba-api/tests/Aba.Starter.Api.Tests/CacheSourceBudgetTests.cs",
-        "templates/aba-api/tests/Aba.Starter.Api.Tests/AbaRedisHealthCheckTests.cs"
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/AbaRedisHealthCheckTests.cs",
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/AbaCacheDistributedCoordinationTests.cs",
+        "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaDistributedCacheCoordinationIntegrationTests.cs"
       ]
     },
     {
@@ -682,7 +710,7 @@
       "status": "partial",
       "owner": "Security / business owners",
       "priority": "P0",
-      "delivered": "CI-verified HMAC-SHA256 per-tenant ledger, serializable dual SQL append, tamper/rotation tests plus separately signed offline checkpoint codec and historical-prefix verification on both SQL engines",
+      "delivered": "CI-verified HMAC-SHA256 per-tenant ledger, serializable dual SQL append, tamper/rotation tests plus separately signed offline checkpoint codec and historical-prefix verification on both SQL engines; Audit-chain, key rotation, concurrent append and signed checkpoint integration passed across both live SQL providers; external immutable archive and key custody remain open.",
       "remaining": "Deploy independently immutable off-DB checkpoint archive, real signing key custody/rotation and context-owned actor/event/retention rules; audit appender role restrictions and legal policies",
       "acceptance": "Audit cannot be silently rewritten and records actor, action, tenant, outcome",
       "evidence": [
@@ -690,7 +718,8 @@
         "templates/aba-api/src/Aba.Starter.Platform/Persistence/Migrations/202611130001_AuditLedger.cs",
         "templates/aba-api/docs/decisions/ADR-006-audit-ledger.md",
         "templates/aba-api/src/Aba.Starter.Platform/Persistence/AbaAuditCheckpoint.cs",
-        "templates/aba-api/docs/decisions/ADR-009-offline-audit-checkpoints.md"
+        "templates/aba-api/docs/decisions/ADR-009-offline-audit-checkpoints.md",
+        "artifacts/verification/local-sql-integration.json"
       ],
       "tests": [
         "templates/aba-api/tests/Aba.Starter.Api.Tests/AuditLedgerConfigTests.cs",

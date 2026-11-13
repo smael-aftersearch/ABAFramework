@@ -1,4 +1,4 @@
-> **Generic API current evidence (2026-11-13):** [successful .NET 10 full CI](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43317295032) verifies generated API tests, both PostgreSQL and SQL Server, Redis, Wolverine technical Outbox tests, real Keycloak tokens, non-root Docker and NuGet install. The exact implemented/partial/not-yet-implemented matrix and acceptance checklist are [here](IMPLEMENTATION-STATUS.md). The latest unmerged [PR #31 head CI](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43415885594) also verifies the generated API's isolated Collector export on loopback; production still needs an approved collector destination, transport security, PII/sampling/retention policy, and real business authorization/RLS, crash/dead-letter recovery, backup/restore, security review, deployment and release controls. The numbered Phase-1 notes below apply **only to the optional Academy example**, not the generic template.
+> **Generic API current evidence (2026-11-13):** [successful .NET 10 full CI](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43317295032) verifies generated API tests, both PostgreSQL and SQL Server, Redis, Wolverine technical Outbox tests, real Keycloak tokens, non-root Docker and NuGet install. The exact implemented/partial/not-yet-implemented matrix and acceptance checklist are [here](IMPLEMENTATION-STATUS.md). The latest unmerged [PR #31 head CI](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43415885594) also verifies the generated API's isolated Collector export on loopback. Opt-in RabbitMQ/Kafka transports, configuration guards and both-broker duplicate-delivery cases are authored. The Kafka and RabbitMQ broker tests have not passed on this exact code head; Docker Desktop and Java are unavailable locally, so `msg-broker` remains Partial pending exact-head full CI and the separately gated RabbitMQ outage drill. Production still needs owner-approved contracts, topology, ACLs, retry/DLQ policy, collector destination, PII/sampling/retention policy, real business authorization/RLS, crash/dead-letter recovery, backup/restore, security review, deployment and release controls. The numbered Phase-1 notes below apply **only to the optional Academy example**, not the generic template.
 # Known limitations and security warnings
 
 ## Optional Academy Phase 1 — historical example constraints
@@ -139,13 +139,15 @@ the ledger and checkpoint signing keys are compromised.
 ## Cache coordination and OCI signature limits
 
 AbaCacheLoadGate reduces concurrent authoritative reads only inside
-one process when cache storage is available. A Redis outage with
-explicit fallback may still fan out loads across requests and
-replicas. This is not a distributed lock, cache-based authority
-or a guarantee of bounded source load during total outage. The
-isolated real Redis restart test affects only a disposable GitHub
-CI service; Production reconnect and topology failover still
-need owner-approved rehearsal.
+one process by default. The template now includes an opt-in Redis
+miss coordinator with per-key leases, a shared concurrent-source ceiling
+and a shared fixed-window source-load budget. Distributed mode refuses
+source fallback when Redis cannot grant or renew its permit; source loaders
+must honor the lease-linked cancellation token. This is still best-effort
+load coordination, not tenant authorization, business idempotency, cache
+invalidation or a correctness lock. Live multi-host Redis tests and
+Production topology/failover/eviction review remain open; an isolated
+restart drill only covers its disposable CI service.
 
 Docker SDK/runtime refs are now fixed by reviewed multiarch
 manifest digests. The root GitHub pipeline signs the exact

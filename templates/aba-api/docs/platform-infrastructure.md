@@ -33,7 +33,31 @@ Default: `Platform:Cache:Provider=Memory`; no Redis server is necessary for loca
 
 To enable real Redis, set `Platform__Cache__Provider=Redis` and `ConnectionStrings__AbaRedis=localhost:6379`, using environment variables, workload identity, or a secret store. The `ScopedJsonCache` wrapper supports JSON values, TTLs, removal/invalidation and explicit scope hashing. The Redis provider has a real read/write/remove health check at `/health/ready`.
 
-**Tenant boundary:** a cache scope is only a namespace. You must authenticate/authorize tenant ownership **before** constructing and using that scope. The starter does not yet implement multitenant authorization, cache stampede protection or distributed invalidation events.
+**Tenant boundary:** a cache scope is only a namespace. You must authenticate/authorize tenant ownership **before** constructing and using that scope. The starter does not implement multitenant authorization or distributed invalidation events. Its default cache-miss gate is host-local; optional Redis coordination can bound misses across replicas but does not grant tenant access.
+
+### Optional cross-replica miss coordination
+
+Distributed coordination is disabled by default. To enable it, keep the
+Redis cache provider, set
+`Platform:Cache:DistributedCoordination:Enabled=true`, and configure the same
+unique lowercase `Namespace` on every replica. The defaults allow 32
+simultaneous source loads across the namespace and 300 source-load attempts
+per 60-second fixed window. `AcquireTimeoutSeconds` controls how long a miss
+may wait for a lease/slot; `LeaseDurationSeconds` controls the renewable
+lease TTL. All replicas must use identical budget/lease settings; a
+persistent settings fingerprint makes readiness fail and rejects source
+loads when settings differ. Use a new namespace when intentionally changing
+those settings. Invalid bounds fail during service registration. Production
+requires `ssl=true` in the Redis connection settings.
+
+The coordinator owns a separate Redis connection and contributes its own
+`aba-cache-coordination` readiness check. If Redis cannot grant a lease or
+the shared budget is exhausted, the source callback is not called, even when
+the query opts into `UseAuthoritativeSource`. Callbacks must observe the
+provided cancellation token when a lease is lost. This bounds admitted
+source work; it does not authorize the query scope, replace query-level
+limits, or provide a business correctness lock. Read [ADR-010](decisions/ADR-010-cache-singleflight-redis-restart.md)
+before enabling it in a deployment.
 
 ### Bounded opt-in query source loads
 
@@ -55,13 +79,44 @@ See [ADR-010](decisions/ADR-010-cache-singleflight-redis-restart.md).
 
 ## Wolverine durable messaging / Outbox–Inbox
 
-Enable with `Platform__Messaging__Enabled=true` **only when a PostgreSQL or SQL Server database is configured**. The platform uses WolverineFx 6 and selects `PersistMessagesWithPostgresql` or `PersistMessagesWithSqlServer`, EF Core transactional middleware and durable local queues. These are genuine relational message persistence integrations, not the old Academy file outbox.
+Enable with `Platform__Messaging__Enabled=true` **only when a PostgreSQL or SQL Server database is configured**. The default `Platform__Messaging__Transport=Local` uses WolverineFx 6, `PersistMessagesWithPostgresql` or `PersistMessagesWithSqlServer`, EF Core transactional middleware and durable local queues. These are genuine relational message persistence integrations, not the old Academy file outbox. RabbitMQ and Kafka are separate opt-in transports; neither is required for first-run or local-queue deployments.
 
 Wolverine envelope tables are separately managed from EF Core domain migrations. Provision Wolverine's resources according to the version-matched Wolverine CLI in deployment, with the same database provider. Use `resources setup`/resource migrations in a controlled deployment step; do not enable destructive auto-purge or auto-create in production. Each handler that writes domain state and publishes messages must enroll its own owning `DbContext` in Wolverine's transaction; a registered store alone is **not proof of a transactional domain workflow**.
 
-Wolverine 6 requires the explicit `WolverineFx.RuntimeCompilation` package for dynamic handler code generation, and the template now includes it. For **isolated Development integration tests only**, set `Platform__Messaging__AutoProvisionInDevelopment=true` to allow Wolverine's native `AutoBuildMessageStorageOnStartup` policy to create required envelope tables. Production startup explicitly keeps `AutoCreate.None` and requires reviewed provisioning before deployment. A technical probe handler is included to verify durable local message processing against each real SQL engine.
+Wolverine 6 requires the explicit `WolverineFx.RuntimeCompilation` package for dynamic handler code generation, and the template now includes it. For **isolated Development integration tests only**, set `Platform__Messaging__AutoProvisionInDevelopment=true` to allow Wolverine's native `AutoBuildMessageStorageOnStartup` policy to create required envelope tables and, when RabbitMQ or Kafka is selected, declare configured queues/topics. Production startup explicitly keeps automatic creation off and requires reviewed provisioning before deployment. A technical probe handler verifies durable local message processing against each real SQL engine.
 
-No RabbitMQ/Kafka or business handler is silently installed. CI now also exercises a **technical EF + Wolverine transactional outbox probe** on both SQL engines: a successful handler writes state and dispatches a message together; an injected pre-commit exception after `PublishAsync` must leave neither the state row nor the downstream receipt. This tests rollback at a real transactional boundary. **CI-verified synthetic dead-letter replay and clean restart are available; abrupt SIGKILL drills are separately authored and CI-gated. Production process supervision, business Outbox commit/publish/ACK and consumer idempotency are still incomplete.** Do not equate the probe with complete production message reliability.
+### Optional RabbitMQ adapter
+
+Install/configure is included in the generated template, but activation remains explicit:
+
+```text
+Platform__Messaging__Enabled=true
+Platform__Messaging__Transport=RabbitMQ
+ConnectionStrings__AbaRabbitMQ=amqps://<application-user>:<secret>@<broker-host>/<vhost>
+```
+
+Keep the URI in a secret store or protected deployment configuration. Validation and evidence output do not print it. Production requires AMQPS and non-guest credentials. Local development may use a loopback `amqp://` URI. The sample RabbitMQ service is bound only to `127.0.0.1:56729` in `infra/compose.platform.yaml`; its credentials are disposable fixtures.
+
+The Host may add product-owned discovery and routes through `AddAbaPlatform(options => ...)`; route only explicitly versioned contracts owned by the publishing context. For example:
+
+```csharp
+builder.AddAbaPlatform(options =>
+{
+    options.Discovery.IncludeAssembly(typeof(ProductHandler).Assembly);
+    options.PublishMessage<Product.Contracts.V1.Changed>()
+        .ToRabbitQueue("product.changed.v1")
+        .UseDurableOutbox();
+    options.ListenToRabbitQueue("product.changed.v1").UseDurableInbox();
+});
+```
+
+The callback is inert when messaging is disabled. It does not create a message contract or assign ownership. `AutoProvisionInDevelopment=true` may declare test queues only in Development; Production requires pre-created Wolverine relational resources and broker topology. The adapter enables broker publisher confirms and confirmation tracking so failed publish acknowledgements retain outbox work. Delivery is still at-least-once: context handlers must enforce their own idempotency, and their owners must decide retry, dead-letter, retention and recovery policy. See [ADR-013](decisions/ADR-013-opt-in-rabbitmq-transport.md).
+
+Wolverine's Kafka transport is also opt-in and uses the version-matched `WolverineFx.Kafka` package. Development can use a loopback or private plaintext broker. Production requires `SaslSsl`, a supported SASL mechanism (`Plain`, `ScramSha256` or `ScramSha512`) and credentials supplied through protected configuration. Keep only the credential-free bootstrap server list in `ConnectionStrings__AbaKafka`; never put credentials in a bootstrap address. Product hosts declare their own `.ToKafkaTopic(...)` routes and listeners, and state-changing listeners should use `.UseDurableInbox()`. The Platform enables idempotent producers with `acks=all`, but delivery is still at-least-once and business handlers must be idempotent. Kafka requeue is an inline retry; the template does not choose product retry, dead-letter, topic ownership or partition policy. See [ADR-014](decisions/ADR-014-opt-in-kafka-transport.md) and the [Wolverine Kafka guide](https://wolverinefx.io/guide/messaging/transports/kafka).
+
+CI runs duplicate-payload delivery through RabbitMQ and Kafka with both PostgreSQL and SQL Server. The RabbitMQ outage drill remains separately gated and pauses only the labeled disposable CI broker. These tests do not cover a live business handler, production cluster, broker federation or Kafka failover. Wolverine's RabbitMQ publisher confirmations must be enabled and tracked together for durable outbox retries; see the [Wolverine RabbitMQ guidance](https://wolverinefx.io/guide/messaging/transports/rabbitmq/performance).
+
+CI also exercises a **technical EF + Wolverine transactional outbox probe** on both SQL engines: a successful handler writes state and dispatches a message together; an injected pre-commit exception after `PublishAsync` must leave neither the state row nor the downstream receipt. This tests rollback at a real transactional boundary. **CI-verified synthetic dead-letter replay and clean restart are available; abrupt SIGKILL drills are separately authored and CI-gated. Production process supervision, business Outbox commit/publish/ACK and consumer idempotency are still incomplete.** Do not equate technical probes with complete production message reliability.
 
 ## Local development integration services
 
@@ -71,9 +126,9 @@ From the repository root with Docker Compose:
 docker compose -f infra/compose.platform.yaml up -d
 ```
 
-PostgreSQL: `127.0.0.1:54329`; SQL Server: `127.0.0.1:14339`; Redis: `127.0.0.1:6389`. Credentials in Compose are **throwaway development-only fixtures**, not production secrets.
+PostgreSQL: `127.0.0.1:54329`; SQL Server: `127.0.0.1:14339`; Redis: `127.0.0.1:6389`; RabbitMQ: `127.0.0.1:56729`; Kafka: `127.0.0.1:9092`. Credentials in Compose are **throwaway development-only fixtures**, not production secrets.
 
-Set `ABA_TEST_POSTGRESQL`, `ABA_TEST_SQLSERVER` and `ABA_TEST_REDIS` and run `bash scripts/verify-platform-services.sh`. GitHub Actions runs an equivalent integration job against actual service containers. Without those env vars, the xUnit external-service cases are opt-in and do not attempt remote connections; check CI artifacts before claiming both live database engines were tested.
+Set `ABA_TEST_POSTGRESQL`, `ABA_TEST_SQLSERVER`, `ABA_TEST_REDIS`, `ABA_TEST_RABBITMQ` and `ABA_TEST_KAFKA` and run `bash scripts/verify-platform-services.sh`. For the RabbitMQ outage drill, also provide `CI=true`, `ABA_ENABLE_BROKER_OUTAGE_DRILL=yes` and its exact `ABA_TEST_RABBITMQ_CONTAINER_ID`; the drill checks the image, label and loopback endpoint before pausing, then always unpauses it. GitHub Actions runs the same integration cases against disposable service containers. Without required connection settings, full verification reports `NOT_RUN` and does not attempt remote connections.
 
 ## Failure and rollback policy
 
@@ -232,9 +287,14 @@ are never permitted without CI=true, a separately enabled drill,
 one loopback Redis endpoint, an exact service-container ID and
 an official redis:7-alpine image check. See ADR-010.
 
-The gate is in-process and does not prevent cross-replica cache
-stampedes or simultaneous source reads while Redis is down.
-Never depend on cache fallback for authorization, financial
+The default gate is in-process and does not prevent cross-replica cache
+stampedes. Opt-in `Platform:Cache:DistributedCoordination` adds Redis
+leases, a shared concurrent-source ceiling and a shared fixed-window source
+budget. It fails closed if Redis cannot grant a permit, including when a
+caller selected `UseAuthoritativeSource`; requests already in a load receive
+cancellation when Redis lease renewal fails. See ADR-010 for configuration,
+limits and the requirement that source callbacks honor cancellation.
+Neither mode authorizes cache scopes or supports authorization, financial
 decisions, idempotent commands or tenant membership.
 
 ## Reproducible reviewed OCI base digests

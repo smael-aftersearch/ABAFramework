@@ -1,4 +1,4 @@
-name: ABA API - Real PostgreSQL, SQL Server, Redis and Wolverine
+name: ABA API - Real PostgreSQL, SQL Server, Redis, RabbitMQ, Kafka and Wolverine
 
 on:
   workflow_dispatch:
@@ -65,6 +65,30 @@ jobs:
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 3s --health-timeout 3s --health-retries 20
+      rabbitmq:
+        image: rabbitmq:4.4.0-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: aba_ci
+          RABBITMQ_DEFAULT_PASS: aba-ci-local-only
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 3s --health-timeout 3s --health-retries 30
+          --label aba.test.disposable=true
+      kafka:
+        image: apache/kafka:4.4.0
+        env:
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+          KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+          KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+        ports:
+          - 9092:9092
+        options: >-
+          --health-cmd "bash -c 'exec 3<>/dev/tcp/127.0.0.1/9092'"
+          --health-interval 5s --health-timeout 5s --health-retries 30
+          --label aba.test.disposable=true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -73,12 +97,25 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Validate both live SQL providers, Redis, Wolverine and tenant isolation
+      - name: Validate both live SQL providers, Redis, RabbitMQ, Kafka, Wolverine and tenant isolation
         env:
           ABA_TEST_POSTGRESQL: "Host=localhost;Port=5432;Database=aba_ci;Username=aba_ci;Password=aba-ci-local-only"
           ABA_TEST_SQLSERVER: "Server=localhost,1433;Database=aba_ci;User Id=sa;Password=Aba_CiOnly_2026!;TrustServerCertificate=True"
           ABA_TEST_REDIS: "localhost:6379,abortConnect=false"
+          ABA_TEST_RABBITMQ: "amqp://aba_ci:aba-ci-local-only@localhost:5672/%2F"
+          ABA_TEST_KAFKA: "localhost:9092"
         run: python3 tools/aba_task.py verify --level full --output artifacts/verification/integration.json
+      - name: Pause and recover only the disposable CI RabbitMQ service
+        env:
+          CI: "true"
+          ABA_ENABLE_BROKER_OUTAGE_DRILL: "yes"
+          ABA_TEST_POSTGRESQL: "Host=localhost;Port=5432;Database=aba_ci;Username=aba_ci;Password=aba-ci-local-only"
+          ABA_TEST_RABBITMQ: "amqp://aba_ci:aba-ci-local-only@localhost:5672/%2F"
+          ABA_TEST_RABBITMQ_CONTAINER_ID: ${{ job.services.rabbitmq.id }}
+        run: |
+          dotnet test tests/Aba.Starter.Platform.IntegrationTests/Aba.Starter.Platform.IntegrationTests.csproj \
+            -c Release --no-build --filter 'Category=BrokerOutageDrill' \
+            --logger 'console;verbosity=normal'
       - name: Destructive drills only against disposable local CI databases
         env:
           CI: "true"

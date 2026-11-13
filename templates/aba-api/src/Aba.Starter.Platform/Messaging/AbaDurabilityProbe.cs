@@ -1,6 +1,7 @@
 using Aba.Starter.Platform.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Wolverine;
+using Microsoft.EntityFrameworkCore;
 
 namespace Aba.Starter.Platform.Messaging;
 
@@ -12,12 +13,25 @@ public sealed record AbaDurabilityProbe(Guid Id);
 
 public static class AbaDurabilityProbeHandler
 {
-    public static void Handle(AbaDurabilityProbe message, AbaPlatformDbContext db)
+    public static async Task Handle(AbaDurabilityProbe message, AbaPlatformDbContext db)
     {
+        // A broker may redeliver after a lost ACK. Keep the technical effect
+        // idempotent under the same durable EF transaction as the receipt.
+        var key = message.Id.ToString("N");
+        db.IdempotencyReceipts.Add(new IdempotencyReceipt
+        {
+            Scope = "aba-durability-probe-attempt",
+            Key = $"{key}:{Guid.NewGuid():N}",
+            CreatedUtc = DateTimeOffset.UtcNow
+        });
+        if (await db.IdempotencyReceipts.AsNoTracking().AnyAsync(x =>
+            x.Scope == "aba-durability-probe" && x.Key == key))
+            return;
+
         db.IdempotencyReceipts.Add(new IdempotencyReceipt
         {
             Scope = "aba-durability-probe",
-            Key = message.Id.ToString("N"),
+            Key = key,
             CreatedUtc = DateTimeOffset.UtcNow
         });
         // Wolverine EF transactional middleware performs SaveChanges and outbox flushing.

@@ -69,6 +69,19 @@ on PostgreSQL and SQL Server, with real durable poison quarantine,
 authorized single-envelope recovery and tamper-evident audit checks.
 No public DLQ endpoint or customer message transport is created.
 
+## Optional RabbitMQ transport and broker outage test
+
+The generic template's separately built `RabbitMqIntegrationTests.cs` uses a
+random technical queue and real RabbitMQ plus both SQL providers. Duplicate
+payload deliveries must reach the durable inbox while producing one technical
+effect receipt. `BrokerOutageDrill` is excluded from ordinary full verification;
+an explicit CI job pauses only the exact disposable, labeled RabbitMQ service,
+checks the effect does not arrive while paused, then resumes it and verifies
+durable outbox delivery. The test accepts only a loopback URI, an exact container
+ID, the pinned test image and the `aba.test.disposable=true` label, and restores
+the broker in `finally`. This does not prove production topology or a business
+consumer's external side-effect behavior.
+
 **Executed validation:** [CI 43320400760](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43320400760)
 passed 96 generated API xUnit, 24 real SQL/Redis/Wolverine integration,
 7 recovery/safety cases and signed/verified template package provenance.
@@ -110,6 +123,15 @@ probe cleanup on success, failed read and wrong readback, plus fail-closed
 cleanup failure and isolation of unrelated tenant cache keys. This is
 synthetic provider-failure testing, not a production Redis recovery drill;
 count it as executed only after the new PR-head CI succeeds.
+
+`AbaCacheDistributedCoordinationTests` covers opt-in settings, safe
+read-after-lease behavior, local fake-coordinator failure and disabled
+readiness. `AbaDistributedCacheCoordinationIntegrationTests` uses separate
+service providers against shared Redis to cover cross-host same-key collapse,
+concurrent and fixed-window source budgets, namespace settings drift, and
+unavailable-coordinator fail-closed behavior. The live cases are authored
+but require a disposable Redis service; only the unreachable-Redis negative
+case has run locally so far.
 
 tools/test_oci_base_lock.py deliberately changes source registry,
 digest, tag, stages, runtime UID and missing lock and requires

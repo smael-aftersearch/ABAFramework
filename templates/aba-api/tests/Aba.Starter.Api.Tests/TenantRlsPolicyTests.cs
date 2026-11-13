@@ -88,6 +88,9 @@ public sealed class TenantRlsPolicyTests
     [InlineData(null)]
     [InlineData("../foreign")]
     [InlineData("tenant other")]
+    [InlineData("tenant-alpha' OR 1=1--")]
+    [InlineData("tenant-alpha');SELECT set_config('aba.tenant_id','tenant-beta',true);--")]
+    [InlineData("tenant-alpha');EXEC sys.sp_set_session_context @key=N'aba_tenant_id', @value=N'tenant-beta';--")]
     public async Task InvalidTenantCannotReachSqlEvenWhenProviderCouldOpen(string? tenantId)
     {
         await using var connection = new PartiallyOpenedConnection();

@@ -224,6 +224,20 @@ pass readiness plus tenant-isolated cache hits. Untrusted
 container IDs, remote hosts or missing CI opt-in fail closed.
 Standard external tests exclude RedisRestartDrill.
 
+## Generic RabbitMQ and Kafka transport tests
+
+`RabbitMqIntegrationTests.cs` and `KafkaIntegrationTests.cs` route only a
+synthetic technical probe through a random test queue/topic and check duplicate
+payload delivery against both SQL providers. The separately gated RabbitMQ
+`BrokerOutageDrill` accepts only a loopback endpoint and the exact disposable,
+labeled `rabbitmq:4.4.0-management-alpine` CI container; it pauses that broker,
+checks that a durable outbox effect is not delivered while paused, always
+unpauses it, then verifies delivery. Ordinary full verification excludes the
+container pause operation and the workflow invokes it explicitly. Exact-head
+CI must execute these tests before they count as passing evidence. No production
+broker topology, retry/dead-letter policy, business consumer, Kafka failover or
+external side effect is covered.
+
 ## Reviewed pinned OCI bases and attestations
 
 Root and generated CI must validate oci-base-lock.json and both

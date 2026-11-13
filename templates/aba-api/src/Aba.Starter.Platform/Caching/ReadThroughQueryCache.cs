@@ -25,7 +25,8 @@ public sealed class ReadThroughQueryCache(
     ScopedJsonCache cache,
     ILogger<ReadThroughQueryCache>? logger = null,
     AbaCacheLoadGate? loadGate = null,
-    AbaCacheSourceLoadBudget? sourceLoadBudget = null)
+    AbaCacheSourceLoadBudget? sourceLoadBudget = null,
+    IAbaCacheMissCoordinator? distributedCoordinator = null)
 {
     private readonly AbaCacheLoadGate _loadGate = loadGate ?? new();
     private readonly AbaCacheSourceLoadBudget _sourceLoadBudget = sourceLoadBudget ?? new();
@@ -78,31 +79,78 @@ public sealed class ReadThroughQueryCache(
             readFailed = true;
         }
 
-        // Budget only applies to explicit, non-authoritative query fallback.
-        // It also covers a healthy-cache MISS: the subsequent write might
-        // fail, so defer source work if this host is already overloaded.
-        // The singleton budget bounds concurrent source calls within ONE
-        // process; it cannot coordinate different replicas.
-        using var permit = outagePolicy == CacheOutagePolicy.UseAuthoritativeSource
-            ? _sourceLoadBudget.EnterOrThrow()
-            : null;
-        ct.ThrowIfCancellationRequested();
-        var fresh = await loadFromSource(ct);
-        // An authoritative loader may also ignore cancellation. Never publish
-        // its result into cache (or return it) after a cancelled request.
-        ct.ThrowIfCancellationRequested();
-        if (readFailed)
-            return fresh; // Do not issue a second Redis request on a failed read.
+        IAbaCacheMissLease? distributedLease = null;
+        CancellationTokenSource? coordinatedSource = null;
         try
         {
-            await cache.PutAsync(scope, key, fresh, ttl, ct);
+            if (distributedCoordinator is not null)
+            {
+                distributedLease = await distributedCoordinator.AcquireAsync(scopedKey, ct);
+                // A second successful probe (including a malformed JSON hit)
+                // supersedes a transient failure from the first cache read.
+                readFailed = false;
+                try
+                {
+                    var cachedAfterCoordination = await cache.TryGetAsync<T>(scope, key, ct);
+                    ct.ThrowIfCancellationRequested();
+                    if (cachedAfterCoordination.Found)
+                        return cachedAfterCoordination.Value!;
+                    readFailed = false;
+                }
+                catch (JsonException ex) when (
+                    outagePolicy == CacheOutagePolicy.UseAuthoritativeSource && !ct.IsCancellationRequested)
+                {
+                    logger?.LogWarning(ex,
+                        "Invalid cached query JSON; refreshing from the authoritative source.");
+                }
+                catch (Exception ex) when (CanBypass(ex, outagePolicy, ct))
+                {
+                    logger?.LogWarning(ex,
+                        "Read-through cache unavailable; using the shared source-load budget.");
+                    readFailed = true;
+                }
+
+                coordinatedSource = CancellationTokenSource.CreateLinkedTokenSource(
+                    ct, distributedLease.LeaseLost);
+            }
+
+            // The local permit remains useful in a one-host outage. In opt-in
+            // distributed mode, Redis also enforces the aggregate cross-host
+            // concurrency and per-window source-load ceilings.
+            using var permit = outagePolicy == CacheOutagePolicy.UseAuthoritativeSource
+                ? _sourceLoadBudget.EnterOrThrow()
+                : null;
+            var sourceToken = coordinatedSource?.Token ?? ct;
+            sourceToken.ThrowIfCancellationRequested();
+            if (distributedLease is not null)
+                await distributedCoordinator!.AcquireSourceLoadPermitAsync(sourceToken);
+
+            var fresh = await loadFromSource(sourceToken);
+            // A source callback can ignore cancellation. Do not return or cache
+            // a result after the caller or a distributed lease has been lost.
+            sourceToken.ThrowIfCancellationRequested();
+            distributedLease?.ThrowIfLost();
+            if (readFailed)
+                return fresh; // Do not issue another Redis request after a failed read.
+            try
+            {
+                await cache.PutAsync(scope, key, fresh, ttl, sourceToken);
+            }
+            catch (Exception ex) when (CanBypass(ex, outagePolicy, ct))
+            {
+                logger?.LogWarning(ex,
+                    "Read-through cache store unavailable; returning fresh authoritative result.");
+            }
+            sourceToken.ThrowIfCancellationRequested();
+            distributedLease?.ThrowIfLost();
+            return fresh;
         }
-        catch (Exception ex) when (CanBypass(ex, outagePolicy, ct))
+        finally
         {
-            logger?.LogWarning(ex,
-                "Read-through cache store unavailable; returning fresh authoritative result.");
+            coordinatedSource?.Dispose();
+            if (distributedLease is not null)
+                await distributedLease.DisposeAsync();
         }
-        return fresh;
     }
 
     private static bool CanBypass(Exception ex, CacheOutagePolicy policy, CancellationToken ct)

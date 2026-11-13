@@ -48,12 +48,19 @@ class TaskPlannerTests(unittest.TestCase):
 
     def test_evidence_redacts_connection_strings_and_password_fragments(self):
         previous = os.environ.get("ABA_TEST_POSTGRESQL")
+        previous_rabbit = os.environ.get("ABA_TEST_RABBITMQ")
+        previous_kafka_password = os.environ.get("Platform__Messaging__Kafka__SaslPassword")
         os.environ["ABA_TEST_POSTGRESQL"] = "Host=localhost;Password=DontLeakMe;"
+        os.environ["ABA_TEST_RABBITMQ"] = "amqps://aba:RabbitDontLeakMe@broker.example.test/v1"
+        os.environ["Platform__Messaging__Kafka__SaslPassword"] = "KafkaDontLeakMe"
         try:
             text = module.redact_output(
                 "Database failed: Host=localhost;Password=DontLeakMe; " +
-                "other Password=SeparateSecret")
+                "Broker failed: amqps://aba:RabbitDontLeakMe@broker.example.test/v1 " +
+                "Kafka failed: KafkaDontLeakMe other Password=SeparateSecret")
             self.assertNotIn("DontLeakMe", text)
+            self.assertNotIn("RabbitDontLeakMe", text)
+            self.assertNotIn("KafkaDontLeakMe", text)
             self.assertNotIn("SeparateSecret", text)
             self.assertIn("[REDACTED]", text)
         finally:
@@ -61,10 +68,21 @@ class TaskPlannerTests(unittest.TestCase):
                 os.environ.pop("ABA_TEST_POSTGRESQL", None)
             else:
                 os.environ["ABA_TEST_POSTGRESQL"] = previous
+            if previous_rabbit is None:
+                os.environ.pop("ABA_TEST_RABBITMQ", None)
+            else:
+                os.environ["ABA_TEST_RABBITMQ"] = previous_rabbit
+            if previous_kafka_password is None:
+                os.environ.pop("Platform__Messaging__Kafka__SaslPassword", None)
+            else:
+                os.environ["Platform__Messaging__Kafka__SaslPassword"] = previous_kafka_password
 
     def test_recovery_drills_are_excluded_from_implicit_full_verification(self):
         source = (TOOLS / "aba_task.py").read_text()
         self.assertIn("Category!=RecoveryDrill", source)
+        self.assertIn("Category!=BrokerOutageDrill", source)
+        self.assertIn('"ABA_TEST_RABBITMQ"', source)
+        self.assertIn('"ABA_TEST_KAFKA"', source)
 
     def test_static_verification_runs_real_governance(self):
         outcome = module.verify("static")

@@ -44,8 +44,10 @@ The generic framework has no business membership model and must not invent one.
 
 ## Acceptance and rollback
 
-Default xUnit tests check DDL, injection-resistant identifiers, and missing
-tenant refusal. Actual PostgreSQL and SQL Server integration tests use a
+Default xUnit tests check DDL, injection-resistant identifiers, missing
+tenant refusal, and SQL session-context injection payloads. Invalid tenant IDs
+must be rejected before OpenAsync; the callback must not execute. Actual
+PostgreSQL and SQL Server integration tests use a
 disposable technical table and prove unrelated tenants cannot read, update,
 delete or forge inserts through raw SQL and EF bulk mutations, even without
 an EF query filter. They also require no residual tenant context.

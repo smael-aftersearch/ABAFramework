@@ -53,10 +53,47 @@ class GenericTemplateTests(unittest.TestCase):
                      'Npgsql.EntityFrameworkCore.PostgreSQL',
                      'Microsoft.Extensions.Caching.StackExchangeRedis',
                      'WolverineFx.EntityFrameworkCore', 'WolverineFx.Postgresql',
-                     'WolverineFx.SqlServer'):
+                     'WolverineFx.SqlServer', 'WolverineFx.RabbitMQ', 'WolverineFx.Kafka'):
             self.assertIn(name, package)
         program = (TEMPLATE / 'src/Aba.Starter.Api/Program.cs').read_text()
         self.assertIn('builder.AddAbaPlatform()', program)
+
+    def test_optional_rabbit_transport_is_guarded_and_has_real_broker_cases(self):
+        options = (TEMPLATE / 'src/Aba.Starter.Platform/Messaging/AbaMessagingOptions.cs').read_text()
+        service = (TEMPLATE / 'src/Aba.Starter.Platform/Messaging/AbaWolverineServices.cs').read_text()
+        platform = (TEMPLATE / 'src/Aba.Starter.Platform/AbaPlatformSetup.cs').read_text()
+        fast_tests = (TEMPLATE / 'tests/Aba.Starter.Api.Tests/AbaMessagingOptionsTests.cs').read_text()
+        broker_tests = (TEMPLATE / 'tests/Aba.Starter.Platform.IntegrationTests/RabbitMqIntegrationTests.cs').read_text()
+        kafka_tests = (TEMPLATE / 'tests/Aba.Starter.Platform.IntegrationTests/KafkaIntegrationTests.cs').read_text()
+        workflow = (TEMPLATE / '.github/workflows/integration.yml').read_text()
+        compose = (ROOT / 'infra/compose.platform.yaml').read_text()
+        starter_compose = (TEMPLATE / 'compose.yaml').read_text()
+        self.assertIn('RabbitMQ', options)
+        self.assertIn('Production RabbitMQ requires amqps://', options)
+        self.assertIn('Production Kafka requires SASL_SSL', options)
+        self.assertIn('PublisherConfirmationsEnabled = true', service)
+        self.assertIn('PublisherConfirmationTrackingEnabled = true', service)
+        self.assertIn('Action<WolverineOptions>? configureMessaging', platform)
+        self.assertIn('ProductionRequiresTlsAndNonGuestCredentials', fast_tests)
+        self.assertIn('RabbitMqDurableDeliveryHandlesDuplicatePayloadOnce', broker_tests)
+        self.assertIn('BrokerOutageDrill', broker_tests)
+        self.assertIn('job.services.rabbitmq.id', workflow)
+        self.assertIn('Category=BrokerOutageDrill', workflow)
+        outage_step = workflow.split(
+            '- name: Pause and recover only the disposable CI RabbitMQ service', 1
+        )[1].split('- name: Destructive drills only against disposable local CI databases', 1)[0]
+        self.assertEqual(outage_step.count('        run:'), 1)
+        self.assertEqual(outage_step.count("--logger 'console;verbosity=normal'"), 1)
+        self.assertIn('rabbitmq:4.4.0-management-alpine', compose)
+        self.assertIn('127.0.0.1:56729:5672', compose)
+        self.assertIn('WolverineFx.Kafka', (TEMPLATE / 'src/Aba.Starter.Platform/Aba.Starter.Platform.csproj').read_text())
+        self.assertIn('KafkaDurableDeliveryHandlesDuplicatePayloadOnce', kafka_tests)
+        self.assertIn('apache/kafka:4.4.0', workflow)
+        self.assertIn('ABA_TEST_KAFKA', workflow)
+        self.assertIn('KAFKA', compose)
+        self.assertIn('127.0.0.1:9092:9092', compose)
+        self.assertIn('profiles: [kafka]', starter_compose)
+        self.assertIn('apache/kafka:4.4.0', starter_compose)
 
     def test_infrastructure_tests_fail_closed_and_are_separate(self):
         default_project = TEMPLATE / 'tests/Aba.Starter.Api.Tests/Aba.Starter.Api.Tests.csproj'
@@ -130,7 +167,7 @@ class GenericTemplateTests(unittest.TestCase):
         self.assertIn("tools/aba_task.py verify --level build", ci)
         self.assertIn("workflow_dispatch:", integration)
         self.assertIn("tools/aba_task.py verify --level full", integration)
-        for provider in ("postgres", "sqlserver", "redis"):
+        for provider in ("postgres", "sqlserver", "redis", "rabbitmq"):
             self.assertIn(provider + ":", integration)
         self.assertNotIn("publish", ci.casefold())
 
@@ -187,6 +224,10 @@ class GenericTemplateTests(unittest.TestCase):
         task = (TEMPLATE / 'tools/aba_task.py').read_text()
         ci = (ROOT / '.github/workflows/verify.yml').read_text()
         generated_ci = (TEMPLATE / '.github/workflows/integration.yml').read_text()
+        self.assertIn('ABA_TEST_KAFKA', external)
+        self.assertIn('ABA_TEST_KAFKA', task)
+        self.assertIn('apache/kafka:4.4.0', ci)
+        self.assertIn('apache/kafka:4.4.0', generated_ci)
         self.assertIn("Category!=RecoveryDrill", external)
         self.assertIn("Category!=RecoveryDrill", task)
         for workflow in (ci, generated_ci):
@@ -290,6 +331,33 @@ class GenericTemplateTests(unittest.TestCase):
             self.assertIn("Category=RedisRestartDrill", workflow)
         for value in (script, task):
             self.assertIn('Category!=CrashDrill&Category!=RedisRestartDrill', value)
+
+    def test_opt_in_distributed_cache_coordination_is_bounded_and_fail_closed(self):
+        options = (TEMPLATE / 'src/Aba.Starter.Platform/Caching/AbaCacheDistributedCoordinationOptions.cs').read_text()
+        coordinator = (TEMPLATE / 'src/Aba.Starter.Platform/Caching/AbaRedisCacheMissCoordinator.cs').read_text()
+        health_check = (TEMPLATE / 'src/Aba.Starter.Platform/Caching/AbaCacheDistributedCoordinationHealthCheck.cs').read_text()
+        cache = (TEMPLATE / 'src/Aba.Starter.Platform/Caching/ReadThroughQueryCache.cs').read_text()
+        unit_tests = (TEMPLATE / 'tests/Aba.Starter.Api.Tests/AbaCacheDistributedCoordinationTests.cs').read_text()
+        integration_tests = (TEMPLATE / 'tests/Aba.Starter.Platform.IntegrationTests/AbaDistributedCacheCoordinationIntegrationTests.cs').read_text()
+        adr = (TEMPLATE / 'docs/decisions/ADR-010-cache-singleflight-redis-restart.md').read_text()
+        self.assertIn('AbaCacheDistributedCoordinationOptions', options)
+        self.assertIn('AbaCacheDistributedCoordinationOptions', coordinator)
+        self.assertIn('IAbaCacheMissCoordinator', cache)
+        self.assertIn('aba-cache-coordination', (TEMPLATE / 'src/Aba.Starter.Platform/Caching/AbaCachingServices.cs').read_text())
+        self.assertIn('VerifyReadinessAsync(cancellationToken)', health_check)
+        self.assertIn('Platform:Cache:DistributedCoordination:Enabled', adr)
+        for value in (coordinator, integration_tests):
+            self.assertIn('MaxConcurrentSourceLoads', value)
+            self.assertIn('MaxSourceLoadsPerWindow', value)
+        for marker in ('SharedRedisCoordinatesSameMissAcrossIndependentHosts',
+                       'SharedRedisEnforcesClusterSourceLoadRateBudgetAcrossHosts',
+                       'SharedRedisEnforcesConcurrentSourceLoadBudgetAcrossHosts',
+                       'SharedRedisRejectsDifferentCoordinationSettingsInOneNamespace',
+                       'DistributedFallbackFailsClosedWhenRedisCannotGrantCoordination'):
+            self.assertIn(marker, integration_tests)
+        self.assertIn('AbaCacheCoordinationConfigurationMismatchException', coordinator)
+        self.assertIn('DistributedCoordinationFailureNeverFallsBackToSource', unit_tests)
+        self.assertIn('LeaseLost', cache)
 
     def test_scanned_image_archive_has_attested_provenance_and_tamper_rejection(self):
         workflow = (ROOT / '.github/workflows/verify.yml').read_text()

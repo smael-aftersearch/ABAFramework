@@ -45,8 +45,12 @@ poison envelope before claiming recovery coverage.
 
 ## Cache and OCI source-of-truth boundaries
 
-The generic read-through cache has a host-wide per-scoped-key load
-gate, not a distributed lock or tenant permission grant. The isolated
+The generic read-through cache defaults to a host-wide per-scoped-key
+load gate. Its opt-in Redis coordinator adds best-effort distributed
+miss leases and shared source-load budgets; neither grants tenant
+permission nor enforces business correctness. Distributed coordination
+fails closed without a live permit and requires identical settings for
+every replica sharing its namespace. The isolated
 RedisRestartDrill must only stop its exact CI-provisioned redis:7-alpine
 container and is excluded from standard tests. For release changes,
 the Dockerfile and oci-base-lock.json must agree exactly; both

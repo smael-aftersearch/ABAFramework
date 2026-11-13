@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Run real PostgreSQL, SQL Server and Redis tests from a newly generated API.
+# Run real PostgreSQL, SQL Server, Redis, RabbitMQ and Kafka tests from a newly generated API.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
-for variable in ABA_TEST_POSTGRESQL ABA_TEST_SQLSERVER ABA_TEST_REDIS; do
+for variable in ABA_TEST_POSTGRESQL ABA_TEST_SQLSERVER ABA_TEST_REDIS ABA_TEST_RABBITMQ ABA_TEST_KAFKA; do
   if [[ -z "${!variable:-}" ]]; then
-    echo "MISSING $variable: real infrastructure tests require all three connection strings" >&2
+    echo "MISSING $variable: real infrastructure tests require all five service connection strings" >&2
     exit 3
   fi
 done
@@ -33,7 +33,7 @@ if [[ "${ABA_ENABLE_SHARED_RATE_LIMIT_PROCESS_DRILL:-}" == "yes" ]]; then
   python3 "$ROOT/scripts/verify_shared_rate_limit_processes.py" \
     --dll "$DIR/generic/src/Pilot.Backends.Api/bin/Release/net10.0/Pilot.Backends.Api.dll"
 fi
-dotnet test "$INTEGRATION" -c Release --no-build --filter 'Category!=RecoveryDrill&Category!=CrashDrill&Category!=RedisRestartDrill' --logger 'console;verbosity=normal'
+dotnet test "$INTEGRATION" -c Release --no-build --filter 'Category!=RecoveryDrill&Category!=CrashDrill&Category!=RedisRestartDrill&Category!=BrokerOutageDrill' --logger 'console;verbosity=normal'
 if [[ "${ABA_ENABLE_DESTRUCTIVE_CI_DRILLS:-}" == "yes" ]]; then
   # Both providers receive disposable, uniquely named databases. Never run
   # against production targets; the C# fixture independently enforces CI-only
@@ -43,4 +43,7 @@ if [[ "${ABA_ENABLE_DESTRUCTIVE_CI_DRILLS:-}" == "yes" ]]; then
   # after a scheduled envelope has been persisted on the disposable CI DB.
   dotnet test "$INTEGRATION" -c Release --no-build --filter 'Category=CrashDrill' --logger 'console;verbosity=normal'
 fi
-echo "PASS: PostgreSQL, SQL Server, Redis and Wolverine message probes on generated project"
+if [[ "${ABA_ENABLE_BROKER_OUTAGE_DRILL:-}" == "yes" ]]; then
+  dotnet test "$INTEGRATION" -c Release --no-build --filter 'Category=BrokerOutageDrill' --logger 'console;verbosity=normal'
+fi
+echo "PASS: PostgreSQL, SQL Server, Redis, RabbitMQ, Kafka and Wolverine message probes on generated project"
