@@ -896,8 +896,8 @@
       "status": "partial",
       "owner": "Operations / Performance",
       "priority": "P1",
-      "delivered": "Authored CI-only generated-API loopback liveness baseline (40 requests, 4 workers) with p50/p95, success/failure and throughput evidence; real exact-head CI verification pending",
-      "remaining": "Prove CI-head probe and set owner-approved production SLO/RTO/RPO, provider-backed two-replica load/failover and safe capacity thresholds; loopback liveness is not business-API throughput",
+      "delivered": "CI-verified focused disposable generated-API loopback liveness drill: 40/40 HTTP 200, four workers, p50/p95 and throughput artifact (PR run 43354991363 otel-collector job); full PR gating remains separate",
+      "remaining": "Set owner-approved production SLO/RTO/RPO and exercise actual provider-backed two-replica business load/failover, recovery and safe capacity thresholds; loopback liveness does not certify those",
       "acceptance": "SLO and recovery objectives measurable under load",
       "evidence": [
         "scripts/ci_loopback_load.py",
