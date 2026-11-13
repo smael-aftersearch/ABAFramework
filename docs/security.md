@@ -109,3 +109,24 @@ guard, **not** certificate-chain verification, authenticated Redis ACL approval,
 reverse-proxy identity policy, business membership or production readiness.
 Those security-owner/deployment gates remain open under
 [ADR-012](../templates/aba-api/docs/decisions/ADR-012-shared-redis-rate-limits.md).
+
+## Validated-principal composition in tenant and quota guards (Queue C)
+
+The generic tenant-claim resolver now reads only the single authenticated
+`ClaimsIdentity` supplied by a verified authentication middleware pipeline;
+it must never pair a trusted authentication flag with a tenant claim from
+an unauthenticated secondary identity. Multiple authenticated identities are
+treated as ambiguous and rejected for tenant resolution. The local and
+shared Redis rate limit partitioner uses the same rule for subject and tenant,
+falling back to the actual TCP peer if no unambiguous subject exists. This
+avoids a forged secondary identity creating extra quota partitions. A genuine
+signed JWT with its tenant claim remains valid; unsigned forwarded/tenant
+headers and unrelated claims are not authority.
+
+[The focused tenant-policy and quota tests](../templates/aba-api/tests/Aba.Starter.Api.Tests/AbaPlatformTests.cs)
+and [quota partition tests](../templates/aba-api/tests/Aba.Starter.Api.Tests/RateLimitTests.cs)
+include successful valid identities, forged split-identity denials, ambiguous
+authenticated identities and unchanged trusted/peer partitions. Exact PR
+head checks must pass before calling this revision verified. **This does not
+grant roles or prove organization membership, production RLS, SQL session
+spoofing prevention or Redis gateway/ACL approval.**
