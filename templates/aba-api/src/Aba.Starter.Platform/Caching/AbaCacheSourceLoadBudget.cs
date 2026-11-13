@@ -47,5 +47,8 @@ public sealed class AbaCacheSourceLoadBudget
 }
 
 /// <summary>Opt-in source-read concurrency ceiling reached on this host.</summary>
-public sealed class AbaCacheSourceLoadLimitExceededException()
-    : InvalidOperationException("The local opt-in cache source load budget is exhausted.");
+public sealed class AbaCacheSourceLoadLimitExceededException : InvalidOperationException
+{
+    public AbaCacheSourceLoadLimitExceededException()
+        : base("The local opt-in cache source load budget is exhausted.") { }
+}
