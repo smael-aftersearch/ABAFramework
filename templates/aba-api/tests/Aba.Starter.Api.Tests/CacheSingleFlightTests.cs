@@ -260,10 +260,10 @@ public sealed class CacheSingleFlightTests
                 calls++;
                 return Task.FromResult("tenant-a-repaired");
             }, CacheOutagePolicy.UseAuthoritativeSource));
-        Assert.Equal("tenant-a-repaired", await query.GetOrLoadAsync(
+        Assert.Equal("tenant-a-repaired", await query.GetOrLoadAsync<string>(
             "tenant-a", "shared-query", ttl,
             _ => throw new InvalidOperationException("Repaired data should be a hit")));
-        Assert.Equal("tenant-b-original", await query.GetOrLoadAsync(
+        Assert.Equal("tenant-b-original", await query.GetOrLoadAsync<string>(
             "tenant-b", "shared-query", ttl,
             _ => throw new InvalidOperationException("Other tenant data was changed")));
         Assert.Equal(1, calls); // Repair is persisted; a second request is not a miss.
