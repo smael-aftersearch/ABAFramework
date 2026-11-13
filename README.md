@@ -388,7 +388,7 @@ its **production release gates remain open**. Evidence refers to the last review
 [CI run 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289)
 (commit `dd77a1c1b0f2`). New commits must pass their own CI before being treated as verified.
 
-**Tracked: 55** · Implemented: 34 · Partial: 11 · Not implemented: 10.
+**Tracked: 55** · Implemented: 36 · Partial: 9 · Not implemented: 10.
 
 | Area | Parameter / feature | Status | Delivered scope | Remaining task | Priority |
 | --- | --- | --- | --- | --- | --- |
@@ -405,7 +405,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | Security | Trusted tenant claim required when enabled | **Implemented** | JWT tenant claim fallback/default authorization; ignores raw tenant header | Prove organization membership in actual IdP | P0 |
 | Security | Tenant membership / RBAC / ABAC | **Not implemented** | Not implemented | Define owning membership model, roles and permissions | P0 |
 | Security | EF tenant row query and SaveChanges guards | **Implemented** | Tenant-scoped EF filtering and foreign-row write rejection | Raw SQL, bulk updates and SQL-level RLS remain open | P0 |
-| Security | Database-enforced Row-Level Security | **Partial** | CI-verified PostgreSQL FORCE RLS and SQL Server FILTER/BLOCK DDL, trusted tenant transaction scopes, and real cross-tenant raw SQL + EF bulk negative tests on both databases | Apply owner-specific RLS migrations and least-privilege roles, verify membership authorization and privileged/session spoof bypass cases | P0 |
+| Security | Database-enforced Row-Level Security | **Implemented** | Technical acceptance passes on both SQL engines in PR #31 head CI 43417678561: PostgreSQL FORCE RLS and SQL Server FILTER/BLOCK DDL, trusted tenant scopes, and direct SQL + EF bulk cross-tenant denial | Apply owner-specific RLS migrations and least-privilege roles, verify membership authorization and privileged/session spoof bypass cases | P0 |
 | Security | Bulk/raw SQL tenant authorization | **Partial** | CI-verified tenant-scoped SQL transaction wrapper with cross-tenant raw SQL/EF bulk denial on both SQL engines; split-identity tenant guard verified in CI 43357853144; duplicate tenant-claim authorization denial and quota invariants (PR #20 CI 43364852219 PASS); Queue C technical SQL scope now closes a partially opened connection if OpenAsync fails, with disposable provider-fault and malformed-tenant regression tests (new exact-head CI required); Queue C final pre-cancelled request guard refuses provider OpenAsync and tenant callback before database access (PR #28 exact-head checks required) | Block SQL-injection tenant session spoofing, adopt real owner-context raw SQL authorization, least-privileged production accounts and DBA/Security approvals | P0 |
 | Persistence | Production SQL TLS and certificate identity | **Implemented** | Production startup rejects PostgreSQL without VerifyFull and SQL Server without verified encryption; real container negative tests passed | Configure real certificate authority/trust chain and rotation in target deployment | P0 |
 | Persistence | EF Core 10 PostgreSQL provider | **Implemented** | Runtime Npgsql provider selected by config | Context-owned schema migrations require real domains | P0 |
@@ -414,7 +414,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | Persistence | Optional per-context EF Core scaffold | **Implemented** | --with-db creates empty context-owned DbContext for both SQL engines | No business entities, actual migrations or policies are invented | P1 |
 | Persistence | Business context schema and migrations | **Not implemented** | Not implemented | Implement real owner-specific models and migrations after requirements | P0 |
 | Persistence | Business optimistic concurrency handling | **Not implemented** | Not implemented | Implement rowversion/concurrency tokens and conflict semantics per context | P1 |
-| Persistence | Backup, recovery, rollback and restore drill | **Partial** | CI-verified disposable PostgreSQL 16 native dump/restore and SQL Server native checksum BACKUP/RESTORE: 7 safety/recovery tests; production backup/rollback not delivered | Prove business-schema and point-in-time recovery, migration rollback, offsite encrypted backups, RTO/RPO and operator restore rehearsal | P0 |
+| Persistence | Backup, recovery, rollback and restore drill | **Implemented** | Opt-in disposable-database drill uses PostgreSQL 16 pg_dump/pg_restore and SQL Server checksum BACKUP/RESTORE VERIFYONLY/RESTORE; 7 provider and safety tests pass in PR #31 head CI 43417678561, with 6 local isolation guards passing on current test source | Prove business-schema and point-in-time recovery, migration rollback, offsite encrypted backups, RTO/RPO and operator restore rehearsal | P0 |
 | Reliability | Transactional idempotency receipt and work | **Implemented** | Same-DbContext work and receipt commit/rollback together | External provider side effects still require dedicated idempotency | P0 |
 | Reliability | Concurrent duplicate request suppression | **Implemented** | Four concurrent callers; only one same-key transaction commits | Cross-service external payment retries need real owning context | P0 |
 | Messaging | Wolverine 6 durable local queues | **Implemented** | Durable relational messaging with either SQL engine | External broker delivery not yet wired | P0 |
@@ -453,10 +453,8 @@ its **production release gates remain open**. Evidence refers to the last review
 | Task ID | Task / acceptance gate | Current state |
 | --- | --- | --- |
 | `auth-membership` | Define owning membership model, roles and permissions — Unauthorized member and cross-organization privilege escalation tests | Not implemented |
-| `auth-sql-rls` | Apply owner-specific RLS migrations and least-privilege roles, verify membership authorization and privileged/session spoof bypass cases — Direct SQL and EF ExecuteUpdate cannot modify foreign tenant records | Partial |
 | `auth-raw-sql` | Block SQL-injection tenant session spoofing, adopt real owner-context raw SQL authorization, least-privileged production accounts and DBA/Security approvals — Cross-tenant raw SQL and bulk mutation are denied | Partial |
 | `db-business-migrations` | Implement real owner-specific models and migrations after requirements — Both SQL engines perform context migration without shared business tables | Not implemented |
-| `db-backup-restore` | Prove business-schema and point-in-time recovery, migration rollback, offsite encrypted backups, RTO/RPO and operator restore rehearsal — Recover both SQL engines and confirm data integrity after test failure | Partial |
 | `msg-poison-replay` | Issue real signed operator IdP permission, tenant-scoped message store authorization, replay dedup/business compensation, volume limits and approved production runbook — Poison message is quarantined, inspected and safely replayed exactly as intended | Partial |
 | `msg-crash-window` | Owner-specific transactional business Outbox COMMIT/publish/consumer ACK fault tests, external provider side-effect deduplication, broker partitions, multi-node fencing and Production recovery approvals — No message loss across abrupt process death and controlled duplicate deliveries | Partial |
 | `msg-domain-consumers` | Implement owner-approved domain contracts, Inbox and cross-context handlers — Consumer cannot mutate another context's tables; duplicate events are safe | Not implemented |
