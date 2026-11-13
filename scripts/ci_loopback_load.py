@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+import re
 import statistics
 import sys
 import time
@@ -33,6 +34,33 @@ def validate_target(url):
             or parsed.password is not None or parsed.query or parsed.fragment):
         raise ValueError("only http://127.0.0.1:<high-port>/health/live is allowed")
     return f"http://127.0.0.1:{port}/health/live"
+
+
+def validate_output(raw_path):
+    """Prevent an opt-in CI drill from overwriting source, secrets or prior evidence."""
+    path = Path(raw_path)
+    if (path.is_absolute() or path.parts[:2] != ("artifacts", "load")
+            or len(path.parts) != 3
+            or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,63}\.json", path.name)):
+        raise ValueError("output must be artifacts/load/<safe-name>.json")
+    root = Path(__file__).resolve().parents[1]
+    artifacts = root / "artifacts"
+    directory = artifacts / "load"
+    if artifacts.is_symlink() or directory.is_symlink():
+        raise ValueError("output directories must not be symlinks")
+    output = directory / path.name
+    if output.exists() or output.is_symlink():
+        raise ValueError("existing evidence cannot be overwritten")
+    return output
+
+
+def write_evidence(output, evidence):
+    output.parent.mkdir(parents=True, exist_ok=True)
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+    fd = os.open(output, flags, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as stream:
+        json.dump(evidence, stream, sort_keys=True, indent=2)
+        stream.write("\n")
 
 
 def sample_once(url):
@@ -79,13 +107,16 @@ def main(argv=None):
         print("BLOCKED: loopback load needs explicit CI + opt-in", file=sys.stderr)
         return 3
     try:
-        evidence = probe(args.url)
+        target = validate_target(args.url)
+        output = validate_output(args.output)
+        evidence = probe(target)
+        write_evidence(output, evidence)
     except ValueError as exc:
         print(f"BLOCKED: {exc}", file=sys.stderr)
         return 3
-    output = Path(args.output)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(evidence, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+    except OSError as exc:
+        print(f"BLOCKED: unsafe or unavailable evidence output ({exc.strerror})", file=sys.stderr)
+        return 3
     if evidence["failures"]:
         print(f"FAIL: {evidence['failures']} of {evidence['requested']} loopback requests failed", file=sys.stderr)
         return 1
