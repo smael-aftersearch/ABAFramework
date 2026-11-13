@@ -14,7 +14,7 @@ its **production release gates remain open**. Evidence refers to the last review
 [CI run 43323597289](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43323597289)
 (commit `dd77a1c1b0f2`). New commits must pass their own CI before being treated as verified.
 
-**Tracked: 55** · Implemented: 32 · Partial: 13 · Not implemented: 10.
+**Tracked: 55** · Implemented: 33 · Partial: 12 · Not implemented: 10.
 
 | Area | Parameter / feature | Status | Delivered scope | Remaining task | Priority |
 | --- | --- | --- | --- | --- | --- |
@@ -25,7 +25,7 @@ its **production release gates remain open**. Evidence refers to the last review
 | API | Liveness and readiness | **Implemented** | Independent liveness and ready-tagged dependencies; injected health failure returns live 200 and ready 503 | Prove real database/Redis outage, reconnection and readiness behavior under load | P0 |
 | API | Authenticated per-identity rate limits | **Implemented** | JWT subject + tenant partition; anonymous TCP peer; Health bypass | Multi-node shared quotas require a gateway | P1 |
 | API | Configurable browser CORS allow-list | **Implemented** | Exact configured origins only; HTTPS outside Development, loopback HTTP allowed only in Development, constrained methods/headers and no credential cookies; 11 focused xUnit cases pass; exact PR #31 CI run 43413084747 passed all 9 applicable jobs | Each consuming deployment must provide its reviewed application origin list | P1 |
-| API | Distributed multi-instance rate limits | **Partial** | Opt-in atomic Redis quota with live two-host and distinct-OS-process HTTP probes (CI 43352559984), non-Development TLS guard (CI 43347945447) and single-authenticated-identity quota partition guard (CI 43357853144); duplicate-subject quota denial (PR #21 CI 43366589618 PASS), plus dual-stack IPv4-mapped peer canonicalization authored (new exact-head CI pending); not deployed | Approve gateway trust, Redis certificate identity/ACLs, monitoring and production load controls; disposable processes do not certify deployed replicas | P1 |
+| API | Distributed multi-instance rate limits | **Implemented** | Opt-in atomic Redis quota passes 12 concurrent requests across two independent HTTP replicas (3 allowed, 9 denied), forged tenant/forwarded headers cannot reset quota, namespaces remain isolated, Redis outage fails closed, and separate OS-process quota probe passes; exact main CI 43393740493 at 6a589a8 | Production proxy trust, Redis TLS/ACLs, monitoring and deployed-replica load controls require Operations approval; disposable probes do not certify a production topology | P1 |
 | Security | OIDC/JWT signature, issuer and audience | **Implemented** | ASP.NET JWT bearer validation and fail-closed production OIDC config | External real-user IdP configuration and security operations remain | P0 |
 | Security | Real Keycloak OIDC/JWKS test | **Implemented** | Ephemeral Keycloak CI verifies signed 204, missing/malformed 401, tenant 403 | Real IdP key rotation and organization policy not validated | P0 |
 | Security | Trusted tenant claim required when enabled | **Implemented** | JWT tenant claim fallback/default authorization; ignores raw tenant header | Prove organization membership in actual IdP | P0 |
@@ -118,7 +118,6 @@ Run `python3 scripts/status_matrix.py --check` to fail CI on mismatched tables.
 | `biz-contracts` | Business owners (TBD) | P0 | Partial | V1 consumers stay compatible; private implementation edges rejected |
 | `biz-contract-tests` | Business owners (TBD) | P0 | Not implemented | A breaking V1 change fails CI and requires an explicit V2 |
 | `biz-endpoints` | Actual business owner (TBD) | P0 | Not implemented | Owner-specific happy/negative/invariant and provider integration tests pass |
-| `api-shared-limits` | Operations | P1 | Partial | Verify one limit across two replicas under concurrent load |
 | `db-concurrency` | Actual context owner (TBD) | P1 | Not implemented | Two updates cannot silently overwrite the same business aggregate |
 | `msg-broker` | Platform | P1 | Not implemented | Broker outage, retry and duplicate-delivery integration scenarios pass |
 | `cache-multinode` | Platform + business owners | P1 | Not implemented | Two API replicas observe invalidations without cross-tenant leakage |
