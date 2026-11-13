@@ -4,6 +4,7 @@ import importlib.util
 import os
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -12,6 +13,10 @@ spec = importlib.util.spec_from_file_location("aba_task", TOOLS / "aba_task.py")
 assert spec and spec.loader
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
+context_spec = importlib.util.spec_from_file_location("new_context", TOOLS / "new_context.py")
+assert context_spec and context_spec.loader
+context_module = importlib.util.module_from_spec(context_spec)
+context_spec.loader.exec_module(context_module)
 
 
 class TaskPlannerTests(unittest.TestCase):
@@ -89,6 +94,56 @@ class TaskPlannerTests(unittest.TestCase):
         self.assertEqual("PASS", outcome["status"])
         self.assertTrue(outcome["steps"])
         self.assertIn("new_context.py", " ".join(outcome["steps"][0]["command"]))
+
+
+class ContractSurfaceTests(unittest.TestCase):
+    def test_empty_scaffold_does_not_invent_contracts(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            context_module.validate_contract_surface(
+                "Catalog", Path(temporary), [], [], [])
+
+    def test_owner_approved_versioned_contract_matches_metadata(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            contracts = Path(temporary)
+            (contracts / "InventoryChangedV1.cs").write_text(
+                "namespace Product.Inventory.Contracts;\n"
+                "public sealed record InventoryChangedV1(string Sku);\n",
+                encoding="utf-8",
+            )
+            context_module.validate_contract_surface(
+                "Inventory", contracts, ["InventoryChangedV1"],
+                ["InventoryChangedV1"], ["Identity.UserRegisteredV1"])
+
+    def test_unversioned_public_type_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            contracts = Path(temporary)
+            (contracts / "InventoryChanged.cs").write_text(
+                "public record InventoryChanged(string Sku);\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "Unversioned public type"):
+                context_module.validate_contract_surface(
+                    "Inventory", contracts, ["InventoryChanged"], [], [])
+
+    def test_public_contract_must_be_recorded_as_owned(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            contracts = Path(temporary)
+            (contracts / "InventoryChangedV1.cs").write_text(
+                "public record InventoryChangedV1(string Sku);\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "declarations differ from ownership"):
+                context_module.validate_contract_surface(
+                    "Inventory", contracts, [], [], [])
+
+    def test_publish_must_reference_an_owned_contract(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            contracts = Path(temporary)
+            with self.assertRaisesRegex(ValueError, "absent from its owned Contracts project"):
+                context_module.validate_contract_surface(
+                    "Inventory", contracts, [], ["InventoryChangedV1"], [])
+
+    def test_consumed_contract_requires_explicit_version(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.assertRaisesRegex(ValueError, "explicitly versioned"):
+                context_module.validate_contract_surface(
+                    "Inventory", Path(temporary), [], [], ["Identity.UserRegistered"])
 
 
 if __name__ == "__main__":

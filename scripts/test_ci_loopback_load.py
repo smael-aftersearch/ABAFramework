@@ -150,7 +150,8 @@ class LoopbackLoadTests(unittest.TestCase):
         self.assertEqual(40, Handler.hits)
         evidence = json.loads(target.read_text(encoding="utf-8"))
         self.assertEqual((40, 0), (evidence["successes"], evidence["failures"]))
-        self.assertEqual(0o600, target.stat().st_mode & 0o777)
+        if os.name == "posix":
+            self.assertEqual(0o600, target.stat().st_mode & 0o777)
         self.assertNotIn(self.url, target.read_text(encoding="utf-8"))
 
     def test_rejects_escape_absolute_and_existing_outputs_before_http(self):
@@ -176,7 +177,12 @@ class LoopbackLoadTests(unittest.TestCase):
             marker = Path(temp) / "private.json"
             marker.write_text("do not touch", encoding="utf-8")
             link = directory / f"queue-a-symlink-{os.getpid()}.json"
-            link.symlink_to(marker)
+            try:
+                link.symlink_to(marker)
+            except (OSError, NotImplementedError) as exc:
+                if os.name != "nt":
+                    raise
+                self.skipTest(f"Windows symlink creation is unavailable: {exc}")
             try:
                 result = self.run_cli(f"artifacts/load/{link.name}")
                 self.assertEqual(3, result.returncode)

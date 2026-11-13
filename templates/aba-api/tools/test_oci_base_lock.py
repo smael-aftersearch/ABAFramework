@@ -64,6 +64,22 @@ class ReviewedOciBaseLockTests(unittest.TestCase):
         with self.assertRaisesRegex(OciLockError, "nonroot"):
             verify(self.root)
 
+    def test_commented_nonroot_user_cannot_replace_active_instruction(self):
+        self.dockerfile.write_text(self.dockerfile.read_text().replace(
+            "USER $APP_UID", "# USER $APP_UID"))
+        with self.assertRaisesRegex(OciLockError, "nonroot"):
+            verify(self.root)
+
+    def test_build_stage_user_cannot_replace_runtime_user(self):
+        dockerfile = self.dockerfile.read_text().replace("USER $APP_UID", "", 1)
+        lines = dockerfile.splitlines()
+        build_stage = next(i for i, line in enumerate(lines)
+                           if line.strip().endswith(" AS build"))
+        lines.insert(build_stage + 1, "USER $APP_UID")
+        self.dockerfile.write_text("\n".join(lines) + "\n")
+        with self.assertRaisesRegex(OciLockError, "nonroot"):
+            verify(self.root)
+
     def test_artificial_future_review_is_rejected(self):
         self.change_lock(lambda d: d.update(reviewed_date="2099-01-01"))
         with self.assertRaisesRegex(OciLockError, "future"):

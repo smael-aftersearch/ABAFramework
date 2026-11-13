@@ -1,3 +1,4 @@
+using Confluent.Kafka;
 using Aba.Starter.Platform;
 using Aba.Starter.Platform.Messaging;
 using Aba.Starter.Platform.Persistence;
@@ -7,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Confluent.Kafka;
 using Wolverine;
 using Wolverine.Kafka;
 using Xunit;
@@ -34,6 +34,7 @@ public sealed class KafkaIntegrationTests
             await using (var scope = app.Services.CreateAsyncScope())
             {
                 var bus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
+                // Keep the idempotency key shared while making both payloads distinct.
                 await bus.PublishAsync(new AbaDurabilityProbe(messageId, Guid.NewGuid()));
                 await bus.PublishAsync(new AbaDurabilityProbe(messageId, Guid.NewGuid()));
             }

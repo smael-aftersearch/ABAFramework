@@ -558,7 +558,7 @@
       "status": "partial",
       "owner": "Platform",
       "priority": "P1",
-      "delivered": "Opt-in Wolverine RabbitMQ with tracked publisher confirms plus opt-in Wolverine Kafka; owner-supplied versioned routes; Development-only topology provisioning; RabbitMQ AMQP TLS and Kafka SASL_SSL production guards; Kafka idempotent producer with acks=all; connection/secret redaction. Local API xUnit 208/208, integration project Release build, verify-starter.sh generation/build/test/HTTP smoke (208 xUnit), and pack-template.sh install/build/test (208 xUnit) passed. Both brokers have duplicate-delivery integration cases authored for PostgreSQL and SQL Server; live broker cases remain NOT_RUN locally because Docker Desktop is unavailable and Java is not installed.",
+      "delivered": "Opt-in Wolverine RabbitMQ with tracked publisher confirms plus opt-in Wolverine Kafka; owner-supplied versioned routes; Development-only topology provisioning; RabbitMQ AMQP TLS and Kafka SASL_SSL production guards; Kafka idempotent producer with acks=all; connection/secret redaction. Current local API xUnit 209/209, Release build of the integration-test project, verify-starter.sh generated API build/test/HTTP smoke (209 xUnit), and pack-template.sh package install/build/test (209 xUnit) pass. Kafka duplicate-delivery tests use earliest offsets; RabbitMQ/Kafka duplicate tests use distinct payload nonces for a shared logical ID and report attempt/effect counts. Live broker/provider cases were NOT_RUN locally because Docker Desktop is unavailable; exact-head CI is required.",
       "remaining": "Run exact-head integration CI for duplicate delivery through both brokers on both SQL providers and the disposable RabbitMQ outage/recovery drill; review owner-approved Production topology/ACLs, broker membership, retry/dead-letter policy, schema/partition policy and business consumers separately. Generic full verification currently reports NOT_RUN for external services.",
       "acceptance": "Invalid bootstrap/security configuration is rejected before connection without echoing secret values; Production broker security is enforced; duplicate RabbitMQ and Kafka deliveries yield one technical effect against PostgreSQL and SQL Server; the confirmed durable RabbitMQ outbox delivers after a broker pause/recovery.",
       "evidence": [
@@ -643,8 +643,8 @@
       "status": "partial",
       "owner": "Platform / Operations",
       "priority": "P1",
-      "delivered": "Host-wide per-tenant/key single-flight read-through with 24-concurrent-call and real 12-caller Redis tests, TTL/cancellation/miss-value fixes; actual CI Redis stop/restart with strict/explicit fallback and reconnect (isolated 2-case drill); CI-verified opt-in per-host concurrency ceiling (default 8, configurable 1..256) and capped in-flight cache-miss registrations (default 1024, configurable 1..4096); CI-verified Redis readiness cleanup, malformed query payload repair and cancellation guards; authored opt-in Redis distributed per-key miss lease, cross-host concurrent-source slots, fixed-window source-load budget, namespace settings-drift guard and dedicated readiness probe with fail-closed coordinator outage; local API xUnit 194/194, integration project build PASS and unreachable-Redis fail-closed integration case PASS; live multi-host Redis cases NOT RUN because Docker Engine is unavailable; current local verify-starter.sh and pack-template.sh both generated/tested fresh APIs with xUnit 194/194 and passed HTTP smoke",
-      "remaining": "Run exact-head live Redis tests for independent-host miss collapse, shared concurrent and fixed-window source budgets; review Redis failover, lease expiry, eviction and production capacity/TTL policies; owning contexts must authorize each query scope. Active source callbacks must honor cancellation after lease loss",
+      "delivered": "Host-wide per-tenant/key single-flight read-through with 24-concurrent-call and real 12-caller Redis tests, TTL/cancellation/miss-value fixes; actual CI Redis stop/restart with strict/explicit fallback and reconnect (isolated 2-case drill); CI-verified opt-in per-host concurrency ceiling (default 8, configurable 1..256) and capped in-flight cache-miss registrations (default 1024, configurable 1..4096); CI-verified Redis readiness cleanup, malformed query payload repair and cancellation guards; authored opt-in Redis distributed per-key miss lease, cross-host concurrent-source slots, fixed-window source-load budget, namespace settings-drift guard and dedicated readiness probe with fail-closed coordinator outage; new cancellation-blind loader lease-loss regression passes in local API xUnit 209/209, generated API verification and package install smoke (209 xUnit). Live multi-host Redis cases NOT_RUN because Docker Engine is unavailable.",
+      "remaining": "Run exact-head live Redis tests for independent-host miss collapse and shared concurrent/fixed-window source budgets; review Redis failover, lease expiry, eviction and production capacity/TTL policies; owning contexts must authorize each query scope. Platform discards late results but cannot undo side effects from a loader that ignores cancellation.",
       "acceptance": "Independent hosts with matching settings share bounded miss coordination and source-load admission; settings drift or an unavailable coordinator never invokes the authoritative source; business query-scope authorization remains owner-controlled",
       "evidence": [
         "templates/aba-api/src/Aba.Starter.Platform/Caching/AbaCacheLoadGate.cs",
@@ -710,7 +710,7 @@
       "status": "partial",
       "owner": "Security / business owners",
       "priority": "P0",
-      "delivered": "CI-verified HMAC-SHA256 per-tenant ledger, serializable dual SQL append, tamper/rotation tests plus separately signed offline checkpoint codec and historical-prefix verification on both SQL engines; Audit-chain, key rotation, concurrent append and signed checkpoint integration passed across both live SQL providers; external immutable archive and key custody remain open.",
+      "delivered": "CI-verified HMAC-SHA256 per-tenant ledger, serializable dual SQL append, tamper/rotation tests plus separately signed offline checkpoint codec and historical-prefix verification on both SQL engines; checkpoint verification/signing reject null digests and those negative cases pass in local API xUnit 209/209. External immutable archive and key custody remain open.",
       "remaining": "Deploy independently immutable off-DB checkpoint archive, real signing key custody/rotation and context-owned actor/event/retention rules; audit appender role restrictions and legal policies",
       "acceptance": "Audit cannot be silently rewritten and records actor, action, tenant, outcome",
       "evidence": [
@@ -913,7 +913,7 @@
       "status": "partial",
       "owner": "Release engineering",
       "priority": "P0",
-      "delivered": "NuGet direct/transitive advisory scans + SPDX; reviewed immutable .NET 10 multiarch SDK/runtime base digests with fail-closed policy/negative tests; Trivy-scanned runtime Docker-save archive keyless SLSA attested, Docker reload ID/tamper rejection; signed tested NuGet template provenance",
+      "delivered": "NuGet direct/transitive advisory scans + SPDX; reviewed immutable .NET 10 multiarch SDK/runtime base digests with fail-closed policy/negative tests; Trivy-scanned runtime Docker-save archive keyless SLSA attested, Docker reload ID/tamper rejection; signed tested NuGet template provenance; Dockerfile USER validation requires exactly one active USER $APP_UID instruction in runtime and none in other stages; local OCI lock unit tests pass 11/11, including commented-line and build-stage bypass fixtures.",
       "remaining": "Approve HIGH/unfixed image severity policy, sign and verify the actual published OCI registry digest and published NuGet package, protected tag promotion and production deployment/change-control",
       "acceptance": "Release pipeline rejects vulnerable/untrusted dependencies and verifies provenance",
       "evidence": [
@@ -952,7 +952,7 @@
       "status": "partial",
       "owner": "Operations / Performance",
       "priority": "P1",
-      "delivered": "CI-verified disposable generated-API loopback drill (main CI 43372751506): 40 HTTP 200, four workers, p50/p95 and throughput; PR #18 guards exclusive private JSON output (CI 43358127202 PASS); Queue A run 10 adds strict canonical loopback URL parsing and control-character rejection (new PR CI pending)",
+      "delivered": "CI-verified disposable generated-API loopback drill (main CI 43372751506): 40 HTTP 200, four workers, p50/p95 and throughput; PR #18 guards exclusive private JSON output (CI 43358127202 PASS); strict canonical loopback URL parsing and control-character rejection now pass locally in test_ci_loopback_load.py (8 passed, Windows symlink case skipped because the account lacks symlink privilege)",
       "remaining": "Set owner-approved production SLO/RTO/RPO and exercise actual provider-backed two-replica business load/failover, recovery and safe capacity thresholds; loopback liveness does not certify those",
       "acceptance": "SLO and recovery objectives measurable under load",
       "evidence": [
@@ -971,13 +971,14 @@
       "status": "partial",
       "owner": "Business owners (TBD)",
       "priority": "P0",
-      "delivered": "Context generator creates Contracts project; no real product Contracts",
+      "delivered": "Context generator creates Contracts projects and validates version suffixes, ownership declarations, and published/consumed contract metadata shape; focused local tests pass 13/13 and fresh-context generation/build checks pass in verify-starter.sh. No real product contracts or business schemas were invented.",
       "remaining": "Specify real public V1 schemas, consumers and compatibility evolution",
       "acceptance": "V1 consumers stay compatible; private implementation edges rejected",
       "evidence": [
         "templates/aba-api/tools/new_context.py"
       ],
       "tests": [
+        "templates/aba-api/tools/test_aba_task.py",
         "scripts/verify-starter.sh"
       ]
     },

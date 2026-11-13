@@ -153,6 +153,42 @@ public sealed class AbaCacheDistributedCoordinationTests
         Assert.Equal(1, coordinator.SourcePermits);
     }
 
+    [Fact]
+    public async Task LeaseLossDiscardsResultFromCancellationBlindSource()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddAbaCaching(new ConfigurationBuilder().Build());
+        using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var cache = scope.ServiceProvider.GetRequiredService<ScopedJsonCache>();
+        var coordinator = new FakeCoordinator();
+        var query = new ReadThroughQueryCache(cache, distributedCoordinator: coordinator);
+        var sourceStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var finishSource = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var sourceToken = CancellationToken.None;
+
+        var pending = query.GetOrLoadAsync("tenant-a", "lease-loss",
+            TimeSpan.FromMinutes(1), async ct =>
+            {
+                sourceToken = ct;
+                sourceStarted.TrySetResult(true);
+                // Deliberately ignore cancellation to verify the Platform still
+                // refuses to return or cache a result after its Redis lease is lost.
+                return await finishSource.Task;
+            }, CacheOutagePolicy.UseAuthoritativeSource);
+
+        await sourceStarted.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        coordinator.Lease.MarkLost();
+        Assert.True(sourceToken.IsCancellationRequested);
+
+        finishSource.TrySetResult("result-after-lease-loss");
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending);
+
+        var cached = await cache.TryGetAsync<string>("tenant-a", "lease-loss");
+        Assert.False(cached.Found);
+    }
+
     private static IConfiguration Configuration(
         bool enabled, string provider, string connection, string appNamespace)
         => new ConfigurationBuilder().AddInMemoryCollection(
@@ -172,6 +208,7 @@ public sealed class AbaCacheDistributedCoordinationTests
         Func<CancellationToken, Task>? onAcquire = null) : IAbaCacheMissCoordinator
     {
         public int SourcePermits { get; private set; }
+        public FakeLease Lease { get; } = new();
 
         public Task VerifyReadinessAsync(CancellationToken ct)
         {
@@ -183,7 +220,7 @@ public sealed class AbaCacheDistributedCoordinationTests
         {
             if (onAcquire is not null)
                 await onAcquire(ct);
-            return new FakeLease();
+            return Lease;
         }
 
         public Task AcquireSourceLoadPermitAsync(CancellationToken ct)
@@ -199,6 +236,7 @@ public sealed class AbaCacheDistributedCoordinationTests
         private readonly CancellationTokenSource _lost = new();
         public CancellationToken LeaseLost => _lost.Token;
         public void ThrowIfLost() => LeaseLost.ThrowIfCancellationRequested();
+        public void MarkLost() => _lost.Cancel();
         public ValueTask DisposeAsync()
         {
             _lost.Dispose();

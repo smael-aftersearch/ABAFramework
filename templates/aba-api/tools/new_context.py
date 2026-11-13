@@ -78,7 +78,10 @@ def files_for(name, ns, with_db=False):
             f"        return services;\n    }}\n}}\n",
         mod / "Contracts" / "README.md":
             f"# {name} public contracts\n\nNo business events or DTOs have been published. "
-            "Introduce V1 only when owner-approved business requirements exist.\n",
+            "Introduce V1 only when owner-approved business requirements exist. "
+            "The context checker requires public types to be explicitly versioned "
+            "and listed in ownership metadata; published names must be locally owned, "
+            "and consumed names must be explicitly versioned.\n",
         testdir / "ModuleRegistrationTests.cs":
             f"using {prefix}.Infrastructure;\n"
             f"using Microsoft.Extensions.DependencyInjection;\nusing Xunit;\n"
@@ -189,6 +192,60 @@ def files_for(name, ns, with_db=False):
     return files, projects
 
 
+CONTRACT_TYPE = re.compile(
+    r"^[ \t]*public[ \t]+(?:(?:sealed|abstract|partial|static|readonly|ref)[ \t]+)*"
+    r"(?:record(?:[ \t]+(?:class|struct))?|class|interface|struct|enum|delegate)"
+    r"[ \t]+([A-Za-z_][A-Za-z0-9_]*)",
+    re.MULTILINE,
+)
+CONTRACT_VERSION = re.compile(
+    r"^(?:[A-Za-z_][A-Za-z0-9_]*\.)*[A-Za-z_][A-Za-z0-9_]*V[1-9][0-9]*$"
+)
+
+
+def validate_contract_surface(context_name, contracts_dir, owned_contracts, publishes, consumes):
+    """Validate contract names and metadata shape without approving business semantics."""
+    declarations = set()
+    for source in contracts_dir.rglob("*.cs"):
+        declarations.update(CONTRACT_TYPE.findall(source.read_text(encoding="utf-8")))
+
+    if not isinstance(owned_contracts, list) or any(
+        not isinstance(item, str) or not item.strip() for item in owned_contracts
+    ):
+        raise ValueError(f"Invalid publicContracts ownership list: {context_name}")
+    if len(owned_contracts) != len(set(owned_contracts)):
+        raise ValueError(f"Duplicate publicContracts ownership entry: {context_name}")
+
+    unversioned = sorted(name for name in declarations if not re.search(r"V[1-9][0-9]*$", name))
+    if unversioned:
+        raise ValueError(
+            f"Unversioned public type(s) in {context_name}.Contracts: {unversioned}; use explicit V1/V2."
+        )
+    if declarations != set(owned_contracts):
+        raise ValueError(
+            f"{context_name} Contracts declarations differ from ownership metadata: "
+            f"code={sorted(declarations)}, ownership={sorted(owned_contracts)}"
+        )
+
+    for field_name, values in (("publishes", publishes), ("consumes", consumes)):
+        if not isinstance(values, list) or any(
+            not isinstance(item, str) or not CONTRACT_VERSION.fullmatch(item)
+            for item in values
+        ):
+            raise ValueError(
+                f"{context_name} context-map {field_name} must list explicitly versioned contract names."
+            )
+        if len(values) != len(set(values)):
+            raise ValueError(f"Duplicate {field_name} contract in {context_name} context-map.")
+
+    unknown_published = sorted(set(publishes) - declarations)
+    if unknown_published:
+        raise ValueError(
+            f"{context_name} publishes contract(s) absent from its owned Contracts project: "
+            f"{unknown_published}"
+        )
+
+
 def check():
     solution, xml, api, ns = identity()
     catalog = json.loads(CATALOG.read_text())
@@ -238,13 +295,22 @@ def check():
                 if (dest.is_relative_to(other) and not dest.is_relative_to(other / name)
                         and dest.parent.name != "Contracts"):
                     raise ValueError(f"Forbidden cross-context implementation dependency: {rel}")
+        context_docs = {}
         for filename in ("ownership.yaml", "context-map.yaml", "ai-rules.yaml"):
             info = json.loads((ROOT / "src/Modules" / name / "_Docs" / filename).read_text())
             if info.get("context") != name:
                 raise ValueError(f"Wrong metadata owner: {name}/{filename}")
+            context_docs[filename] = info
             if filename == "ownership.yaml":
                 if info.get("owner") != name or info.get("owns") != owned:
                     raise ValueError(f"Root and context ownership metadata drift: {name}")
+        validate_contract_surface(
+            name,
+            ROOT / "src/Modules" / name / "Contracts",
+            owned.get("publicContracts"),
+            context_docs["context-map.yaml"].get("publishes"),
+            context_docs["context-map.yaml"].get("consumes"),
+        )
         # Text imports are checked as a conservative pre-compiler guard. Real
         # compilation and runtime/architecture tests are additional CI gates.
         for source in (ROOT / "src/Modules" / name).rglob("*.cs"):

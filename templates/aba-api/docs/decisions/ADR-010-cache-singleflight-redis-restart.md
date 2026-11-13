@@ -147,7 +147,12 @@ exhausted, the loader does not run. In distributed mode this is true even
 when the caller selected `UseAuthoritativeSource`: without a shared permit,
 the Platform fails closed instead of creating uncoordinated replica load.
 The source callback receives a cancellation token linked to lease loss and
-must honor cancellation. This is load coordination, not a correctness lock,
+must honor cancellation. If a callback ignores cancellation, the Platform
+checks the linked token again before returning or caching its result. The
+unit suite includes a cancellation-blind loader that finishes after lease
+loss and asserts that its value is neither returned nor cached. This cannot
+undo side effects inside an ill-behaved callback; loader owners still need
+to observe cancellation. This is load coordination, not a correctness lock,
 tenant membership grant, business idempotency, cross-replica invalidation or
 a promise that Redis failover preserves leases/counters. A Redis failover,
 eviction policy, multi-region setup and callback cancellation behavior need

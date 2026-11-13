@@ -29,8 +29,10 @@ Noble. Exact sources and review date are stored in
 The Python validator `tools/oci_base_lock.py` and deliberate negative
 tests `tools/test_oci_base_lock.py` fail builds for floating references,
 unapproved registries, missing/changed digests, unreviewed stages, absent
-locks or root execution. Both upstream and freshly generated CI enforce
-these before building. Digest refresh requires a reviewed code change,
+locks or anything other than one active `USER $APP_UID` instruction in the
+runtime stage, or any `USER` in another stage. Both upstream and freshly
+generated CI enforce these before building. Digest refresh requires a
+reviewed code change,
 `docker buildx imagetools inspect`, fresh CI and image security scanning.
 A fixed old digest is *reproducible*, not immune to new CVEs; review
 regularly and immediately after upstream advisories.

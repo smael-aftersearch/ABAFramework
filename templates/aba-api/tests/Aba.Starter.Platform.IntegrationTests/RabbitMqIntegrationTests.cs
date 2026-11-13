@@ -36,6 +36,7 @@ public sealed class RabbitMqIntegrationTests
             await using (var scope = app.Services.CreateAsyncScope())
             {
                 var bus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
+                // Keep the idempotency key shared while making both payloads distinct.
                 await bus.PublishAsync(new AbaDurabilityProbe(messageId, Guid.NewGuid()));
                 await bus.PublishAsync(new AbaDurabilityProbe(messageId, Guid.NewGuid()));
             }

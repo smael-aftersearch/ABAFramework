@@ -19,6 +19,7 @@ public sealed class AuditCheckpointTests
         Assert.False(AbaAuditCheckpointCodec.Verify(signed with { TenantId = "tenant-two" }, Secret));
         Assert.False(AbaAuditCheckpointCodec.Verify(signed with { Sequence = 6 }, Secret));
         Assert.False(AbaAuditCheckpointCodec.Verify(signed with { HeadDigest = new string('b', 64) }, Secret));
+        Assert.False(AbaAuditCheckpointCodec.Verify(signed with { HeadDigest = null! }, Secret));
         Assert.False(AbaAuditCheckpointCodec.Verify(signed with { IssuedUtc = issued.AddHours(1) }, Secret));
         Assert.False(AbaAuditCheckpointCodec.Verify(signed with { KeyId = "offline-v2" }, Secret));
         Assert.False(AbaAuditCheckpointCodec.Verify(signed with { Signature = new string('f', 64) }, Secret));
@@ -35,6 +36,8 @@ public sealed class AuditCheckpointTests
             AbaAuditCheckpointCodec.Sign(Candidate() with { Sequence = 0 }, "offline-v1", Secret, issued));
         Assert.Throws<ArgumentException>(() =>
             AbaAuditCheckpointCodec.Sign(Candidate() with { HeadDigest = "unsafe" }, "offline-v1", Secret, issued));
+        Assert.Throws<ArgumentException>(() =>
+            AbaAuditCheckpointCodec.Sign(Candidate() with { HeadDigest = null! }, "offline-v1", Secret, issued));
         Assert.Throws<ArgumentException>(() =>
             AbaAuditCheckpointCodec.Sign(Candidate(), "invalid key", Secret, issued));
         var valid = AbaAuditCheckpointCodec.Sign(Candidate(), "offline-v1", Secret, issued.ToUniversalTime());
