@@ -387,6 +387,28 @@ Setup and connection settings: [generic platform infrastructure guide](templates
 
 **Fully closed Queue B capabilities: 0/9 (0%).** Business owners/DBA/Operations still own production requirements and approval. [Queue B #4](https://github.com/smael-aftersearch/ABAFramework/issues/4) · [central ledger #6](https://github.com/smael-aftersearch/ABAFramework/issues/6).
 
+### Post-PR #31 technical hardening (2026-11-13)
+
+[PR #31](https://github.com/smael-aftersearch/ABAFramework/pull/31) was
+merged at `fddc7953bf746d74b6ef974d7818453d04e281d0` after
+[exact-head CI 43495491046](https://github.com/smael-aftersearch/ABAFramework/actions/runs/43495491046)
+passed all 10 applicable jobs, including the disposable RabbitMQ outage /
+producer-SIGKILL / committed transactional outbox recovery. The **current**
+catalog has 55 capabilities: **36 implemented, 11 partial, 8 not started**.
+These are technical status categories, **not** Production authorization.
+
+**`cache-stampede` incremental Redis fail-closed drift guard:**
+[PR #33](https://github.com/smael-aftersearch/ABAFramework/pull/33)
+revalidates opt-in cross-host namespace settings before each Redis
+coordination operation instead of permanently trusting the first check.
+A disposable Redis regression exercises same-settings recreation, conflicting
+replacement (no source loader runs), unhealthy readiness and preservation
+of two tenants' cached results. Source/test/ADR are **AUTHORED; exact-head
+PR CI must pass before this is counted as verified evidence**. The feature
+remains **partial**, while `cache-multinode` remains **not started**; no
+business invalidation protocol or Production failover/eviction policy is
+implied. See [next-phase issue #32](https://github.com/smael-aftersearch/ABAFramework/issues/32).
+
 <!-- ABA-STATUS:START -->
 
 The **generic .NET 10 API template** is the primary product. This matrix is separate from the
