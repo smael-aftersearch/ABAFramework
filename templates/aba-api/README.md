@@ -222,6 +222,20 @@ authoritative query fallback, and proves reconnection. Default
 Fast tests never stop Redis. Neither cross-replica locks nor
 cache-backed authorization are supplied.
 
+## Bounded in-flight cache-miss queue (single host)
+
+The singleton cache-miss gate also bounds the total number of callers
+registered **across all scoped tenant/key partitions**, including queued
+waiters. `Platform__Cache__MaxInFlightRequests` defaults to **1024**
+(accepted range **1–4096**); invalid settings fail at startup.
+When exhausted, `AbaCacheLoadGateSaturatedException` is raised before
+cache access or source work. No cached data is invented or served across
+tenants. Canceled waiters and disposed leases release capacity; a later
+authorized request can retry. This is a per-host memory/backlog guard,
+**not** a multi-node distributed lock, source rate quota or authorization
+system. Verification: `CacheSingleFlightTests` and the pull request's
+exact-HEAD CI; the new cases are NOT RUN until that CI completes.
+
 ## Opt-in source-load backpressure during cache outages
 
 The `cache-stampede` hardening path includes a fail-fast, shared
