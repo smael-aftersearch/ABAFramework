@@ -185,7 +185,7 @@ public sealed class AbaDeadLetterAdministration(
             // that window while the envelope is still non-replayable.
             var replaced = await db.DeadLetterInspectionReceipts
                 .Where(x => x.EnvelopeId == envelopeId
-                    && ((x.ConsumedUtc == null && x.ExpiresUtc <= issued)
+                    && (x.ConsumedUtc == null
                         || (x.ConsumedUtc.HasValue
                             && x.ConsumedUtc.Value <= consumedRetryAfter)))
                 .ExecuteUpdateAsync(update => update
