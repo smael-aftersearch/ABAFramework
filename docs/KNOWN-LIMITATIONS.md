@@ -148,3 +148,14 @@ tested Docker-save archive after Trivy and a load identity
 check; it does NOT sign any published OCI registry digest.
 Downstream products must build and sign their own releases.
 Digest pins need scheduled CVE review and upgrades.
+
+## Queue A CI-only loopback load guard (2026-11-13)
+
+The optional 40-request/four-worker liveness baseline in `scripts/ci_loopback_load.py`
+is constrained to a generated API listening on explicit `127.0.0.1` HTTP and
+`/health/live` in a disposable GitHub Actions runner. Redirects, credentials,
+non-loopback targets, arbitrary paths and missing CI opt-in are rejected.
+p50/p95 and throughput are diagnostics only: they cannot establish production
+load SLOs, real business endpoints, multi-replica failover, traffic shaping,
+capacity forecasts or recovery objectives. Operations must set these with a
+real approved environment before `ops-load` can be complete.

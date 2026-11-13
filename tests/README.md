@@ -125,3 +125,13 @@ proves the drill cannot run without both `CI=true` and
 `ABA_ENABLE_OTEL_COLLECTOR_DRILL=yes`. The real collector job is a
 prerequisite for main-only signed provenance. PR CI must pass before this
 is described as verified; no production collector/credentials are deployed.
+
+## Queue A bounded disposable load probe
+
+`python3 scripts/test_ci_loopback_load.py` tests success/count/concurrency
+invariants and rejects non-loopback targets, redirects, non-200 responses,
+unbounded counts and missing CI opt-in. On the GitHub `otel-collector` job,
+the disposable generated API is additionally exercised by
+`scripts/ci_loopback_load.py`; numerical p50/p95, aggregate failures and
+throughput are uploaded as `aba-loopback-load-baseline`. This is a CI-only
+single-process liveness diagnostic, not a production capacity/SLO claim.
