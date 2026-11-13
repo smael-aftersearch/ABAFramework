@@ -9,7 +9,8 @@ namespace Aba.Starter.Platform.Messaging;
 /// Internal technical probe for integration-test verification of durable delivery.
 /// It is not a business integration contract and no HTTP endpoint publishes it.
 /// </summary>
-public sealed record AbaDurabilityProbe(Guid Id);
+/// <param name="PublishNonce">Distinguishes intentional repeated publishes with the same logical id.</param>
+public sealed record AbaDurabilityProbe(Guid Id, Guid PublishNonce = default);
 
 public static class AbaDurabilityProbeHandler
 {

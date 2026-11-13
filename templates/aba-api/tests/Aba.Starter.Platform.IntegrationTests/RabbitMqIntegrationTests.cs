@@ -36,8 +36,8 @@ public sealed class RabbitMqIntegrationTests
             await using (var scope = app.Services.CreateAsyncScope())
             {
                 var bus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
-                await bus.PublishAsync(new AbaDurabilityProbe(messageId));
-                await bus.PublishAsync(new AbaDurabilityProbe(messageId));
+                await bus.PublishAsync(new AbaDurabilityProbe(messageId, Guid.NewGuid()));
+                await bus.PublishAsync(new AbaDurabilityProbe(messageId, Guid.NewGuid()));
             }
 
             var deadline = DateTimeOffset.UtcNow.AddSeconds(45);
