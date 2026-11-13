@@ -93,6 +93,21 @@ healthy retry after release, canceled-waiter cleanup and invalid config.
 The new tests require the exact PR-head .NET CI before they count as
 executed evidence.
 
+## Redis readiness probe cleanup under read failure (Queue B run 7)
+
+The provider readiness check uses a fresh opaque `aba:health:<random>` key
+with a ten-second TTL. After successfully writing the probe, it now attempts
+to remove **only that probe key** even if the subsequent read times out or
+returns the wrong value. Cleanup failure returns **Unhealthy**, not Healthy;
+read timeout and mismatch remain Unhealthy. Cancellation propagates normally
+and the short TTL limits abandoned probe keys if the health check is canceled.
+No tenant-scoped query key is inspected or deleted by this readiness check.
+`AbaRedisHealthCheckTests` covers a successful probe, read timeout,
+readback mismatch, cleanup failure and preserved unrelated tenant data.
+This is local Redis hygiene; it is not an inter-replica lock, durable
+invalidation protocol, permission check or production topology approval.
+These authored tests require exact PR-head CI for executed PASS evidence.
+
 ## Open limits
 
 This is **one-process** miss coalescing, not a distributed Redis

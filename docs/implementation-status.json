@@ -600,8 +600,8 @@
       "status": "partial",
       "owner": "Platform / Operations",
       "priority": "P1",
-      "delivered": "Host-wide per-tenant/key single-flight read-through with 24-concurrent-call and real 12-caller Redis tests, TTL/cancellation/miss-value fixes; actual CI Redis stop/restart with strict/explicit fallback and reconnect (isolated 2-case drill); CI-verified opt-in per-host concurrency ceiling (default 8, configurable 1..256) for authoritative query loads on cache misses/outage; PR #8 CI 43338197320 PASS 8/8 at cabd2c7; authored per-host capped in-flight cache-miss registrations (default 1024, configurable 1..4096) with fail-fast cross-tenant queue admission and cancellation cleanup; exact-head PR CI pending",
-      "remaining": "Verify bounded in-flight queue tests on exact PR-head CI; Add distributed multi-replica miss budget/locking, authorize query scopes, bound total/serial source load across replicas during full Redis outage and verify production Redis topology/TTL race policies",
+      "delivered": "Host-wide per-tenant/key single-flight read-through with 24-concurrent-call and real 12-caller Redis tests, TTL/cancellation/miss-value fixes; actual CI Redis stop/restart with strict/explicit fallback and reconnect (isolated 2-case drill); CI-verified opt-in per-host concurrency ceiling (default 8, configurable 1..256) for authoritative query loads on cache misses/outage; PR #8 CI 43338197320 PASS 8/8 at cabd2c7; CI-verified per-host capped in-flight cache-miss registrations (default 1024, configurable 1..4096) with fail-fast cross-tenant queue admission and cancellation cleanup (PR #13 CI 43351080430); authored readiness probe cleanup on Redis read timeout/mismatch and fail-closed cleanup errors with unrelated tenant keys preserved (new PR-head CI pending)",
+      "remaining": "Verify Redis readiness probe cleanup on exact PR-head CI; Add distributed multi-replica miss budget/locking, authorize query scopes, bound total/serial source load across replicas during full Redis outage and verify production Redis topology/TTL race policies",
       "acceptance": "No excessive authoritative DB load during simultaneous cache misses",
       "evidence": [
         "templates/aba-api/src/Aba.Starter.Platform/Caching/AbaCacheLoadGate.cs",
@@ -614,7 +614,8 @@
         "templates/aba-api/tests/Aba.Starter.Api.Tests/CacheSingleFlightTests.cs",
         "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/RedisRestartDrillTests.cs",
         "templates/aba-api/tests/Aba.Starter.Platform.IntegrationTests/AbaExternalInfrastructureTests.cs",
-        "templates/aba-api/tests/Aba.Starter.Api.Tests/CacheSourceBudgetTests.cs"
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/CacheSourceBudgetTests.cs",
+        "templates/aba-api/tests/Aba.Starter.Api.Tests/AbaRedisHealthCheckTests.cs"
       ]
     },
     {

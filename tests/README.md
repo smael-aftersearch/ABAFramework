@@ -105,6 +105,12 @@ job that stops and restarts only its own disposable Docker
 Redis 7 container, with negative CI/loopback/container-ID gates.
 No ordinary unit or SQL test is permitted to stop Redis.
 
+The generated API xUnit `AbaRedisHealthCheckTests` exercises readiness
+probe cleanup on success, failed read and wrong readback, plus fail-closed
+cleanup failure and isolation of unrelated tenant cache keys. This is
+synthetic provider-failure testing, not a production Redis recovery drill;
+count it as executed only after the new PR-head CI succeeds.
+
 tools/test_oci_base_lock.py deliberately changes source registry,
 digest, tag, stages, runtime UID and missing lock and requires
 rejection before Docker build. Root CI signs the scanned Docker
