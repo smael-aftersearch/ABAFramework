@@ -111,32 +111,39 @@ public sealed partial class AbaAuditLedger
         var db = scope.ServiceProvider.GetRequiredService<AbaPlatformDbContext>();
         await using var transaction = await db.Database.BeginTransactionAsync(
             System.Data.IsolationLevel.RepeatableRead, ct);
-        var rows = await db.AuditRecords.AsNoTracking()
+        // A signed historical checkpoint must be verified across the
+        // ordered stream without retaining the entire tenant ledger in RAM.
+        // The repeatable-read transaction supplies one consistent snapshot.
+        var rows = db.AuditRecords.AsNoTracking()
             .Where(x => x.TenantId == checkpoint.TenantId)
-            .OrderBy(x => x.Sequence).ToListAsync(ct);
+            .OrderBy(x => x.Sequence).AsAsyncEnumerable();
         var previous = Genesis;
         long sequence = 0;
+        var verifiedCount = 0;
         bool matchedAnchor = false;
-        foreach (var row in rows)
+        await foreach (var row in rows.WithCancellation(ct))
         {
             sequence++;
             if (row.Sequence != sequence ||
                 !MatchDigest(row.PreviousDigest, previous) ||
                 !MatchDigest(row.Digest, Hash(row)))
-                return new(false, (int)(sequence - 1), row.Sequence,
+                return new(false, verifiedCount, row.Sequence,
                     "Audit sequence, link or signature changed.", previous);
             previous = row.Digest;
+            verifiedCount = checked(verifiedCount + 1);
             if (sequence == checkpoint.Sequence)
             {
                 if (!MatchDigest(row.Digest, checkpoint.HeadDigest))
-                    return new(false, (int)sequence, row.Sequence,
+                    return new(false, verifiedCount, row.Sequence,
                         "Anchored audit prefix changed.", previous);
                 matchedAnchor = true;
             }
         }
         if (!matchedAnchor)
-            return new(false, rows.Count, null, "Anchored audit prefix was truncated.", previous);
+            return new(false, verifiedCount, null,
+                "Anchored audit prefix was truncated.", previous);
         await transaction.CommitAsync(ct);
-        return new(true, rows.Count, null, "Verified against signed historical checkpoint.", previous);
+        return new(true, verifiedCount, null,
+            "Verified against signed historical checkpoint.", previous);
     }
 }

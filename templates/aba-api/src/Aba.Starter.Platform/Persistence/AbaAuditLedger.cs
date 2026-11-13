@@ -211,24 +211,29 @@ public sealed partial class AbaAuditLedger(IServiceScopeFactory scopes, AbaAudit
         ValidateIdentifier(tenantId, nameof(tenantId));
         await using var scope = scopes.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AbaPlatformDbContext>();
-        var records = await db.AuditRecords.AsNoTracking()
+        // Process ordered tenant records one at a time. Materializing an
+        // entire append-only ledger can exhaust API memory on large chains.
+        // AsAsyncEnumerable keeps the query and cancellation provider-bound.
+        var records = db.AuditRecords.AsNoTracking()
             .Where(x => x.TenantId == tenantId).OrderBy(x => x.Sequence)
-            .ToListAsync(ct);
+            .AsAsyncEnumerable();
         var previous = Genesis;
         long sequence = 0;
-        foreach (var record in records)
+        var verifiedCount = 0;
+        await foreach (var record in records.WithCancellation(ct))
         {
             sequence++;
             if (record.Sequence != sequence ||
                 !MatchDigest(record.PreviousDigest, previous) ||
                 !MatchDigest(record.Digest, Hash(record)))
-                return new(false, (int)(sequence - 1), record.Sequence,
+                return new(false, verifiedCount, record.Sequence,
                     "Audit digest, sequence or link mismatch.", previous);
             previous = record.Digest;
+            verifiedCount = checked(verifiedCount + 1);
         }
         if (expectedHeadDigest is not null && !MatchDigest(previous, expectedHeadDigest))
-            return new(false, records.Count, null,
+            return new(false, verifiedCount, null,
                 "Audit head does not match the independent checkpoint.", previous);
-        return new(true, records.Count, null, "Verified", previous);
+        return new(true, verifiedCount, null, "Verified", previous);
     }
 }

@@ -69,6 +69,16 @@ on PostgreSQL and SQL Server, with real durable poison quarantine,
 authorized single-envelope recovery and tamper-evident audit checks.
 No public DLQ endpoint or customer message transport is created.
 
+The audit verifier now uses ordered async EF row streams for both
+ordinary full-chain and separately signed historical-prefix checks,
+instead of allocating an entire tenant history as a list. The
+`StreamingAuditVerificationPreservesSignedPrefixAndTenantBoundaryAfterTamper`
+regression runs on both PostgreSQL and SQL Server: success after 32
+technical events, independent historical anchor, negative mid-chain
+tamper and preserved neighbor tenant head. Only generated tenant audit
+rows are deleted by the test. This is authored evidence pending exact
+PR-head CI, not immutable Production audit custody.
+
 ## Optional RabbitMQ transport and broker outage test
 
 The generic template's separately built `RabbitMqIntegrationTests.cs` uses a

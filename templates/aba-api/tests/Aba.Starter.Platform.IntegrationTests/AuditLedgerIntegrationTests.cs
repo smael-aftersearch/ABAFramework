@@ -139,4 +139,77 @@ public sealed class AuditLedgerIntegrationTests
         var db = scope.ServiceProvider.GetRequiredService<AbaPlatformDbContext>();
         await db.AuditRecords.Where(x => x.TenantId == tenant).ExecuteDeleteAsync();
     }
+    [Theory]
+    [InlineData("PostgreSql", "ABA_TEST_POSTGRESQL")]
+    [InlineData("SqlServer", "ABA_TEST_SQLSERVER")]
+    public async Task StreamingAuditVerificationPreservesSignedPrefixAndTenantBoundaryAfterTamper(
+        string engine, string envVar)
+    {
+        var connection = Environment.GetEnvironmentVariable(envVar);
+        Assert.False(string.IsNullOrWhiteSpace(connection));
+        var tenant = "ci-audit-stream-" + Guid.NewGuid().ToString("N");
+        var neighbor = "ci-audit-neighbor-" + Guid.NewGuid().ToString("N");
+        var externalSigner = Enumerable.Repeat((byte)0xA5, 32).ToArray();
+        await using var services = Build(engine, connection!, "key-v1", retainOld: true);
+        await EnsureMigratedAsync(services);
+        var audit = services.GetRequiredService<AbaAuditLedger>();
+        try
+        {
+            var neighborHead = await audit.AppendAsync(new(
+                neighbor, "actor-2", "audit.neighbor", "allowed", "neighbor-1"));
+
+            AbaSignedAuditCheckpoint? signedPrefix = null;
+            AbaAuditRecord? finalHead = null;
+            for (var i = 1; i <= 32; i++)
+            {
+                finalHead = await audit.AppendAsync(new(
+                    tenant, "actor-1", "audit.stream", "allowed", "request-" + i));
+                if (i == 12)
+                {
+                    var candidate = await audit.CheckpointCandidateAsync(tenant);
+                    signedPrefix = AbaAuditCheckpointCodec.Sign(
+                        candidate, "external-custodian", externalSigner, DateTimeOffset.UtcNow);
+                }
+            }
+
+            Assert.NotNull(signedPrefix);
+            Assert.NotNull(finalHead);
+            var full = await audit.VerifyAsync(tenant, finalHead!.Digest);
+            Assert.True(full.Valid, full.Reason);
+            Assert.Equal(32, full.VerifiedRecords);
+            var anchored = await audit.VerifyAnchoredPrefixAsync(signedPrefix!, externalSigner);
+            Assert.True(anchored.Valid, anchored.Reason);
+            Assert.Equal(32, anchored.VerifiedRecords);
+            Assert.False((await audit.VerifyAsync(tenant, new string('f', 64))).Valid);
+
+            // Negative: a later row was silently rewritten without the HMAC
+            // key; both streaming verifiers must reject the damaged suffix.
+            await using (var scope = services.CreateAsyncScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AbaPlatformDbContext>();
+                Assert.Equal(1, await db.AuditRecords
+                    .Where(x => x.TenantId == tenant && x.Sequence == 19)
+                    .ExecuteUpdateAsync(set => set.SetProperty(x => x.Outcome, "denied")));
+            }
+            var broken = await audit.VerifyAsync(tenant);
+            Assert.False(broken.Valid);
+            Assert.Equal(19L, broken.BrokenSequence);
+            Assert.Equal(18, broken.VerifiedRecords);
+            Assert.False((await audit.VerifyAnchoredPrefixAsync(signedPrefix!, externalSigner)).Valid);
+
+            // Invariant: the adjacent tenant's chain and external head remain
+            // valid despite a synthetic tamper in the selected tenant.
+            var neighborVerified = await audit.VerifyAsync(neighbor, neighborHead.Digest);
+            Assert.True(neighborVerified.Valid, neighborVerified.Reason);
+            Assert.Equal(1, neighborVerified.VerifiedRecords);
+        }
+        finally
+        {
+            await using var scope = services.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<AbaPlatformDbContext>();
+            await db.AuditRecords.Where(x => x.TenantId == tenant).ExecuteDeleteAsync();
+            await db.AuditRecords.Where(x => x.TenantId == neighbor).ExecuteDeleteAsync();
+        }
+    }
+
 }
